@@ -51,7 +51,6 @@ services:
     name: agenda-educacao-web
     runtime: static
     rootDir: frontend
-    plan: free
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
     routes:
