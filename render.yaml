@@ -31,6 +31,8 @@ services:
         sync: false
       - key: DJANGO_SUPERUSER_EMAIL
         value: admin@agenda.local
+      - key: DJANGO_SUPERUSER_PASSWORD
+        value: Admin@12345
       - key: DJANGO_SUPERUSER_FULL_NAME
         value: Admin Agenda
       - key: EMAIL_BACKEND

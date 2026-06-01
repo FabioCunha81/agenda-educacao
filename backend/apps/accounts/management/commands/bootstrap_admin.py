@@ -20,6 +20,12 @@ class Command(BaseCommand):
             help="Senha do administrador inicial.",
         )
         parser.add_argument(
+            "--reset-password",
+            action="store_true",
+            default=os.environ.get("DJANGO_SUPERUSER_RESET_PASSWORD", "").lower() in {"1", "true", "yes"},
+            help="Atualiza a senha mesmo se o administrador ja existir.",
+        )
+        parser.add_argument(
             "--name",
             default=os.environ.get("DJANGO_SUPERUSER_FULL_NAME", "Admin Agenda"),
             help="Nome completo do administrador inicial.",
@@ -63,7 +69,13 @@ class Command(BaseCommand):
                 setattr(user, field, value)
                 changed_fields.append(field)
 
-        if created or not user.has_usable_password():
+        should_reset_password = (
+            created
+            or not user.has_usable_password()
+            or options["reset_password"]
+            or "DJANGO_SUPERUSER_PASSWORD" in os.environ
+        )
+        if should_reset_password:
             user.set_password(password)
             changed_fields.append("password")
 
