@@ -1,24 +1,25 @@
 # Deploy no Render
 
-O repositório inclui `render.yaml` para criar:
+O repositorio inclui `render.yaml` para criar:
 
 - `agenda-educacao-api`: backend Django.
-- `agenda-educacao-web`: frontend estático Vite.
+- `agenda-educacao-web`: frontend estatico Vite.
 - `agenda-educacao-db`: PostgreSQL.
 
-No Render, use **New > Blueprint**, selecione este repositório e confirme a criação dos serviços.
+No Render, use **New > Blueprint**, selecione este repositorio e confirme a criacao dos servicos.
 
-Depois que os serviços forem criados, ajuste as variáveis:
+Depois que os servicos forem criados, ajuste as variaveis:
 
 - No backend `agenda-educacao-api`:
-  - `FRONTEND_URL`: URL pública do static site, por exemplo `https://agenda-educacao-web.onrender.com`.
+  - `FRONTEND_URL`: URL publica do static site, por exemplo `https://agenda-educacao-web.onrender.com`.
   - `CORS_ALLOWED_ORIGINS`: mesma URL do frontend.
-  - variáveis `EMAIL_*`, se houver SMTP real.
+  - `DJANGO_SUPERUSER_EMAIL`: e-mail inicial, por padrao `admin@agenda.local`.
+  - `DJANGO_SUPERUSER_PASSWORD`: senha inicial. Se nao for definida, o padrao e `Admin@12345`.
+  - `DJANGO_SUPERUSER_FULL_NAME`: nome exibido, por padrao `Admin Agenda`.
+  - variaveis `EMAIL_*`, se houver SMTP real.
 - No frontend `agenda-educacao-web`:
   - `VITE_API_URL`: URL da API com `/api`, por exemplo `https://agenda-educacao-api.onrender.com/api`.
 
-Para criar o primeiro administrador em produção, abra o Shell do serviço backend e rode:
+O backend roda automaticamente `python manage.py bootstrap_admin` depois das migracoes. O comando e idempotente: ele cria o administrador se nao existir e garante que ele continue ativo, staff e superuser.
 
-```bash
-python manage.py createsuperuser
-```
+Por seguranca, depois do primeiro acesso em producao troque a senha ou defina `DJANGO_SUPERUSER_PASSWORD` no Render antes do deploy.
