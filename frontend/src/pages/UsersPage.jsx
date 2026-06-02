@@ -23,8 +23,8 @@ export default function UsersPage() {
   const load = () => api("/users/").then((data) => setUsers(data.results || data));
 
   useEffect(() => {
-    load();
-    api("/sectors/").then((data) => setSectors(data.results || data));
+    load().catch((err) => setMessage(err.message));
+    api("/sectors/").then((data) => setSectors(data.results || data)).catch((err) => setMessage(err.message));
   }, []);
 
   const submit = async (event) => {
@@ -137,7 +137,7 @@ export default function UsersPage() {
             <option value="ADMIN">Administrador</option>
           </select>
           <select value={form.sector || ""} onChange={(e) => setForm({ ...form, sector: e.target.value })}>
-            <option value="">Sem equipe</option>
+            <option value="">{sectors.length ? "Sem equipe" : "Nenhuma equipe carregada"}</option>
             {sectors.map((sector) => <option key={sector.id} value={sector.id}>{sector.name}</option>)}
           </select>
           <label className="checkbox"><input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} /> Usuario ativo</label>

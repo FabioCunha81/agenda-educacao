@@ -44,7 +44,12 @@ export async function api(path, options = {}) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_URL}${path}`, { ...fetchOptions, headers });
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { ...fetchOptions, headers });
+  } catch {
+    throw new Error("Nao foi possivel conectar a API. Verifique se o deploy da API terminou e se o servico agenda-educacao-api esta online.");
+  }
   if (response.status === 204) {
     return null;
   }
