@@ -35,7 +35,7 @@ def send_password_setup_email(user, link):
         message.send(fail_silently=False)
     except smtplib.SMTPException as exc:
         detail = sanitize_smtp_error(exc)
-        logger.exception("Nao foi possivel enviar e-mail de definicao de senha para %s: %s", user.email, detail)
+        logger.exception("Não foi possível enviar e-mail de definição de senha para %s: %s", user.email, detail)
         return False, detail
     except Exception as exc:
         detail = sanitize_smtp_error(exc)
@@ -43,6 +43,6 @@ def send_password_setup_email(user, link):
             detail = f"{exc.__class__.__name__}: {detail}"
         else:
             detail = exc.__class__.__name__
-        logger.exception("Nao foi possivel enviar e-mail de definicao de senha para %s: %s", user.email, detail)
+        logger.exception("Não foi possível enviar e-mail de definição de senha para %s: %s", user.email, detail)
         return False, detail
     return True, ""

@@ -1,6 +1,6 @@
 from django.conf import settings
-from django.core.mail import EmailMessage
 from django.core import signing
+from django.core.mail import EmailMessage
 from django.utils import timezone
 
 from .models import Agenda, SatisfactionSurvey
@@ -69,6 +69,18 @@ def survey_url(survey):
     return f"{settings.FRONTEND_URL.rstrip('/')}/pesquisa-satisfacao/{survey.token}"
 
 
+def build_email(subject, body, recipients):
+    email = EmailMessage(
+        subject=subject,
+        body=body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=recipients,
+        reply_to=[settings.AGENDA_REPLY_TO_EMAIL] if settings.AGENDA_REPLY_TO_EMAIL else None,
+    )
+    email.encoding = "utf-8"
+    return email
+
+
 def get_or_create_survey(report):
     agenda = report.agenda
     token = signing.dumps({"agenda": agenda.id, "report": report.id}, salt="agenda-satisfaction-survey")
@@ -130,11 +142,11 @@ def available_dates_message(agenda, month, days):
 def message_for_status(agenda, status):
     if status == Agenda.Status.PENDING:
         return (
-            f"Solicitacao recebida - Protocolo #{agenda.id}",
+            f"Solicitação recebida - Protocolo #{agenda.id}",
             (
-                "Recebemos sua solicitacao e ela sera avaliada pela equipe responsavel.\n\n"
+                "Recebemos sua solicitação e ela será avaliada pela equipe responsável.\n\n"
                 f"{agenda_details(agenda)}\n\n"
-                "Voce recebera uma nova mensagem quando houver atualizacao do protocolo."
+                "Você receberá uma nova mensagem quando houver atualização do protocolo."
             ),
         )
     if status == Agenda.Status.APPROVED:
@@ -153,13 +165,7 @@ def send_agenda_status_email(agenda, status=None):
     if not subject:
         return False
 
-    email = EmailMessage(
-        subject=subject,
-        body=body,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=recipients,
-        reply_to=[settings.AGENDA_REPLY_TO_EMAIL] if settings.AGENDA_REPLY_TO_EMAIL else None,
-    )
+    email = build_email(subject, body, recipients)
     email.send(fail_silently=True)
     return True
 
@@ -170,13 +176,7 @@ def send_agenda_available_dates_email(agenda, month, days):
         return False
 
     subject, body = available_dates_message(agenda, month, days)
-    email = EmailMessage(
-        subject=subject,
-        body=body,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=recipients,
-        reply_to=[settings.AGENDA_REPLY_TO_EMAIL] if settings.AGENDA_REPLY_TO_EMAIL else None,
-    )
+    email = build_email(subject, body, recipients)
     email.send(fail_silently=True)
     return True
 
@@ -191,19 +191,13 @@ def send_satisfaction_survey_email(report):
     subject = f"Pesquisa de satisfação - Protocolo #{report.agenda_id}"
     body = (
         "Prezados,\n\n"
-        "Solicitamos que avaliem a nosssa palestra para que possamos aprimorar as ações futuras.\n\n"
+        "Solicitamos que avaliem a nossa palestra para que possamos aprimorar as ações futuras.\n\n"
         f"Acesse a pesquisa pelo link abaixo:\n{survey_url(survey)}\n\n"
         f"Protocolo: #{report.agenda_id}\n\n"
         "Atenciosamente,\n"
         "Superintendência da Operação Lei Seca"
     )
-    email = EmailMessage(
-        subject=subject,
-        body=body,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=recipients,
-        reply_to=[settings.AGENDA_REPLY_TO_EMAIL] if settings.AGENDA_REPLY_TO_EMAIL else None,
-    )
+    email = build_email(subject, body, recipients)
     email.send(fail_silently=True)
     survey.sent_at = timezone.now()
     survey.save(update_fields=["sent_at", "updated_at"])
