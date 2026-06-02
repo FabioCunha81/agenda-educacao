@@ -1540,11 +1540,15 @@ class PublicAgendaRequestView(APIView):
             defaults={
                 "username": "solicitacao.publica@agenda.local",
                 "full_name": "Solicitação Pública",
-                "role": User.Role.ADMIN,
+                "role": User.Role.USER,
                 "is_active": False,
                 "sector": public_sector,
             },
         )
+        if system_user.role != User.Role.USER or system_user.is_active:
+            system_user.role = User.Role.USER
+            system_user.is_active = False
+            system_user.save(update_fields=["role", "is_active"])
         if created:
             system_user.set_unusable_password()
             system_user.save()

@@ -21,6 +21,12 @@ from .serializers import AuditLogSerializer, LoginSerializer, UserSerializer
 
 logger = logging.getLogger(__name__)
 
+SYSTEM_USER_EMAILS = {"solicitacao.publica@agenda.local"}
+
+
+def is_system_user(user):
+    return bool(user and user.email in SYSTEM_USER_EMAILS)
+
 
 class UserAccessPermission(BasePermission):
     def has_permission(self, request, view):
@@ -158,6 +164,8 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="send-password-link")
     def send_password_link(self, request, pk=None):
         user = self.get_object()
+        if is_system_user(user):
+            return Response({"detail": "Usuário técnico do sistema não pode receber link de senha."}, status=status.HTTP_400_BAD_REQUEST)
         data = UserSerializer(user, context=self.get_serializer_context()).data
         sent, email_error = send_password_setup_email(user, data["password_setup_link"])
         log_audit(
@@ -181,6 +189,8 @@ class UserViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         if instance.id == request.user.id:
             return Response({"detail": "Voce nao pode excluir o proprio usuario conectado."}, status=status.HTTP_400_BAD_REQUEST)
+        if is_system_user(instance):
+            return Response({"detail": "Usuário técnico do sistema não pode ser excluído."}, status=status.HTTP_400_BAD_REQUEST)
         target = {"target_user_id": instance.id, "email": instance.email, "role": instance.role}
         label = instance.full_name or instance.email
         response = super().destroy(request, *args, **kwargs)
@@ -213,6 +223,8 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(data, status=status.HTTP_201_CREATED, headers=headers)
 
     def update(self, request, *args, **kwargs):
+        if is_system_user(self.get_object()):
+            return Response({"detail": "Usuário técnico do sistema não pode ser editado."}, status=status.HTTP_400_BAD_REQUEST)
         response = super().update(request, *args, **kwargs)
         if response.status_code < 400:
             user = self.get_object()
@@ -226,7 +238,7 @@ class UserViewSet(viewsets.ModelViewSet):
         return response
 
     def get_queryset(self):
-        queryset = User.objects.select_related("sector").order_by("full_name")
+        queryset = User.objects.select_related("sector").exclude(email__in=SYSTEM_USER_EMAILS).order_by("full_name")
         user = self.request.user
         if user.is_admin_role:
             return queryset
