@@ -4,6 +4,35 @@ export function getToken() {
   return localStorage.getItem("accessToken");
 }
 
+function formatApiError(data) {
+  if (!data || data instanceof Blob) {
+    return "Nao foi possivel concluir a operacao.";
+  }
+  if (data.detail) {
+    return data.detail;
+  }
+  if (Array.isArray(data.non_field_errors) && data.non_field_errors.length) {
+    return data.non_field_errors[0];
+  }
+  if (typeof data === "object") {
+    const fieldMessages = Object.entries(data)
+      .map(([field, value]) => {
+        if (Array.isArray(value)) {
+          return `${field}: ${value.join(" ")}`;
+        }
+        if (typeof value === "string") {
+          return `${field}: ${value}`;
+        }
+        return null;
+      })
+      .filter(Boolean);
+    if (fieldMessages.length) {
+      return fieldMessages.join(" ");
+    }
+  }
+  return "Nao foi possivel concluir a operacao.";
+}
+
 export async function api(path, options = {}) {
   const { redirectOnUnauthorized = true, ...fetchOptions } = options;
   const headers = new Headers(options.headers || {});
@@ -28,8 +57,7 @@ export async function api(path, options = {}) {
       localStorage.removeItem("user");
       window.location.href = "/login";
     }
-    const message = data?.detail || data?.non_field_errors?.[0] || "Não foi possível concluir a operação.";
-    throw new Error(message);
+    throw new Error(formatApiError(data));
   }
   return data;
 }

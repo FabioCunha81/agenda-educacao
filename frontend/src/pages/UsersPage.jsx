@@ -30,14 +30,15 @@ export default function UsersPage() {
   const submit = async (event) => {
     event.preventDefault();
     const payload = { ...form };
+    const isEditing = Boolean(editing);
     try {
-      const saved = editing
+      const saved = isEditing
         ? await api(`/users/${editing}/`, { method: "PUT", body: JSON.stringify(payload) })
         : await api("/users/", { method: "POST", body: JSON.stringify(payload) });
       setPasswordLink(saved.password_setup_link || "");
       setForm(empty);
       setEditing(null);
-      setMessage(saved.password_setup_email_sent ? "Usuario salvo. Link de senha enviado por e-mail." : "Usuario salvo. Nao foi possivel enviar o e-mail; copie o link de senha manualmente.");
+      setMessage(isEditing ? "Usuario salvo." : (saved.password_setup_email_sent ? "Usuario salvo. Link de senha enviado por e-mail." : "Usuario salvo. Nao foi possivel enviar o e-mail; copie o link de senha manualmente."));
       load();
     } catch (err) {
       setMessage(err.message);
