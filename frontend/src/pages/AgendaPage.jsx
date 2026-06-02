@@ -155,8 +155,9 @@ export default function AgendaPage() {
   const [publicLinkMessage, setPublicLinkMessage] = useState("");
   const { user } = useAuth();
 
-  const canDelete = user?.role === "ADMIN";
-  const canChangeStatus = user?.role === "ADMIN" || user?.role === "SUPERVISOR";
+  const hasMaxAccess = user?.role === "ADMIN" || user?.role === "MANAGER";
+  const canDelete = hasMaxAccess;
+  const canChangeStatus = hasMaxAccess || user?.role === "SUPERVISOR";
 
   const loadAgendas = () => {
     const params = new URLSearchParams({ page_size: "50", order: "latest", source: "requests", ...filters }).toString();

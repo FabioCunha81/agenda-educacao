@@ -19,9 +19,12 @@ const items = [
 
 const roleLabel = {
   ADMIN: "ADMIN",
+  MANAGER: "GESTOR",
   SUPERVISOR: "CHEFE",
   USER: "AGENTE",
 };
+
+const maxAccessRoles = new Set(["ADMIN", "MANAGER"]);
 
 export default function AppLayout() {
   const [open, setOpen] = useState(false);
@@ -35,15 +38,15 @@ export default function AppLayout() {
     navigate("/login");
   };
 
-  const visibleItems = items.filter((item) => !item.adminOnly || user?.role === "ADMIN");
+  const visibleItems = items.filter((item) => !item.adminOnly || maxAccessRoles.has(user?.role));
 
   return (
     <div className={`app-shell ${collapsed ? "is-collapsed" : ""} ${darkMode ? "dark-mode" : ""}`}>
       <aside className={`sidebar ${open ? "is-open" : ""}`}>
+        <div className="sidebar-logo">
+          <img src={logoOperacaoLeiSeca} alt="Operação Lei Seca" />
+        </div>
         <div className="brand">
-          <div className="brand-logo">
-            <img src={logoOperacaoLeiSeca} alt="Operação Lei Seca" />
-          </div>
           <div className="brand-text">
             <strong>Agenda Educação</strong>
             <span>{roleLabel[user?.role] || user?.role}</span>

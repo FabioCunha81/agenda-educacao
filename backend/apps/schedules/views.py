@@ -117,7 +117,7 @@ class TeamViewSet(LookupViewSet):
     def get_queryset(self):
         standard_names = ["ALFA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOX", "GOLF", "HOTEL"]
         queryset = Team.objects.filter(name__in=standard_names, is_active=True)
-        if self.request.query_params.get("include_inactive") == "true" and self.request.user.role == User.Role.ADMIN:
+        if self.request.query_params.get("include_inactive") == "true" and self.request.user.is_admin_role:
             queryset = Team.objects.filter(name__in=standard_names)
         return queryset.order_by("name")
 
@@ -127,7 +127,7 @@ class ChiefViewSet(LookupViewSet):
 
     def get_queryset(self):
         queryset = Chief.objects.filter(is_active=True)
-        if self.request.query_params.get("include_inactive") == "true" and self.request.user.role == User.Role.ADMIN:
+        if self.request.query_params.get("include_inactive") == "true" and self.request.user.is_admin_role:
             queryset = Chief.objects.all()
         return queryset.select_related("team").order_by("team__name", "name")
 
@@ -136,10 +136,10 @@ class AgentViewSet(LookupViewSet):
     serializer_class = AgentSerializer
 
     def get_queryset(self):
-        if self.action in ["retrieve", "update", "partial_update", "destroy"] and self.request.user.role == User.Role.ADMIN:
+        if self.action in ["retrieve", "update", "partial_update", "destroy"] and self.request.user.is_admin_role:
             return Agent.objects.all().select_related("team").order_by("team__name", "name")
         queryset = Agent.objects.filter(is_active=True).exclude(role__icontains="APOIO")
-        if self.request.query_params.get("include_inactive") == "true" and self.request.user.role == User.Role.ADMIN:
+        if self.request.query_params.get("include_inactive") == "true" and self.request.user.is_admin_role:
             queryset = Agent.objects.all()
         return queryset.select_related("team").order_by("team__name", "name")
 
@@ -148,10 +148,10 @@ class SupportViewSet(LookupViewSet):
     serializer_class = SupportSerializer
 
     def get_queryset(self):
-        if self.action in ["retrieve", "update", "partial_update", "destroy"] and self.request.user.role == User.Role.ADMIN:
+        if self.action in ["retrieve", "update", "partial_update", "destroy"] and self.request.user.is_admin_role:
             return Support.objects.all().select_related("team").order_by("team__name", "name")
         queryset = Support.objects.filter(is_active=True)
-        if self.request.query_params.get("include_inactive") == "true" and self.request.user.role == User.Role.ADMIN:
+        if self.request.query_params.get("include_inactive") == "true" and self.request.user.is_admin_role:
             queryset = Support.objects.all()
         return queryset.select_related("team").order_by("team__name", "name")
 
@@ -191,7 +191,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
             "history",
             "satisfaction_surveys",
         )
-        if user.role == User.Role.ADMIN:
+        if user.is_admin_role:
             return queryset
         elif user.role == User.Role.SUPERVISOR:
             if self.request.query_params.get("reportable") == "true":
@@ -760,7 +760,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         queryset = EventReport.objects.select_related("agenda", "agenda__sector", "created_by").order_by("-updated_at")
-        if user.role == User.Role.ADMIN:
+        if user.is_admin_role:
             scoped = queryset
         if user.role == User.Role.SUPERVISOR:
             scoped = queryset.filter(chief_agenda_filter(user, prefix="agenda__")).distinct()
@@ -804,7 +804,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
         if user.role == User.Role.USER:
             from rest_framework.exceptions import PermissionDenied
 
-            raise PermissionDenied("Apenas Chefes e Administradores podem enviar relatórios técnicos.")
+            raise PermissionDenied("Apenas Chefes, Gestores e Administradores podem enviar relatórios técnicos.")
         submitted_at = timezone.now() if serializer.validated_data.get("status") == EventReport.ReportStatus.SUBMITTED else None
         serializer.save(created_by=user, submitted_at=submitted_at)
 
@@ -857,7 +857,7 @@ class EducationReportViewSet(viewsets.ModelViewSet):
         )
         if user.role == User.Role.USER:
             scoped = queryset.none()
-        elif user.role == User.Role.ADMIN:
+        elif user.is_admin_role:
             scoped = queryset
         else:
             scoped = queryset.filter(chief_agenda_filter(user, prefix="agenda__")).distinct()
@@ -913,10 +913,10 @@ class EducationReportViewSet(viewsets.ModelViewSet):
 
     def _validate_agenda_access(self, agenda):
         user = self.request.user
-        if user.role == User.Role.ADMIN:
+        if user.is_admin_role:
             return
         if user.role == User.Role.USER:
-            raise PermissionDenied("Apenas Chefes e Administradores podem preencher relatórios.")
+            raise PermissionDenied("Apenas Chefes, Gestores e Administradores podem preencher relatórios.")
         allowed = Agenda.objects.filter(pk=agenda.pk).filter(chief_agenda_filter(user)).exists()
         if not allowed:
             raise PermissionDenied("Você só pode preencher relatórios dos protocolos em que é Chefe responsável.")
@@ -1078,7 +1078,7 @@ class EducationReportViewSet(viewsets.ModelViewSet):
             )
             if user.role == User.Role.USER:
                 qs = qs.none()
-            elif user.role != User.Role.ADMIN:
+            elif not user.is_admin_role:
                 qs = qs.filter(chief_agenda_filter(user, prefix="agenda__")).distinct()
             
             if params.get("protocol"):
@@ -1477,7 +1477,7 @@ class EducationReportViewSet(viewsets.ModelViewSet):
         )
         if user.role == User.Role.USER:
             scoped = queryset.none()
-        elif user.role == User.Role.ADMIN:
+        elif user.is_admin_role:
             scoped = queryset
         else:
             scoped = queryset.filter(chief_agenda_filter(user, prefix="agenda__")).distinct()
@@ -1773,7 +1773,7 @@ class ReportViewSet(viewsets.ViewSet):
     def _queryset(self, request):
         user = request.user
         scoped = Agenda.objects.select_related("responsible", "sector", "created_by")
-        if user.role == User.Role.ADMIN:
+        if user.is_admin_role:
             pass
         elif user.role == User.Role.SUPERVISOR:
             scoped = scoped.filter(

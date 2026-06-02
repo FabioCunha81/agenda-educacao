@@ -125,7 +125,7 @@ class Command(BaseCommand):
             if not user:
                 raise CommandError(f"Usuario nao encontrado: {email}")
             return user
-        user = queryset.filter(role=User.Role.ADMIN).order_by("id").first() or queryset.filter(is_superuser=True).order_by("id").first()
+        user = queryset.filter(role__in=[User.Role.ADMIN, User.Role.MANAGER]).order_by("id").first() or queryset.filter(is_superuser=True).order_by("id").first()
         if not user:
             raise CommandError("Nenhum administrador encontrado. Informe --user-email.")
         return user

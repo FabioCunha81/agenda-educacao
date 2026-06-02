@@ -7,6 +7,7 @@ const empty = { full_name: "", cpf: "", email: "", phone: "", role: "USER", sect
 
 const roleLabel = {
   ADMIN: "Administrador",
+  MANAGER: "Gestor",
   SUPERVISOR: "Chefe",
   USER: "Agente",
 };
@@ -134,6 +135,7 @@ export default function UsersPage() {
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
             <option value="USER">Agente</option>
             <option value="SUPERVISOR">Chefe</option>
+            <option value="MANAGER">Gestor</option>
             <option value="ADMIN">Administrador</option>
           </select>
           <select value={form.sector || ""} onChange={(e) => setForm({ ...form, sector: e.target.value })}>

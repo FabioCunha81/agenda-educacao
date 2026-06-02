@@ -9,7 +9,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         total = 0
-        for user in User.objects.exclude(role=User.Role.ADMIN):
+        for user in User.objects.exclude(role__in=[User.Role.ADMIN, User.Role.MANAGER]):
             sync_user_lookup(user)
             total += 1
         self.stdout.write(self.style.SUCCESS(f"{total} usuários sincronizados."))

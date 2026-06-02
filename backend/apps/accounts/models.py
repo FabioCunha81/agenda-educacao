@@ -26,6 +26,7 @@ class UserManager(BaseUserManager):
 class User(AbstractUser):
     class Role(models.TextChoices):
         ADMIN = "ADMIN", "Administrador"
+        MANAGER = "MANAGER", "Gestor"
         SUPERVISOR = "SUPERVISOR", "Supervisor"
         USER = "USER", "Usuário comum"
 
@@ -53,7 +54,7 @@ class User(AbstractUser):
 
     @property
     def is_admin_role(self):
-        return self.role == self.Role.ADMIN
+        return self.role in {self.Role.ADMIN, self.Role.MANAGER}
 
     @property
     def is_supervisor_role(self):
@@ -91,9 +92,9 @@ class AuditLog(models.Model):
     class Meta:
         ordering = ("-created_at",)
         indexes = [
-            models.Index(fields=["-created_at"]),
-            models.Index(fields=["action", "module"]),
-            models.Index(fields=["user", "-created_at"]),
+            models.Index(fields=["-created_at"], name="accounts_au_created_25d7e5_idx"),
+            models.Index(fields=["action", "module"], name="accounts_au_action_d9594d_idx"),
+            models.Index(fields=["user", "-created_at"], name="accounts_au_user_id_728d71_idx"),
         ]
 
     def __str__(self):

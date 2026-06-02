@@ -100,7 +100,7 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        admin = User.objects.filter(role=User.Role.ADMIN).first()
+        admin = User.objects.filter(role__in=[User.Role.ADMIN, User.Role.MANAGER]).first()
         if not admin:
             raise CommandError("Crie um usuário administrador antes de importar solicitações.")
 

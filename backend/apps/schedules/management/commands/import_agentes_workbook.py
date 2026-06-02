@@ -156,7 +156,7 @@ class Command(BaseCommand):
             raise CommandError(f"Arquivo não encontrado: {path}")
 
         workbook = load_workbook(path, read_only=True, data_only=True)
-        admin = User.objects.filter(role=User.Role.ADMIN).first()
+        admin = User.objects.filter(role__in=[User.Role.ADMIN, User.Role.MANAGER]).first()
         if not admin:
             raise CommandError("Crie/importe um administrador antes de importar agendas.")
 

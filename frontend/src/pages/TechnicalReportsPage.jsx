@@ -192,7 +192,7 @@ export default function TechnicalReportsPage() {
   const [locationMessage, setLocationMessage] = useState("");
   const [isGeocoding, setIsGeocoding] = useState(false);
   const { user } = useAuth();
-  const isAdmin = user?.role === "ADMIN";
+  const isAdmin = user?.role === "ADMIN" || user?.role === "MANAGER";
 
   const selectedAgenda = useMemo(
     () => agendas.find((agenda) => String(agenda.id) === String(form.agenda)),

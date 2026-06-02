@@ -603,6 +603,14 @@ th {
   position: relative;
 }
 
+.sidebar-logo {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  order: 0;
+  width: 100%;
+}
+
 .brand span, .topbar span {
   color: #9fb0b8;
   display: block;
@@ -610,19 +618,11 @@ th {
   margin-top: 2px;
 }
 
-.brand-logo {
-  align-items: center;
-  display: flex;
-  flex: 0 0 128px;
-  height: 56px;
-  overflow: hidden;
-}
-
-.brand-logo img {
+.sidebar-logo img {
   display: block;
   height: auto;
-  max-height: 56px;
-  max-width: 128px;
+  max-height: 76px;
+  max-width: 178px;
   object-fit: contain;
   width: 100%;
 }
@@ -646,6 +646,7 @@ th {
 }
 
 .is-collapsed .brand > div,
+.is-collapsed .sidebar-logo,
 .is-collapsed .sidebar a span,
 .is-collapsed .logout span {
   display: none;
