@@ -486,6 +486,24 @@ export default function AgendaPage() {
     }
   };
 
+  const sendAvailableDates = async (id, month, days) => {
+    setMessage("");
+    if (!month?.trim() || !days?.trim()) return;
+    
+    try {
+      const response = await api(`/agendas/${id}/send-available-dates/`, {
+        method: "POST",
+        body: JSON.stringify({ month: month.trim(), days: days.trim() }),
+      });
+      setMessage(response.detail || "E-mail com datas disponíveis enviado com sucesso.");
+      setReviewStep("summary");
+      loadAgendas();
+    } catch (err) {
+      setMessage(err.message);
+    }
+  };
+
+
   return (
     <section className="page">
       <div className="main-column">
@@ -627,10 +645,50 @@ export default function AgendaPage() {
                 <button type="button" className="danger" onClick={() => decideReview("CANCELLED")}>
                   <XCircle size={18} /> Recusar
                 </button>
+                <button type="button" className="secondary" onClick={() => setReviewStep("suggest_dates")}>
+                  Sugerir datas
+                </button>
                 <button type="button" className="secondary" onClick={() => decideReview("PENDING")}>
                   Manter pendente
                 </button>
               </div>
+            )}
+            {editing && reviewStep === "suggest_dates" && (
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  sendAvailableDates(editing, form.available_month, form.available_days);
+                }}
+                className="stack-form approval-form"
+              >
+                <div className="form-section">
+                  <h3>Sugerir novas datas</h3>
+                  <p>Informe o mês e os dias em que a Operação Lei Seca tem disponibilidade para atender essa solicitação. O solicitante receberá um e-mail com as datas sugeridas e um link para alterar a solicitação.</p>
+                  <label className="field-label">
+                    <span>Mês com disponibilidade</span>
+                    <input 
+                      placeholder="Ex: Julho" 
+                      value={form.available_month || ""} 
+                      onChange={(e) => update("available_month", e.target.value)} 
+                      required 
+                    />
+                  </label>
+                  <label className="field-label">
+                    <span>Dias disponíveis no mês</span>
+                    <input 
+                      placeholder="Ex: 12, 15 e 20" 
+                      value={form.available_days || ""} 
+                      onChange={(e) => update("available_days", e.target.value)} 
+                      required 
+                    />
+                  </label>
+                </div>
+                {message && <div className="alert">{message}</div>}
+                <div className="review-actions">
+                  <button type="button" className="secondary" onClick={() => setReviewStep("summary")}>Voltar</button>
+                  <button type="submit" className="approve-action"><CheckCircle2 size={18} /> Enviar sugestão de datas</button>
+                </div>
+              </form>
             )}
             {editing && reviewStep === "schedule" && (
               <form

@@ -1436,8 +1436,89 @@ class EducationReportViewSet(viewsets.ModelViewSet):
 
         elements.append(Spacer(1, 16))
 
-        # --- Section 4: Nota técnica ---
-        elements.append(Paragraph("4. Nota técnica", section_title_style))
+        # --- Section 4: Comparação Ano a Ano ---
+        params = request.query_params
+        date_to_str = params.get("date_to")
+        try:
+            ref_date_cmp = date.fromisoformat(date_to_str) if date_to_str else today
+        except ValueError:
+            ref_date_cmp = today
+        cmp_ref_year = ref_date_cmp.year
+        cmp_prev_year = cmp_ref_year - 1
+
+        cmp_current_from = date(cmp_ref_year, 1, 1)
+        cmp_current_to = ref_date_cmp
+        cmp_prev_from = date(cmp_prev_year, 1, 1)
+        cmp_prev_to = date(cmp_prev_year, 12, 31)
+
+        cmp_cur_reports = reports.filter(operation_date__gte=cmp_current_from, operation_date__lte=cmp_current_to)
+        cmp_prev_reports = self._statistics_yearly_queryset().filter(operation_date__gte=cmp_prev_from, operation_date__lte=cmp_prev_to)
+
+        cmp_cur_actions = EducationAction.objects.filter(report_id__in=cmp_cur_reports.values("id"))
+        cmp_prev_actions = EducationAction.objects.filter(report_id__in=cmp_prev_reports.values("id"))
+
+        comparison_fields = [
+            ("approach", "Abordagens"),
+            ("approached_actions", "Abordados em ações"),
+            ("publicity_materials", "Materiais de divulgação"),
+            ("approached_lectures", "Abordados em palestras"),
+        ]
+
+        BLUE_HEADER = colors.HexColor("#003299")
+
+        elements.append(Paragraph("4. Comparação Ano a Ano", section_title_style))
+        elements.append(Paragraph(f"Indicadores do ano de referência ({cmp_ref_year}) versus o ano anterior ({cmp_prev_year}) completo.", note_style))
+        elements.append(Spacer(1, 4))
+
+        data_cmp = [[
+            Paragraph("Indicador", header_left),
+            Paragraph(f"{cmp_ref_year} (acumulado)", header_cell),
+            Paragraph(f"{cmp_prev_year} (total)", header_cell),
+            Paragraph("Diferença", header_cell),
+            Paragraph("Variação %", header_cell),
+        ]]
+        for key, label in comparison_fields:
+            cur_val = cmp_cur_actions.aggregate(total=Sum(key))["total"] or 0
+            prev_val = cmp_prev_actions.aggregate(total=Sum(key))["total"] or 0
+            diff = cur_val - prev_val
+            if prev_val > 0:
+                pct = round((diff / prev_val) * 100, 1)
+            elif cur_val > 0:
+                pct = 100.0
+            else:
+                pct = 0.0
+            pct_str = f"+{pct}%" if pct > 0 else f"{pct}%"
+            data_cmp.append([
+                Paragraph(label, cell_bold),
+                Paragraph(fmt(cur_val), cell_center),
+                Paragraph(fmt(prev_val), cell_center),
+                Paragraph(fmt(diff), cell_center),
+                Paragraph(pct_str, cell_center_bold),
+            ])
+
+        t_cmp = Table(data_cmp, colWidths=[160, 90, 90, 80, 80], repeatRows=1)
+        style_cmp = TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), BLUE_HEADER),
+            ("TEXTCOLOR", (0, 0), (-1, 0), HEADER_FG),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+            ("TOPPADDING", (0, 0), (-1, 0), 6),
+            ("BOTTOMPADDING", (0, 1), (-1, -1), 3),
+            ("TOPPADDING", (0, 1), (-1, -1), 3),
+            ("GRID", (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ])
+        for i in range(1, len(data_cmp)):
+            bg = ZEBRA_EVEN if i % 2 == 0 else ZEBRA_ODD
+            style_cmp.add("BACKGROUND", (0, i), (-1, i), bg)
+        t_cmp.setStyle(style_cmp)
+        elements.append(t_cmp)
+
+        elements.append(Spacer(1, 16))
+
+        # --- Section 5: Nota técnica ---
+        elements.append(Paragraph("5. Nota técnica", section_title_style))
         notes = [
             "Os dados deste relatório são calculados a partir dos relatórios técnicos cadastrados no sistema.",
             "A projeção anual considera o acumulado do ano dividido pela quantidade de meses transcorridos e multiplicado por 12.",

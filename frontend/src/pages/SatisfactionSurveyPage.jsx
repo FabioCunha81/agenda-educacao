@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client.js";
 
+import logoImg from "../assets/operacao-lei-seca-logo.png";
+
 const fields = [
   ["audiovisual_resources", "Recursos áudio-visuais: apresentação (slides) e vídeos exibidos durante a palestra."],
   ["speaker_knowledge", "Desenvoltura e conhecimento sobre o tema do(a) palestrante."],
@@ -51,6 +53,7 @@ export default function SatisfactionSurveyPage() {
     <main className="public-page">
       <section className="public-form">
         <div className="public-header">
+          <img className="public-mascot logo-ols" src={logoImg} alt="Logo Operação Lei Seca" style={{ maxHeight: '80px', objectFit: 'contain' }} />
           <div>
             <h1>Pesquisa de satisfação</h1>
             <p>{survey?.protocol ? `Protocolo #${survey.protocol}` : "Avaliação da palestra"}</p>
