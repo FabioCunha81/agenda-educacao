@@ -2,7 +2,7 @@ from collections import Counter, defaultdict
 from datetime import date, timedelta
 
 from django.db import transaction
-from django.db.models import Case, Count, F, IntegerField, Q, Sum, Value, When
+from django.db.models import Avg, Case, Count, F, IntegerField, Q, Sum, Value, When
 from django.db.models.functions import ExtractMonth, ExtractYear
 from django.core import signing
 from django.conf import settings
@@ -697,6 +697,22 @@ class AgendaViewSet(viewsets.ModelViewSet):
             if (calendar_start + timedelta(days=index)).month == today.month
         ]
 
+        surveys_qs = SatisfactionSurvey.objects.filter(agenda__in=base_qs)
+        overall_rating_avg = surveys_qs.aggregate(avg=Avg('overall_rating'))['avg'] or 0.0
+
+        team_ratings = list(
+            surveys_qs.values('team')
+            .annotate(avg=Avg('overall_rating'), count=Count('id'))
+            .exclude(team="")
+            .order_by('-avg', '-count')[:10]
+        )
+
+        recent_messages = list(
+            surveys_qs.exclude(suggestion="")
+            .order_by('-created_at')
+            .values('team', 'suggestion', 'created_at', 'overall_rating')[:10]
+        )
+
         data = {
             "cards": {
                 "today_total": {"value": today_count, "change": pct(today_count, comparison_qs.count() if comparison_qs is not None else yesterday_count), "compare_label": comparison_label},
@@ -733,7 +749,15 @@ class AgendaViewSet(viewsets.ModelViewSet):
             "donut": by_municipality,
             "heatmap": heatmap_rows,
             "calendar": calendar_days,
-            "table": recent,
+            "surveys": {
+                "overall_rating": round(overall_rating_avg, 1),
+                "total_responses": surveys_qs.count(),
+                "team_ratings": [
+                    {"team": tr["team"], "avg": round(tr["avg"], 1), "count": tr["count"]}
+                    for tr in team_ratings if tr["avg"] is not None
+                ],
+                "messages": recent_messages,
+            },
             "activity": {
                 "latest": recent[:6],
                 "field_teams": field_teams,

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client.js";
 
-import logoImg from "../assets/operacao-lei-seca-logo.png";
+import soprinhoMascot from "../assets/soprinho-transparent.png";
 
 const fields = [
   ["audiovisual_resources", "Recursos áudio-visuais: apresentação (slides) e vídeos exibidos durante a palestra."],
@@ -53,15 +53,20 @@ export default function SatisfactionSurveyPage() {
     <main className="public-page">
       <section className="public-form">
         <div className="public-header">
-          <img className="public-mascot logo-ols" src={logoImg} alt="Logo Operação Lei Seca" style={{ maxHeight: '70px', objectFit: 'contain', backgroundColor: '#1a1a1a', padding: '10px 16px', borderRadius: '8px' }} />
+          <img className="public-mascot" src={soprinhoMascot} alt="Mascote da Operação Lei Seca" />
           <div>
             <h1>Pesquisa de satisfação</h1>
             <p>{survey?.protocol ? `Protocolo #${survey.protocol}` : "Avaliação da palestra"}</p>
           </div>
         </div>
         <div className="public-intro-card">
+          <div className="lei-seca-wordmark">
+            <small>OPERAÇÃO</small>
+            <strong>LEI SECA</strong>
+          </div>
+          <div className="public-intro-title">AVALIAÇÃO DE AGENDAMENTO</div>
           <p>Prezados,</p>
-          <p>Solicitamos que avaliem a nosssa palestra para que possamos aprimorar as ações futuras.</p>
+          <p>Solicitamos que avaliem a nossa palestra para que possamos aprimorar as ações futuras.</p>
         </div>
         {loading ? (
           <div className="dashboard-skeleton"><span /><span /></div>

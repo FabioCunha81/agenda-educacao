@@ -7,6 +7,8 @@ import {
   FileSpreadsheet,
   PauseCircle,
   Search,
+  Star,
+  StarHalf,
   Users,
   XCircle,
 } from "lucide-react";
@@ -209,68 +211,73 @@ function MiniCalendar({ days = [] }) {
   );
 }
 
-function SmartTable({ rows = [], filters = {} }) {
-  const handleExport = async (format, e) => {
-    e.preventDefault();
-    try {
-      const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => value)).toString();
-      const path = `/reports/export_${format}/${params ? `?${params}` : ""}`;
-      const blob = await api(path);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `relatorio-agendas.${format === "excel" ? "xlsx" : "pdf"}`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Erro ao exportar o relatório.");
+function Stars({ rating, max = 5 }) {
+  const stars = [];
+  for (let i = 1; i <= max; i++) {
+    if (rating >= i) {
+      stars.push(<Star key={i} size={16} fill="#f59e0b" color="#f59e0b" />);
+    } else if (rating >= i - 0.5) {
+      stars.push(<StarHalf key={i} size={16} fill="#f59e0b" color="#f59e0b" />);
+    } else {
+      stars.push(<Star key={i} size={16} color="#d1d5db" />);
     }
-  };
+  }
+  return <div className="stars-container" style={{ display: "flex", gap: "2px" }}>{stars}</div>;
+}
 
+function SatisfactionSurveyPanel({ surveys = {} }) {
+  const { overall_rating = 0, total_responses = 0, team_ratings = [], messages = [] } = surveys;
+  
   return (
-    <div className="chart-card smart-table">
+    <div className="chart-card satisfaction-panel">
       <div className="section-heading">
         <div>
-          <h2>Tabela inteligente</h2>
-          <p>Últimas agendas e alterações relevantes.</p>
-        </div>
-        <div className="export-actions">
-          <button className="secondary export-link" onClick={(e) => handleExport("excel", e)} type="button"><FileSpreadsheet size={16} /> Excel</button>
-          <button className="secondary export-link" onClick={(e) => handleExport("pdf", e)} type="button"><Download size={16} /> PDF</button>
+          <h2>Indicadores de Satisfação</h2>
+          <p>Avaliações baseadas nas pesquisas de satisfação respondidas.</p>
         </div>
       </div>
-      <div className="table-wrap flat">
-        <table>
-          <thead>
-            <tr>
-              <th>Título</th>
-              <th>Responsável</th>
-              <th>Setor</th>
-              <th>Data</th>
-              <th>Hora</th>
-              <th>Status</th>
-              <th>Prioridade</th>
-              <th>Última atualização</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td>{row.title}</td>
-                <td>{row.responsible}</td>
-                <td>{row.sector}</td>
-                <td>{formatDateBR(row.date)}</td>
-                <td>{row.time}</td>
-                <td><span className={`badge ${statusClass[row.status]}`}>{statusLabel[row.status]}</span></td>
-                <td><span className="priority-pill">Normal</span></td>
-                <td>{formatDateBR(row.updated_at?.slice(0, 10))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="satisfaction-grid" style={{ display: "grid", gap: "24px", gridTemplateColumns: "1fr 1fr" }}>
+        <div className="satisfaction-ratings" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div className="overall-rating-card" style={{ background: "#f8fbff", padding: "16px", borderRadius: "12px", border: "1px solid var(--line)", display: "flex", alignItems: "center", gap: "16px" }}>
+            <div style={{ fontSize: "42px", fontWeight: "900", color: "#17202a", lineHeight: 1 }}>{overall_rating.toFixed(1)}</div>
+            <div>
+              <Stars rating={overall_rating} />
+              <div style={{ fontSize: "13px", color: "var(--text-soft)", marginTop: "4px" }}>Média geral de {total_responses} avaliações</div>
+            </div>
+          </div>
+          
+          <div className="team-ratings-list" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <h3 style={{ fontSize: "14px", fontWeight: "800", color: "#17202a", margin: "8px 0 0" }}>Avaliações por equipe</h3>
+            {team_ratings.length ? team_ratings.map((team, idx) => (
+              <div key={idx} className="team-rating-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "12px", borderBottom: "1px solid var(--line)" }}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <strong style={{ fontSize: "14px", color: "#17202a" }}>{team.team}</strong>
+                  <span style={{ fontSize: "12px", color: "var(--text-soft)" }}>{team.count} avaliações</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontSize: "14px", fontWeight: "800" }}>{team.avg.toFixed(1)}</span>
+                  <Stars rating={team.avg} />
+                </div>
+              </div>
+            )) : <p style={{ color: "var(--text-soft)", fontSize: "13px" }}>Nenhuma avaliação por equipe disponível.</p>}
+          </div>
+        </div>
+
+        <div className="satisfaction-messages" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <h3 style={{ fontSize: "14px", fontWeight: "800", color: "#17202a", margin: 0 }}>Mensagens recentes</h3>
+          <div className="messages-list" style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "400px", overflowY: "auto", paddingRight: "8px" }}>
+            {messages.length ? messages.map((msg, idx) => (
+              <div key={idx} className="message-card" style={{ background: "#fff", padding: "12px", borderRadius: "8px", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Stars rating={msg.overall_rating} />
+                  <span style={{ fontSize: "11px", color: "var(--text-soft)", fontWeight: "700" }}>{new Date(msg.created_at).toLocaleDateString("pt-BR")}</span>
+                </div>
+                <p style={{ margin: 0, fontSize: "13px", color: "var(--text)", lineHeight: 1.5 }}>"{msg.suggestion}"</p>
+                {msg.team && <div style={{ fontSize: "11px", color: "var(--primary)", fontWeight: "800" }}>Equipe: {msg.team}</div>}
+              </div>
+            )) : <p style={{ color: "var(--text-soft)", fontSize: "13px" }}>Nenhuma mensagem recente.</p>}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -460,7 +467,7 @@ export default function DashboardPage() {
               </div>
               <div className="analytics-grid bottom">
                 <MiniCalendar days={dashboard?.calendar || []} />
-                <SmartTable rows={dashboard?.table || []} filters={filters} />
+                <SatisfactionSurveyPanel surveys={dashboard?.surveys || {}} />
               </div>
             </div>
             <ActivityPanel activity={dashboard?.activity} advanced={dashboard?.advanced} />
