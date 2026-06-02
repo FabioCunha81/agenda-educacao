@@ -36,7 +36,12 @@ def send_password_setup_email(user, link):
         detail = sanitize_smtp_error(exc)
         logger.exception("Nao foi possivel enviar e-mail de definicao de senha para %s: %s", user.email, detail)
         return False, detail
-    except Exception:
-        logger.exception("Nao foi possivel enviar e-mail de definicao de senha para %s", user.email)
-        return False, "Erro de conexao SMTP. Confira host, porta, usuario, senha e remetente verificado."
+    except Exception as exc:
+        detail = sanitize_smtp_error(exc)
+        if detail:
+            detail = f"{exc.__class__.__name__}: {detail}"
+        else:
+            detail = exc.__class__.__name__
+        logger.exception("Nao foi possivel enviar e-mail de definicao de senha para %s: %s", user.email, detail)
+        return False, detail
     return True, ""
