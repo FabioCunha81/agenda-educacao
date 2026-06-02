@@ -58,3 +58,43 @@ class User(AbstractUser):
     @property
     def is_supervisor_role(self):
         return self.role == self.Role.SUPERVISOR
+
+
+class AuditLog(models.Model):
+    class Action(models.TextChoices):
+        LOGIN = "LOGIN", "Login"
+        CREATE = "CREATE", "Criacao"
+        UPDATE = "UPDATE", "Alteracao"
+        DELETE = "DELETE", "Exclusao"
+        STATUS_CHANGE = "STATUS_CHANGE", "Mudanca de status"
+        PASSWORD_LINK = "PASSWORD_LINK", "Link de senha"
+        PASSWORD_RESET = "PASSWORD_RESET", "Recuperacao de senha"
+        SET_PASSWORD = "SET_PASSWORD", "Definicao de senha"
+        EMAIL = "EMAIL", "Envio de e-mail"
+        REPORT_EXPORT = "REPORT_EXPORT", "Exportacao de relatorio"
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+    )
+    action = models.CharField(max_length=32, choices=Action.choices)
+    module = models.CharField(max_length=80)
+    description = models.CharField(max_length=255)
+    metadata = models.JSONField(default=dict, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["-created_at"]),
+            models.Index(fields=["action", "module"]),
+            models.Index(fields=["user", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.get_action_display()} - {self.module}"

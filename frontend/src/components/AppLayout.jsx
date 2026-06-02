@@ -1,7 +1,8 @@
-import { BarChart3, Bell, CalendarDays, LayoutDashboard, ListPlus, LogOut, Menu, Moon, Search, Sun, Target, Users, X } from "lucide-react";
+import { BarChart3, Bell, CalendarDays, LayoutDashboard, ListPlus, LogOut, Menu, Moon, Search, ShieldCheck, Sun, Target, Users, X } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import logoOperacaoLeiSeca from "../assets/operacao-lei-seca-logo.png";
 
 const items = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -13,6 +14,7 @@ const items = [
   { to: "/metas", label: "Metas", icon: Target, adminOnly: true },
   { to: "/cadastros", label: "Cadastros", icon: ListPlus, adminOnly: true },
   { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
+  { to: "/auditoria", label: "Auditoria", icon: ShieldCheck, adminOnly: true },
 ];
 
 const roleLabel = {
@@ -39,7 +41,9 @@ export default function AppLayout() {
     <div className={`app-shell ${collapsed ? "is-collapsed" : ""} ${darkMode ? "dark-mode" : ""}`}>
       <aside className={`sidebar ${open ? "is-open" : ""}`}>
         <div className="brand">
-          <div className="brand-mark">A</div>
+          <div className="brand-logo">
+            <img src={logoOperacaoLeiSeca} alt="Operação Lei Seca" />
+          </div>
           <div className="brand-text">
             <strong>Agenda Educação</strong>
             <span>{roleLabel[user?.role] || user?.role}</span>

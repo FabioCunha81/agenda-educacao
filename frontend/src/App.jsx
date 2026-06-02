@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import AppLayout from "./components/AppLayout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import AgendaPage from "./pages/AgendaPage.jsx";
+import AuditLogsPage from "./pages/AuditLogsPage.jsx";
 import CalendarPage from "./pages/CalendarPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="metas" element={<GoalsPage />} />
         <Route path="cadastros" element={<LookupsPage />} />
         <Route path="usuarios" element={<UsersPage />} />
+        <Route path="auditoria" element={<AuditLogsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

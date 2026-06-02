@@ -7,7 +7,7 @@ from django.utils.encoding import force_bytes
 
 from apps.schedules.models import Agent, Chief
 
-from .models import User
+from .models import AuditLog, User
 
 
 def sync_user_lookup(user):
@@ -85,3 +85,26 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
         sync_user_lookup(instance)
         return instance
+
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source="user.full_name", read_only=True)
+    user_email = serializers.CharField(source="user.email", read_only=True)
+    action_label = serializers.CharField(source="get_action_display", read_only=True)
+
+    class Meta:
+        model = AuditLog
+        fields = [
+            "id",
+            "created_at",
+            "user",
+            "user_name",
+            "user_email",
+            "action",
+            "action_label",
+            "module",
+            "description",
+            "metadata",
+            "ip_address",
+            "user_agent",
+        ]

@@ -609,16 +609,21 @@ th {
   margin-top: 2px;
 }
 
-.brand-mark {
+.brand-logo {
   align-items: center;
-  background: #f6bd16;
-  border-radius: 8px;
-  color: #071f53;
-  display: grid;
-  font-weight: 900;
-  height: 38px;
-  place-items: center;
-  width: 38px;
+  display: flex;
+  flex: 0 0 96px;
+  height: 42px;
+  overflow: hidden;
+}
+
+.brand-logo img {
+  display: block;
+  height: auto;
+  max-height: 42px;
+  max-width: 96px;
+  object-fit: contain;
+  width: 100%;
 }
 
 .brand-text {
@@ -1620,6 +1625,87 @@ button.stat-card.active {
 .badge.success, .event-pill.success { background: #ddf8e8; color: var(--success); }
 .badge.danger, .event-pill.danger { background: #ffe5e1; color: var(--danger); }
 .badge.neutral, .event-pill.neutral { background: #edf1f4; color: var(--neutral); }
+
+.audit-filters {
+  grid-template-columns: minmax(180px, 1.4fr) repeat(5, minmax(130px, 1fr)) auto;
+}
+
+.audit-filter-actions {
+  align-items: end;
+  display: flex;
+}
+
+.audit-filter-actions button {
+  min-height: 42px;
+  white-space: nowrap;
+}
+
+.audit-table table {
+  min-width: 980px;
+}
+
+.audit-table td:nth-child(5) {
+  min-width: 260px;
+}
+
+.empty-cell {
+  color: var(--text-soft);
+  padding: 28px;
+  text-align: center;
+}
+
+.audit-detail {
+  align-content: start;
+}
+
+.detail-heading {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.audit-detail dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.audit-detail dt {
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.audit-detail dd {
+  margin: 0 0 8px;
+}
+
+.metadata-box {
+  display: grid;
+  gap: 8px;
+}
+
+.metadata-box span {
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.metadata-box pre {
+  background: #0f1720;
+  border-radius: 8px;
+  color: #dce7ef;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
 .event-map-card {
   display: grid;

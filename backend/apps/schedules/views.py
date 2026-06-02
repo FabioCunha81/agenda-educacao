@@ -16,7 +16,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 
-from apps.accounts.models import User
+from apps.accounts.audit import log_audit
+from apps.accounts.models import AuditLog, User
 
 from .models import (
     ActionType,
@@ -286,22 +287,52 @@ class AgendaViewSet(viewsets.ModelViewSet):
             action="CRIACAO",
             snapshot=snapshot_for(agenda),
         )
+        log_audit(
+            self.request,
+            AuditLog.Action.CREATE,
+            "Agendas",
+            f"Agenda criada: protocolo {agenda.id}.",
+            {"agenda_id": agenda.id, "title": agenda.title, "status": agenda.status},
+        )
 
     def perform_update(self, serializer):
         previous_status = serializer.instance.status
         agenda = serializer.save()
         if previous_status != agenda.status:
             action = f"STATUS_{agenda.status}"
+            audit_action = AuditLog.Action.STATUS_CHANGE
+            audit_description = f"Status da agenda {agenda.id} alterado de {previous_status} para {agenda.status}."
         else:
             action = "ALTERACAO"
+            audit_action = AuditLog.Action.UPDATE
+            audit_description = f"Agenda atualizada: protocolo {agenda.id}."
         AgendaHistory.objects.create(
             agenda=agenda,
             changed_by=self.request.user,
             action=action,
             snapshot=snapshot_for(agenda),
         )
+        log_audit(
+            self.request,
+            audit_action,
+            "Agendas",
+            audit_description,
+            {"agenda_id": agenda.id, "title": agenda.title, "previous_status": previous_status, "status": agenda.status},
+        )
         if previous_status != agenda.status:
             transaction.on_commit(lambda: send_agenda_status_email(agenda, agenda.status))
+
+    def perform_destroy(self, instance):
+        metadata = {"agenda_id": instance.id, "title": instance.title, "status": instance.status}
+        label = instance.id
+        super().perform_destroy(instance)
+        log_audit(
+            self.request,
+            AuditLog.Action.DELETE,
+            "Agendas",
+            f"Agenda excluida: protocolo {label}.",
+            metadata,
+        )
 
     @decorators.action(detail=True, methods=["post"], url_path="send-available-dates")
     def send_available_dates(self, request, pk=None):
@@ -319,6 +350,13 @@ class AgendaViewSet(viewsets.ModelViewSet):
             changed_by=request.user,
             action="EMAIL_DATAS_DISPONIVEIS",
             snapshot={**snapshot_for(agenda), "available_month": month, "available_days": days, "email_sent": sent},
+        )
+        log_audit(
+            request,
+            AuditLog.Action.EMAIL,
+            "Agendas",
+            f"E-mail de datas disponiveis gerado para agenda {agenda.id}.",
+            {"agenda_id": agenda.id, "month": month, "email_sent": sent},
         )
         return response.Response(
             {"detail": "Mensagem de datas disponiveis enviada." if sent else "Solicitacao sem e-mail de destino."}
@@ -1712,6 +1750,13 @@ class InternalAgendaRequestView(APIView):
             action="SOLICITACAO_INTERNA",
             snapshot=snapshot_for(agenda),
         )
+        log_audit(
+            request,
+            AuditLog.Action.CREATE,
+            "Agendas",
+            f"Solicitacao interna criada: protocolo {agenda.id}.",
+            {"agenda_id": agenda.id, "title": agenda.title, "status": agenda.status},
+        )
         transaction.on_commit(lambda: send_agenda_status_email(agenda, Agenda.Status.PENDING))
         return response.Response(
             {
@@ -1781,6 +1826,13 @@ class ReportViewSet(viewsets.ViewSet):
     @decorators.action(detail=False, methods=["get"])
     def export_excel(self, request):
         qs = self._queryset(request)
+        log_audit(
+            request,
+            AuditLog.Action.REPORT_EXPORT,
+            "Relatorios",
+            "Relatorio de agendas exportado em Excel.",
+            {"format": "xlsx", "total": qs.count()},
+        )
         wb = Workbook()
         ws = wb.active
         ws.title = "Agendas"
@@ -1820,6 +1872,13 @@ class ReportViewSet(viewsets.ViewSet):
             | Q(responsible__email="solicitacao.publica@agenda.local")
         )
         qs = self._queryset(request).filter(request_source_filter)
+        log_audit(
+            request,
+            AuditLog.Action.REPORT_EXPORT,
+            "Relatorios",
+            "Relatorio operacional exportado em PDF.",
+            {"format": "pdf", "total": qs.count()},
+        )
         today = timezone.localdate()
         total = qs.count()
 

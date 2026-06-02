@@ -4,7 +4,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from apps.accounts.views import LoginView, PasswordResetRequestView, SetPasswordView, UserViewSet
+from apps.accounts.views import AuditLogViewSet, LoginView, PasswordResetRequestView, SetPasswordView, UserViewSet
 from apps.schedules.views import (
     ActionTypeViewSet,
     AgentViewSet,
@@ -29,6 +29,7 @@ from apps.schedules.views import (
 )
 
 router = DefaultRouter()
+router.register("audit-logs", AuditLogViewSet, basename="audit-logs")
 router.register("users", UserViewSet, basename="users")
 router.register("sectors", SectorViewSet, basename="sectors")
 router.register("vehicles", VehicleViewSet, basename="vehicles")
