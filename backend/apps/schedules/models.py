@@ -37,12 +37,14 @@ class Team(NamedLookup):
 
 
 class Support(NamedLookup):
+    cpf = models.CharField(max_length=14, unique=True, null=True, blank=True)
     team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True, related_name="supports")
     role = models.CharField(max_length=120, blank=True)
     address = models.CharField(max_length=220, blank=True)
 
 
 class Agent(NamedLookup):
+    cpf = models.CharField(max_length=14, unique=True, null=True, blank=True)
     team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True, related_name="agents")
     role = models.CharField(max_length=120, blank=True)
     address = models.CharField(max_length=220, blank=True)
@@ -69,6 +71,7 @@ class Material(NamedLookup):
 
 
 class Chief(NamedLookup):
+    cpf = models.CharField(max_length=14, unique=True, null=True, blank=True)
     team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True, related_name="chiefs")
     role = models.CharField(max_length=120, blank=True)
     address = models.CharField(max_length=220, blank=True)

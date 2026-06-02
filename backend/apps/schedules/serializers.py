@@ -33,6 +33,14 @@ class LookupSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ["id", "source_id", "name", "is_active"]
 
+    def validate_cpf(self, value):
+        digits = "".join(char for char in str(value or "") if char.isdigit())
+        if not digits:
+            return None
+        if len(digits) != 11:
+            raise serializers.ValidationError("Informe um CPF valido com 11 digitos.")
+        return digits
+
 
 class VehicleSerializer(LookupSerializer):
     class Meta(LookupSerializer.Meta):
@@ -67,7 +75,7 @@ class SupportSerializer(LookupSerializer):
 
     class Meta(LookupSerializer.Meta):
         model = Support
-        fields = ["id", "source_id", "name", "team", "team_name", "role", "address", "is_active"]
+        fields = ["id", "source_id", "name", "cpf", "team", "team_name", "role", "address", "is_active"]
 
     def validate_name(self, value):
         return value.strip().upper()
@@ -78,7 +86,7 @@ class AgentSerializer(LookupSerializer):
 
     class Meta(LookupSerializer.Meta):
         model = Agent
-        fields = ["id", "source_id", "name", "team", "team_name", "role", "address", "is_active"]
+        fields = ["id", "source_id", "name", "cpf", "team", "team_name", "role", "address", "is_active"]
 
 
 class ActionTypeSerializer(LookupSerializer):
@@ -114,7 +122,7 @@ class ChiefSerializer(LookupSerializer):
 
     class Meta(LookupSerializer.Meta):
         model = Chief
-        fields = ["id", "source_id", "name", "team", "team_name", "role", "address", "phone", "is_active"]
+        fields = ["id", "source_id", "name", "cpf", "team", "team_name", "role", "address", "phone", "is_active"]
 
 
 class AgendaHistorySerializer(serializers.ModelSerializer):

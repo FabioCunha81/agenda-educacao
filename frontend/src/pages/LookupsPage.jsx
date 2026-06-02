@@ -4,14 +4,14 @@ import { api } from "../api/client.js";
 
 const lookupTypes = [
   { key: "teams", label: "Equipes", endpoint: "/teams/" },
-  { key: "chiefs", label: "Chefes", endpoint: "/chiefs/", hasAddress: true, hasTeam: true, teamLabel: "Equipe" },
-  { key: "agents", label: "Agentes", endpoint: "/agents/", hasAddress: true, teamLabel: "Equipe" },
-  { key: "supports", label: "Apoios", endpoint: "/supports/", hasAddress: true, hasTeam: true, teamLabel: "Ala" },
+  { key: "chiefs", label: "Chefes", endpoint: "/chiefs/", hasCpf: true, hasAddress: true, hasTeam: true, teamLabel: "Equipe" },
+  { key: "agents", label: "Agentes", endpoint: "/agents/", hasCpf: true, hasAddress: true, teamLabel: "Equipe" },
+  { key: "supports", label: "Apoios", endpoint: "/supports/", hasCpf: true, hasAddress: true, hasTeam: true, teamLabel: "Ala" },
   { key: "vehicles", label: "Viaturas", endpoint: "/vehicles/" },
   { key: "kits", label: "Kits", endpoint: "/kits/" },
 ];
 
-const emptyForm = { name: "", phone: "", team: "", address: "", is_active: true };
+const emptyForm = { name: "", cpf: "", phone: "", team: "", address: "", is_active: true };
 const militaryTeams = ["ALFA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOX", "GOLF", "HOTEL"];
 
 export default function LookupsPage() {
@@ -36,7 +36,7 @@ export default function LookupsPage() {
         statusFilter === "all" ||
         (statusFilter === "active" && row.is_active) ||
         (statusFilter === "inactive" && !row.is_active);
-      const matchesSearch = !term || `${row.name} ${row.phone || ""} ${row.address || ""} ${row.team_name || ""}`.toLowerCase().includes(term);
+      const matchesSearch = !term || `${row.name} ${row.cpf || ""} ${row.phone || ""} ${row.address || ""} ${row.team_name || ""}`.toLowerCase().includes(term);
       return matchesStatus && matchesSearch;
     });
   }, [rows, search, statusFilter]);
@@ -72,6 +72,9 @@ export default function LookupsPage() {
     if (activeType.hasPhone) {
       payload.phone = form.phone || "";
     }
+    if (activeType.hasCpf) {
+      payload.cpf = String(form.cpf || "").replace(/\D/g, "") || null;
+    }
     if (activeType.hasAddress) {
       payload.address = form.address || "";
     }
@@ -98,6 +101,7 @@ export default function LookupsPage() {
     setEditing(row.id);
     setForm({
       name: row.name || "",
+      cpf: row.cpf || "",
       phone: row.phone || "",
       team: row.team || "",
       address: row.address || "",
@@ -154,6 +158,7 @@ export default function LookupsPage() {
             <thead>
               <tr>
                 <th>Nome</th>
+                {activeType.hasCpf && <th>CPF</th>}
                 {activeType.hasPhone && <th>Telefone</th>}
                 {(activeType.key === "agents" || activeType.hasTeam) && <th>{activeType.teamLabel || "Equipe"}</th>}
                 {activeType.hasAddress && <th>Localização</th>}
@@ -165,6 +170,7 @@ export default function LookupsPage() {
               {filteredRows.map((row) => (
                 <tr key={row.id}>
                   <td>{row.name}</td>
+                  {activeType.hasCpf && <td>{row.cpf || "-"}</td>}
                   {activeType.hasPhone && <td>{row.phone || "-"}</td>}
                   {(activeType.key === "agents" || activeType.hasTeam) && <td>{row.team_name || "-"}</td>}
                   {activeType.hasAddress && <td>{row.address || "-"}</td>}
@@ -195,6 +201,15 @@ export default function LookupsPage() {
             </select>
           ) : (
             <input placeholder="Nome" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required />
+          )}
+          {activeType.hasCpf && (
+            <input
+              placeholder="CPF"
+              value={form.cpf || ""}
+              onChange={(event) => setForm({ ...form, cpf: event.target.value.replace(/\D/g, "").slice(0, 11) })}
+              inputMode="numeric"
+              maxLength="11"
+            />
           )}
           {activeType.hasPhone && (
             <input placeholder="Telefone" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />

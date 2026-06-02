@@ -7,7 +7,37 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 
-from apps.schedules.models import Agent, Chief
+from apps.schedules.models import Agent, Chief, Sector
+
+
+def only_digits(value):
+    return "".join(char for char in str(value or "") if char.isdigit())
+
+
+def sector_for_team(team):
+    if not team:
+        return None
+    candidates = [team.name, team.name.title()]
+    if team.name.upper() == "FOX":
+        candidates.append("Foxtrot")
+    for name in candidates:
+        sector = Sector.objects.filter(name__iexact=name).first()
+        if sector:
+            return sector
+    return Sector.objects.create(
+        name=team.name.title(),
+        description="Equipe para vinculo de usuarios",
+        is_active=True,
+    )
+
+
+def find_lookup(model, user):
+    cpf = only_digits(user.cpf)
+    if cpf:
+        found = model.objects.filter(cpf=cpf).first()
+        if found:
+            return found
+    return model.objects.filter(name__iexact=user.full_name).first()
 
 from .models import AuditLog, User
 
@@ -16,15 +46,47 @@ def sync_user_lookup(user):
     if not user.full_name:
         return
     if user.role == User.Role.SUPERVISOR:
-        Chief.objects.update_or_create(
-            name=user.full_name,
-            defaults={"phone": user.phone, "is_active": user.is_active},
-        )
+        lookup = find_lookup(Chief, user)
+        phone = user.phone or (lookup.phone if lookup else "")
+        defaults = {
+            "name": user.full_name,
+            "cpf": only_digits(user.cpf) or None,
+            "phone": phone,
+            "is_active": user.is_active,
+        }
+        if lookup:
+            for field, value in defaults.items():
+                setattr(lookup, field, value)
+            lookup.save()
+        else:
+            lookup = Chief.objects.create(**defaults)
+        sector = sector_for_team(lookup.team)
+        changed_fields = []
+        if phone and user.phone != phone:
+            user.phone = phone
+            changed_fields.append("phone")
+        if sector and user.sector_id != sector.id:
+            user.sector = sector
+            changed_fields.append("sector")
+        if changed_fields:
+            user.save(update_fields=changed_fields)
     elif user.role == User.Role.USER:
-        Agent.objects.update_or_create(
-            name=user.full_name,
-            defaults={"is_active": user.is_active},
-        )
+        lookup = find_lookup(Agent, user)
+        defaults = {
+            "name": user.full_name,
+            "cpf": only_digits(user.cpf) or None,
+            "is_active": user.is_active,
+        }
+        if lookup:
+            for field, value in defaults.items():
+                setattr(lookup, field, value)
+            lookup.save()
+        else:
+            lookup = Agent.objects.create(**defaults)
+        sector = sector_for_team(lookup.team)
+        if sector and user.sector_id != sector.id:
+            user.sector = sector
+            user.save(update_fields=["sector"])
 
 
 class LoginSerializer(TokenObtainPairSerializer):
@@ -74,11 +136,19 @@ class UserSerializer(serializers.ModelSerializer):
         return email
 
     def validate_phone(self, value):
-        digits = "".join(char for char in str(value or "") if char.isdigit())
+        digits = only_digits(value)
         if not digits:
             return ""
         if len(digits) not in {10, 11}:
             raise serializers.ValidationError("Informe um telefone valido com DDD.")
+        return digits
+
+    def validate_cpf(self, value):
+        digits = only_digits(value)
+        if not digits:
+            return None
+        if len(digits) != 11:
+            raise serializers.ValidationError("Informe um CPF valido com 11 digitos.")
         return digits
 
     def create(self, validated_data):
