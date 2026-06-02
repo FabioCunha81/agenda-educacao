@@ -1,5 +1,5 @@
 import { Mail, Save, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -11,6 +11,8 @@ const roleLabel = {
   SUPERVISOR: "Chefe",
   USER: "Agente",
 };
+
+const adminRoles = new Set(["ADMIN", "MANAGER"]);
 
 function formatPhone(value) {
   const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
@@ -39,6 +41,9 @@ export default function UsersPage() {
 
   const load = () => api("/users/").then((data) => setUsers(data.results || data));
 
+  const adminUsers = useMemo(() => users.filter((user) => adminRoles.has(user.role)), [users]);
+  const operationalUsers = useMemo(() => users.filter((user) => !adminRoles.has(user.role)), [users]);
+
   useEffect(() => {
     load().catch((err) => setMessage(err.message));
     api("/sectors/").then((data) => setSectors(data.results || data)).catch((err) => setMessage(err.message));
@@ -48,11 +53,11 @@ export default function UsersPage() {
     event.preventDefault();
     const phoneDigits = String(form.phone || "").replace(/\D/g, "");
     if (phoneDigits && (phoneDigits.length < 10 || phoneDigits.length > 11)) {
-      setMessage("Informe um telefone valido com DDD.");
+      setMessage("Informe um telefone válido com DDD.");
       return;
     }
     if (!isValidEmail(form.email)) {
-      setMessage("Informe um e-mail valido.");
+      setMessage("Informe um e-mail válido.");
       return;
     }
     const payload = { ...form, email: form.email.trim().toLowerCase(), phone: phoneDigits };
@@ -110,6 +115,40 @@ export default function UsersPage() {
     }
   };
 
+  const renderUsersTable = (items, emptyMessage) => (
+    <table>
+      <thead>
+        <tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th>Ocupação</th><th>Equipe</th><th className="actions-heading">Ações</th></tr>
+      </thead>
+      <tbody>
+        {items.map((item) => (
+          <tr key={item.id}>
+            <td>{item.full_name}</td>
+            <td>{item.cpf || "-"}</td>
+            <td>{item.phone || "-"}</td>
+            <td>{item.email}</td>
+            <td>{roleLabel[item.role] || item.role}</td>
+            <td>{item.sector_name || "-"}</td>
+            <td>
+              <div className="row-actions">
+                <button className="secondary" onClick={() => edit(item)}>Editar</button>
+                <button className="icon-button" onClick={() => sendPasswordLink(item)} aria-label={`Enviar link para ${item.full_name || item.email}`} title="Enviar link de senha">
+                  <Mail size={18} />
+                </button>
+                <button className="icon-button danger" onClick={() => remove(item)} disabled={item.id === currentUser?.id} aria-label={`Excluir ${item.full_name || item.email}`} title={item.id === currentUser?.id ? "Você não pode excluir seu próprio usuário" : "Excluir usuário"}>
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            </td>
+          </tr>
+        ))}
+        {!items.length && (
+          <tr><td colSpan="7" className="empty-cell">{emptyMessage}</td></tr>
+        )}
+      </tbody>
+    </table>
+  );
+
   return (
     <section className="page two-column">
       <div className="main-column">
@@ -119,35 +158,13 @@ export default function UsersPage() {
             <p>Gerencie administradores, chefes e agentes do sistema.</p>
           </div>
         </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th>Ocupação</th><th>Equipe</th><th className="actions-heading">Ações</th></tr>
-            </thead>
-            <tbody>
-              {users.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.full_name}</td>
-                  <td>{item.cpf || "-"}</td>
-                  <td>{item.phone || "-"}</td>
-                  <td>{item.email}</td>
-                  <td>{roleLabel[item.role] || item.role}</td>
-                  <td>{item.sector_name}</td>
-                  <td>
-                    <div className="row-actions">
-                      <button className="secondary" onClick={() => edit(item)}>Editar</button>
-                      <button className="icon-button" onClick={() => sendPasswordLink(item)} aria-label={`Enviar link para ${item.full_name || item.email}`} title="Enviar link de senha">
-                        <Mail size={18} />
-                      </button>
-                      <button className="icon-button danger" onClick={() => remove(item)} disabled={item.id === currentUser?.id} aria-label={`Excluir ${item.full_name || item.email}`} title={item.id === currentUser?.id ? "Você não pode excluir seu próprio usuário" : "Excluir usuário"}>
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="table-wrap users-table-wrap">
+          <h2>Administradores e gestores</h2>
+          {renderUsersTable(adminUsers, "Nenhum administrador ou gestor cadastrado.")}
+        </div>
+        <div className="table-wrap users-table-wrap">
+          <h2>Usuários operacionais</h2>
+          {renderUsersTable(operationalUsers, "Nenhum agente ou chefe cadastrado.")}
         </div>
       </div>
       <aside className="side-panel">
@@ -173,7 +190,7 @@ export default function UsersPage() {
             autoComplete="email"
             inputMode="email"
             pattern="[^\s@]+@[^\s@]+\.[^\s@]{2,}"
-            title="Informe um e-mail valido. Exemplo: nome@dominio.com"
+            title="Informe um e-mail válido. Exemplo: nome@dominio.com"
             required
           />
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
