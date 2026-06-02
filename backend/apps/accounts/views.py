@@ -97,12 +97,13 @@ class UserViewSet(viewsets.ModelViewSet):
     def send_password_link(self, request, pk=None):
         user = self.get_object()
         data = UserSerializer(user, context=self.get_serializer_context()).data
-        sent = send_password_setup_email(user, data["password_setup_link"])
+        sent, email_error = send_password_setup_email(user, data["password_setup_link"])
         return Response(
             {
-                "detail": "Link de senha enviado por e-mail." if sent else "Nao foi possivel enviar o e-mail; copie o link de senha manualmente.",
+                "detail": "Link de senha enviado por e-mail." if sent else f"Nao foi possivel enviar o e-mail; copie o link de senha manualmente. Erro: {email_error}",
                 "password_setup_link": data["password_setup_link"],
                 "password_setup_email_sent": sent,
+                "password_setup_email_error": email_error,
             },
             status=status.HTTP_200_OK,
         )
@@ -118,7 +119,9 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         data = UserSerializer(user, context=self.get_serializer_context()).data
-        data["password_setup_email_sent"] = send_password_setup_email(user, data["password_setup_link"])
+        sent, email_error = send_password_setup_email(user, data["password_setup_link"])
+        data["password_setup_email_sent"] = sent
+        data["password_setup_email_error"] = email_error
         headers = self.get_success_headers(data)
         return Response(data, status=status.HTTP_201_CREATED, headers=headers)
 

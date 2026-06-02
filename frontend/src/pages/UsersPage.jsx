@@ -38,7 +38,7 @@ export default function UsersPage() {
       setPasswordLink(saved.password_setup_link || "");
       setForm(empty);
       setEditing(null);
-      setMessage(isEditing ? "Usuario salvo." : (saved.password_setup_email_sent ? "Usuario salvo. Link de senha enviado por e-mail." : "Usuario salvo. Nao foi possivel enviar o e-mail; copie o link de senha manualmente."));
+      setMessage(isEditing ? "Usuario salvo." : (saved.password_setup_email_sent ? "Usuario salvo. Link de senha enviado por e-mail." : `Usuario salvo. Nao foi possivel enviar o e-mail; copie o link de senha manualmente.${saved.password_setup_email_error ? ` Erro: ${saved.password_setup_email_error}` : ""}`));
       load();
     } catch (err) {
       setMessage(err.message);

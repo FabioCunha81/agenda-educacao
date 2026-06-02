@@ -1,10 +1,19 @@
 import logging
+import smtplib
 
 from django.conf import settings
 from django.core.mail import EmailMessage
 
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_smtp_error(error):
+    message = str(error)
+    password = getattr(settings, "EMAIL_HOST_PASSWORD", "")
+    if password:
+        message = message.replace(password, "***")
+    return message[:500]
 
 
 def send_password_setup_email(user, link):
@@ -23,7 +32,11 @@ def send_password_setup_email(user, link):
     )
     try:
         message.send(fail_silently=False)
+    except smtplib.SMTPException as exc:
+        detail = sanitize_smtp_error(exc)
+        logger.exception("Nao foi possivel enviar e-mail de definicao de senha para %s: %s", user.email, detail)
+        return False, detail
     except Exception:
         logger.exception("Nao foi possivel enviar e-mail de definicao de senha para %s", user.email)
-        return False
-    return True
+        return False, "Erro de conexao SMTP. Confira host, porta, usuario, senha e remetente verificado."
+    return True, ""
