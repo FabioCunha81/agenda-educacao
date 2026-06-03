@@ -153,6 +153,8 @@ export default function AgendaPage() {
   const [reviewStep, setReviewStep] = useState("summary");
   const [message, setMessage] = useState("");
   const [publicLinkMessage, setPublicLinkMessage] = useState("");
+  const [availableDates, setAvailableDates] = useState([]);
+  const [availableDatesLoading, setAvailableDatesLoading] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const { user } = useAuth();
 
@@ -356,9 +358,11 @@ export default function AgendaPage() {
     setForm(
       agendaFields.reduce((values, field) => {
         const value = agenda[field] ?? "";
-        values[field] = field.endsWith("_time") && value ? value.slice(0, 5) : value;
+        values[field] = field === "responsible"
+          ? (user?.id || value)
+          : field.endsWith("_time") && value ? value.slice(0, 5) : value;
         return values;
-      }, {})
+      }, { responsible: user?.id || "" })
     );
   };
 
@@ -371,7 +375,7 @@ export default function AgendaPage() {
   const openNew = () => {
     if (!canManageRequests) return;
     setEditing(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, responsible: user?.id || "" });
     setReviewStep("form");
     setMessage("");
     setIsModalOpen(true);
@@ -524,13 +528,34 @@ export default function AgendaPage() {
     try {
       const response = await api(`/agendas/${id}/send-available-dates/`, {
         method: "POST",
-        body: JSON.stringify({ month: month.trim(), days: days.trim() }),
+        body: JSON.stringify({ month: month.trim(), days: days.trim(), message: form.available_message || "" }),
       });
       setMessage(response.detail || "E-mail com datas disponíveis enviado com sucesso.");
       setReviewStep("summary");
       loadAgendas();
     } catch (err) {
       setMessage(err.message);
+    }
+  };
+
+  const checkAvailableDates = async () => {
+    if (!editing) return;
+    setReviewStep("suggest_dates");
+    setAvailableDatesLoading(true);
+    setMessage("");
+    try {
+      const data = await api(`/agendas/${editing}/available-dates/`);
+      setAvailableDates(data.dates || []);
+      setForm((current) => ({
+        ...current,
+        available_month: data.month || current.available_month || "",
+        available_days: data.days || current.available_days || "",
+        available_message: data.message || current.available_message || "",
+      }));
+    } catch (err) {
+      setMessage(err.message);
+    } finally {
+      setAvailableDatesLoading(false);
     }
   };
 
@@ -696,8 +721,8 @@ export default function AgendaPage() {
                 <button type="button" className="danger" onClick={() => decideReview("CANCELLED")}>
                   <XCircle size={18} /> Recusar
                 </button>
-                <button type="button" className="secondary" onClick={() => setReviewStep("suggest_dates")}>
-                  Sugerir datas
+                <button type="button" className="secondary" onClick={checkAvailableDates}>
+                  Verificar datas disponíveis
                 </button>
                 <a href="/calendario" target="_blank" rel="noreferrer" className="button secondary" style={{ display: "inline-flex", alignItems: "center", gap: "8px", textDecoration: "none", color: "inherit" }}>
                   Ver datas abertas
@@ -713,24 +738,48 @@ export default function AgendaPage() {
                 className="stack-form approval-form"
               >
                 <div className="form-section">
-                  <h3>Sugerir novas datas</h3>
-                  <p>Informe o mês e os dias em que a Operação Lei Seca tem disponibilidade para atender essa solicitação. O solicitante receberá um e-mail com as datas sugeridas e um link para alterar a solicitação.</p>
+                  <h3>Verificar datas disponíveis</h3>
+                  <p>Confira as datas com vaga e envie uma resposta para o solicitante alterar a data no próprio formulário do protocolo.</p>
+                  {availableDatesLoading && <div className="alert">Buscando datas disponíveis...</div>}
+                  {!availableDatesLoading && availableDates.length > 0 && (
+                    <div className="date-chip-list">
+                      {availableDates.map((item) => (
+                        <button
+                          key={item.date}
+                          type="button"
+                          className="secondary"
+                          onClick={() => update("available_days", item.label)}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <label className="field-label">
                     <span>Mês com disponibilidade</span>
-                    <input 
-                      placeholder="Ex: Julho" 
-                      value={form.available_month || ""} 
-                      onChange={(e) => update("available_month", e.target.value)} 
-                      required 
+                    <input
+                      placeholder="Ex: Julho"
+                      value={form.available_month || ""}
+                      onChange={(e) => update("available_month", e.target.value)}
+                      required
                     />
                   </label>
                   <label className="field-label">
-                    <span>Dias disponíveis no mês</span>
-                    <input 
-                      placeholder="Ex: 12, 15 e 20" 
-                      value={form.available_days || ""} 
-                      onChange={(e) => update("available_days", e.target.value)} 
-                      required 
+                    <span>Dias disponíveis</span>
+                    <input
+                      placeholder="Ex: 12, 15 e 20"
+                      value={form.available_days || ""}
+                      onChange={(e) => update("available_days", e.target.value)}
+                      required
+                    />
+                  </label>
+                  <label className="field-label">
+                    <span>Resposta para o solicitante</span>
+                    <textarea
+                      rows="9"
+                      value={form.available_message || ""}
+                      onChange={(e) => update("available_message", e.target.value)}
+                      required
                     />
                   </label>
                 </div>
@@ -880,7 +929,7 @@ export default function AgendaPage() {
                 {message && <div className="alert">{message}</div>}
                 <div className="review-actions">
                   <button type="button" className="secondary" onClick={() => setReviewStep("summary")}>Voltar</button>
-                  <button type="button" className="secondary" onClick={() => decideReview("PENDING")}>Manter pendente</button>
+                  <button type="button" className="secondary" onClick={checkAvailableDates}>Verificar datas disponíveis</button>
                   <button type="submit" className="approve-action"><CheckCircle2 size={18} /> Confirmar aprovação</button>
                 </div>
               </form>

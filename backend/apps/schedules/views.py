@@ -40,7 +40,7 @@ from .models import (
     Vehicle,
 )
 from .permissions import AdminOrReadSectorPermission, AgendaPermission
-from .emails import PUBLIC_REQUEST_SALT, send_agenda_available_dates_email, send_agenda_status_email, send_satisfaction_survey_email
+from .emails import PUBLIC_REQUEST_SALT, public_update_url, send_agenda_available_dates_email, send_agenda_status_email, send_satisfaction_survey_email
 from .serializers import (
     ActionTypeSerializer,
     AgentSerializer,
@@ -339,17 +339,18 @@ class AgendaViewSet(viewsets.ModelViewSet):
         agenda = self.get_object()
         month = str(request.data.get("month", "")).strip()
         days = str(request.data.get("days", "")).strip()
+        message = str(request.data.get("message", "")).strip()
         if not month or not days:
             return response.Response(
                 {"detail": "Informe o mes e os dias disponiveis."},
                 status=400,
             )
-        sent = send_agenda_available_dates_email(agenda, month, days)
+        sent = send_agenda_available_dates_email(agenda, month, days, custom_message=message)
         AgendaHistory.objects.create(
             agenda=agenda,
             changed_by=request.user,
             action="EMAIL_DATAS_DISPONIVEIS",
-            snapshot={**snapshot_for(agenda), "available_month": month, "available_days": days, "email_sent": sent},
+            snapshot={**snapshot_for(agenda), "available_month": month, "available_days": days, "email_sent": sent, "message": message},
         )
         log_audit(
             request,
@@ -360,6 +361,32 @@ class AgendaViewSet(viewsets.ModelViewSet):
         )
         return response.Response(
             {"detail": "Mensagem de datas disponiveis enviada." if sent else "Solicitacao sem e-mail de destino."}
+        )
+
+    @decorators.action(detail=True, methods=["get"], url_path="available-dates")
+    def available_dates(self, request, pk=None):
+        agenda = self.get_object()
+        from apps.schedules.serializers import get_next_available_dates
+
+        suggested = get_next_available_dates(agenda.date, limit=6)
+        days = ", ".join(day.strftime("%d/%m/%Y") for day in suggested)
+        month = suggested[0].strftime("%m/%Y") if suggested else ""
+        message = (
+            "Prezado(a) solicitante,\n\n"
+            "Não temos disponibilidade para atender na data solicitada. "
+            f"Temos disponibilidade nas seguintes datas: {days or 'nenhuma data disponível nos próximos dias'}.\n\n"
+            "Caso uma das datas informadas atenda sua necessidade, acesse o link abaixo, altere a data da realização da palestra e reenvie o formulário:\n"
+            f"{public_update_url(agenda)}\n\n"
+            "Atenciosamente,\n"
+            "Superintendência da Operação Lei Seca"
+        )
+        return response.Response(
+            {
+                "dates": [{"date": day.isoformat(), "label": day.strftime("%d/%m/%Y")} for day in suggested],
+                "month": month,
+                "days": days,
+                "message": message,
+            }
         )
 
     @decorators.action(detail=True, methods=["post"], url_path="satisfaction-survey-link")

@@ -2581,6 +2581,16 @@ button.stat-card.active {
   color: var(--danger);
 }
 
+.date-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.date-chip-list button {
+  min-height: 36px;
+}
+
 .history-list {
   display: grid;
   gap: 10px;

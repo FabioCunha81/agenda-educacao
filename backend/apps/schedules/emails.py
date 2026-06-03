@@ -123,7 +123,9 @@ def rejection_message(agenda):
     )
 
 
-def available_dates_message(agenda, month, days):
+def available_dates_message(agenda, month, days, custom_message=""):
+    if custom_message:
+        return (f"Datas disponíveis - Protocolo #{agenda.id}", custom_message)
     return (
         f"Datas disponíveis - Protocolo #{agenda.id}",
         (
@@ -170,12 +172,12 @@ def send_agenda_status_email(agenda, status=None):
     return True
 
 
-def send_agenda_available_dates_email(agenda, month, days):
+def send_agenda_available_dates_email(agenda, month, days, custom_message=""):
     recipients = agenda_recipients(agenda)
     if not recipients:
         return False
 
-    subject, body = available_dates_message(agenda, month, days)
+    subject, body = available_dates_message(agenda, month, days, custom_message=custom_message)
     email = build_email(subject, body, recipients)
     email.send(fail_silently=True)
     return True
