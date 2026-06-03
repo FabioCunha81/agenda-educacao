@@ -2,17 +2,17 @@ import { Mail, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { roleLabel } from "../utils/permissions.js";
 
 const empty = { full_name: "", cpf: "", email: "", phone: "", role: "USER", sector: "", is_active: true };
 
-const roleLabel = {
-  ADMIN: "Administrador",
-  MANAGER: "Gestor",
-  SUPERVISOR: "Chefe",
-  USER: "Agente",
-};
-
 const adminRoles = new Set(["ADMIN", "MANAGER"]);
+const hiddenSectorNames = new Set([
+  "solicitações externas",
+  "solicitações internas",
+  "solicitaã§ãµes externas",
+  "solicitaã§ãµes internas",
+]);
 
 function formatPhone(value) {
   const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
@@ -43,6 +43,10 @@ export default function UsersPage() {
 
   const adminUsers = useMemo(() => users.filter((user) => adminRoles.has(user.role)), [users]);
   const operationalUsers = useMemo(() => users.filter((user) => !adminRoles.has(user.role)), [users]);
+  const visibleSectors = useMemo(
+    () => sectors.filter((sector) => !hiddenSectorNames.has(String(sector.name || "").trim().toLowerCase())),
+    [sectors]
+  );
 
   useEffect(() => {
     load().catch((err) => setMessage(err.message));
@@ -155,12 +159,12 @@ export default function UsersPage() {
         <div className="page-title">
           <div>
             <h1>Usuários</h1>
-            <p>Gerencie administradores, chefes e agentes do sistema.</p>
+            <p>Gerencie Administração, gestores, chefes e agentes do sistema.</p>
           </div>
         </div>
         <div className="table-wrap users-table-wrap">
-          <h2>Administradores e gestores</h2>
-          {renderUsersTable(adminUsers, "Nenhum administrador ou gestor cadastrado.")}
+          <h2>Administração e gestores</h2>
+          {renderUsersTable(adminUsers, "Nenhum usuário de Administração ou gestor cadastrado.")}
         </div>
         <div className="table-wrap users-table-wrap">
           <h2>Usuários operacionais</h2>
@@ -197,11 +201,11 @@ export default function UsersPage() {
             <option value="USER">Agente</option>
             <option value="SUPERVISOR">Chefe</option>
             <option value="MANAGER">Gestor</option>
-            <option value="ADMIN">Administrador</option>
+            <option value="ADMIN">Administração</option>
           </select>
           <select value={form.sector || ""} onChange={(e) => setForm({ ...form, sector: e.target.value })}>
-            <option value="">{sectors.length ? "Sem equipe" : "Nenhuma equipe carregada"}</option>
-            {sectors.map((sector) => <option key={sector.id} value={sector.id}>{sector.name}</option>)}
+            <option value="">{visibleSectors.length ? "Sem equipe" : "Nenhuma equipe carregada"}</option>
+            {visibleSectors.map((sector) => <option key={sector.id} value={sector.id}>{sector.name}</option>)}
           </select>
           <label className="checkbox"><input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} /> Usuário ativo</label>
           {message && <div className="alert">{message}</div>}

@@ -33,16 +33,16 @@ export default function App() {
         }
       >
         <Route index element={<DashboardPage />} />
-        <Route path="agendas" element={<AgendaPage />} />
-        <Route path="solicitacao-interna" element={<PublicAgendaRequestPage internalRequest />} />
+        <Route path="agendas" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "SUPERVISOR"]}><AgendaPage /></ProtectedRoute>} />
+        <Route path="solicitacao-interna" element={<ProtectedRoute roles={["ADMIN", "MANAGER"]}><PublicAgendaRequestPage internalRequest /></ProtectedRoute>} />
         <Route path="calendario" element={<CalendarPage />} />
-        <Route path="relatorio-tecnico" element={<TechnicalReportsPage />} />
-        <Route path="relatorios" element={<ReportsPage />} />
-        <Route path="estatisticas" element={<StatisticsPage />} />
-        <Route path="metas" element={<GoalsPage />} />
-        <Route path="cadastros" element={<LookupsPage />} />
-        <Route path="usuarios" element={<UsersPage />} />
-        <Route path="auditoria" element={<AuditLogsPage />} />
+        <Route path="relatorio-tecnico" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "SUPERVISOR"]}><TechnicalReportsPage /></ProtectedRoute>} />
+        <Route path="relatorios" element={<ProtectedRoute roles={["ADMIN", "MANAGER"]}><ReportsPage /></ProtectedRoute>} />
+        <Route path="estatisticas" element={<ProtectedRoute roles={["ADMIN", "MANAGER"]}><StatisticsPage /></ProtectedRoute>} />
+        <Route path="metas" element={<ProtectedRoute roles={["ADMIN", "MANAGER"]}><GoalsPage /></ProtectedRoute>} />
+        <Route path="cadastros" element={<ProtectedRoute roles={["ADMIN", "MANAGER"]}><LookupsPage /></ProtectedRoute>} />
+        <Route path="usuarios" element={<ProtectedRoute roles={["ADMIN", "CREATOR"]}><UsersPage /></ProtectedRoute>} />
+        <Route path="auditoria" element={<ProtectedRoute roles={["CREATOR"]}><AuditLogsPage /></ProtectedRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -157,7 +157,8 @@ export default function AgendaPage() {
 
   const hasMaxAccess = user?.role === "ADMIN" || user?.role === "MANAGER";
   const canDelete = hasMaxAccess;
-  const canChangeStatus = hasMaxAccess || user?.role === "SUPERVISOR";
+  const canChangeStatus = hasMaxAccess;
+  const canManageRequests = hasMaxAccess;
 
   const loadAgendas = () => {
     const params = new URLSearchParams({ page_size: "50", order: "latest", source: "requests", ...filters }).toString();
@@ -358,6 +359,7 @@ export default function AgendaPage() {
   };
 
   const openNew = () => {
+    if (!canManageRequests) return;
     setEditing(null);
     setForm(emptyForm);
     setReviewStep("form");
@@ -371,6 +373,10 @@ export default function AgendaPage() {
   };
 
   const changeStatus = async (agenda, status) => {
+    if (!canChangeStatus) {
+      setMessage("Seu perfil pode visualizar solicitações, mas não aprovar ou recusar.");
+      return;
+    }
     setMessage("");
     if (status === "APPROVED") {
       const hasTeam = agenda.team_ref || agenda.team_name || agenda.sector;
@@ -404,6 +410,10 @@ export default function AgendaPage() {
 
   const decideReview = async (status) => {
     if (!editing) return;
+    if (!canManageRequests) {
+      setMessage("Seu perfil pode visualizar solicitações, mas não aprovar ou recusar.");
+      return;
+    }
     setMessage("");
     const nextForm = { ...form, status };
     if (status === "APPROVED") {
@@ -463,6 +473,10 @@ export default function AgendaPage() {
   };
 
   const ensureSurveyLink = async (agenda, openLink = true) => {
+    if (!canManageRequests) {
+      setMessage("Seu perfil pode visualizar solicitações, mas não gerar links de pesquisa.");
+      return "";
+    }
     setMessage("");
     try {
       const data = await api(`/agendas/${agenda.id}/satisfaction-survey-link/`, { method: "POST", body: JSON.stringify({}) });
@@ -487,6 +501,10 @@ export default function AgendaPage() {
   };
 
   const sendAvailableDates = async (id, month, days) => {
+    if (!canManageRequests) {
+      setMessage("Seu perfil pode visualizar solicitações, mas não sugerir datas.");
+      return;
+    }
     setMessage("");
     if (!month?.trim() || !days?.trim()) return;
     
@@ -512,7 +530,7 @@ export default function AgendaPage() {
             <h1>Solicitações</h1>
             <p>Avalie solicitações recebidas pelo formulário público e faça a escala operacional.</p>
           </div>
-          <div className="page-actions">
+          {canManageRequests && <div className="page-actions">
             <a className="secondary action-link" href="/solicitacao-interna">
               <Plus size={18} /> Solicitação interna
             </a>
@@ -520,7 +538,7 @@ export default function AgendaPage() {
               <ExternalLink size={18} /> Link público
             </a>
             <button className="secondary" type="button" onClick={copyPublicLink}><Copy size={18} /> Copiar link</button>
-          </div>
+          </div>}
         </div>
         {publicLinkMessage && <div className="alert">{publicLinkMessage}</div>}
         <div className="filters request-filters">
@@ -618,7 +636,7 @@ export default function AgendaPage() {
               <span className="full"><b>Autorização de imagem</b>{form.image_authorization || "-"}</span>
               {form.notes && <span className="full"><b>Observações</b>{form.notes}</span>}
             </div>
-            {form.satisfaction_survey_token && (
+            {canManageRequests && form.satisfaction_survey_token && (
               <div className="review-actions">
                 <a className="secondary action-link" href={surveyLink(form)} target="_blank" rel="noreferrer">
                   <ExternalLink size={18} /> Abrir pesquisa
@@ -629,7 +647,7 @@ export default function AgendaPage() {
                 {form.satisfaction_survey_answered_at && <span className="badge success">Pesquisa respondida</span>}
               </div>
             )}
-            {!form.satisfaction_survey_token && (
+            {canManageRequests && !form.satisfaction_survey_token && (
               <div className="review-actions">
                 <button type="button" className="secondary" onClick={() => ensureSurveyLink({ ...form, id: editing })}>
                   <ExternalLink size={18} /> Gerar link da pesquisa
@@ -637,7 +655,7 @@ export default function AgendaPage() {
               </div>
             )}
             {editing && reviewStep === "summary" && message && <div className="alert">{message}</div>}
-            {editing && reviewStep === "summary" && (
+            {editing && reviewStep === "summary" && canManageRequests && (
               <div className="review-actions">
                 <button type="button" className="approve-action" onClick={() => setReviewStep("schedule")}>
                   <CheckCircle2 size={18} /> Aprovar

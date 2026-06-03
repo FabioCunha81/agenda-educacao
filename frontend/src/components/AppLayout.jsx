@@ -1,30 +1,22 @@
 import { BarChart3, Bell, CalendarDays, LayoutDashboard, ListPlus, LogOut, Menu, Moon, Search, ShieldCheck, Sun, Target, Users, X } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
 import logoOperacaoLeiSeca from "../assets/operacao-lei-seca-logo.png";
+import { useAuth } from "../context/AuthContext.jsx";
+import { canAccessRoute, roleLabel } from "../utils/permissions.js";
 
 const items = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/agendas", label: "Solicitações", icon: CalendarDays },
+  { to: "/agendas", label: "Solicitações", icon: CalendarDays, roles: ["ADMIN", "MANAGER", "SUPERVISOR"] },
   { to: "/calendario", label: "Calendário", icon: CalendarDays },
-  { to: "/relatorio-tecnico", label: "Relatório técnico", icon: BarChart3 },
-  { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
-  { to: "/estatisticas", label: "Estatísticas", icon: BarChart3 },
-  { to: "/metas", label: "Metas", icon: Target, adminOnly: true },
-  { to: "/cadastros", label: "Cadastros", icon: ListPlus, adminOnly: true },
-  { to: "/usuarios", label: "Usuários", icon: Users, adminOnly: true },
-  { to: "/auditoria", label: "Auditoria", icon: ShieldCheck, adminOnly: true },
+  { to: "/relatorio-tecnico", label: "Relatório técnico", icon: BarChart3, roles: ["ADMIN", "MANAGER", "SUPERVISOR"] },
+  { to: "/relatorios", label: "Relatórios", icon: BarChart3, roles: ["ADMIN", "MANAGER"] },
+  { to: "/estatisticas", label: "Estatísticas", icon: BarChart3, roles: ["ADMIN", "MANAGER"] },
+  { to: "/metas", label: "Metas", icon: Target, roles: ["ADMIN", "MANAGER"] },
+  { to: "/cadastros", label: "Cadastros", icon: ListPlus, roles: ["ADMIN", "MANAGER"] },
+  { to: "/usuarios", label: "Usuários", icon: Users, roles: ["ADMIN", "CREATOR"] },
+  { to: "/auditoria", label: "Auditoria", icon: ShieldCheck, roles: ["CREATOR"] },
 ];
-
-const roleLabel = {
-  ADMIN: "ADMIN",
-  MANAGER: "GESTOR",
-  SUPERVISOR: "CHEFE",
-  USER: "AGENTE",
-};
-
-const maxAccessRoles = new Set(["ADMIN", "MANAGER"]);
 
 export default function AppLayout() {
   const [open, setOpen] = useState(false);
@@ -38,7 +30,7 @@ export default function AppLayout() {
     navigate("/login");
   };
 
-  const visibleItems = items.filter((item) => !item.adminOnly || maxAccessRoles.has(user?.role));
+  const visibleItems = items.filter((item) => canAccessRoute(user, item.roles));
 
   return (
     <div className={`app-shell ${collapsed ? "is-collapsed" : ""} ${darkMode ? "dark-mode" : ""}`}>
@@ -49,7 +41,7 @@ export default function AppLayout() {
         <div className="brand">
           <div className="brand-text">
             <strong>Agenda Educação</strong>
-            <span>{roleLabel[user?.role] || user?.role}</span>
+            <span>{user?.is_superuser ? "CRIADOR" : roleLabel[user?.role] || user?.role}</span>
           </div>
           <button className="icon-button desktop-only" onClick={() => setCollapsed((value) => !value)} aria-label="Recolher menu">
             <Menu size={18} />

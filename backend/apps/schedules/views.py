@@ -947,6 +947,8 @@ class EducationReportViewSet(viewsets.ModelViewSet):
 
     @decorators.action(detail=False, methods=["get"])
     def statistics(self, request):
+        if not request.user.is_admin_role:
+            raise PermissionDenied("Apenas Gestores e Administração podem acessar estatísticas.")
         reports = self.get_queryset()
         actions = EducationAction.objects.filter(report_id__in=reports.values("id"))
         params = request.query_params
@@ -1185,6 +1187,8 @@ class EducationReportViewSet(viewsets.ModelViewSet):
 
     @decorators.action(detail=False, methods=["get"], url_path="export-statistics")
     def export_statistics(self, request):
+        if not request.user.is_admin_role:
+            raise PermissionDenied("Apenas Gestores e Administração podem exportar estatísticas.")
         from reportlab.lib import colors
         from reportlab.lib.units import mm
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, KeepTogether
@@ -1808,6 +1812,8 @@ class InternalAgendaRequestView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        if not request.user.is_admin_role:
+            raise PermissionDenied("Apenas Gestores e Administração podem criar solicitações internas.")
         serializer = PublicAgendaRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
@@ -1879,7 +1885,12 @@ class InternalAgendaRequestView(APIView):
 class ReportViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
+    def _check_access(self, request):
+        if not request.user.is_admin_role:
+            raise PermissionDenied("Apenas Gestores e Administração podem acessar relatórios.")
+
     def _queryset(self, request):
+        self._check_access(request)
         user = request.user
         scoped = Agenda.objects.select_related("responsible", "sector", "created_by")
         if user.is_admin_role:

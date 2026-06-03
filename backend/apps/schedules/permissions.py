@@ -9,6 +9,8 @@ class AgendaPermission(BasePermission):
             return False
         if view.action == "destroy":
             return request.user.is_admin_role
+        if request.method not in SAFE_METHODS:
+            return request.user.is_admin_role
         return True
 
     def has_object_permission(self, request, view, obj):
@@ -19,9 +21,7 @@ class AgendaPermission(BasePermission):
             if user.role == User.Role.SUPERVISOR:
                 return obj.sector_id == user.sector_id
             return obj.created_by_id == user.id or obj.responsible_id == user.id
-        if user.role == User.Role.SUPERVISOR:
-            return obj.sector_id == user.sector_id
-        return obj.created_by_id == user.id and obj.status == obj.Status.PENDING
+        return False
 
 
 class AdminOrReadSectorPermission(BasePermission):

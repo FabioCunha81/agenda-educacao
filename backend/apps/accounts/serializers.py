@@ -117,10 +117,11 @@ class UserSerializer(serializers.ModelSerializer):
             "sector",
             "sector_name",
             "is_active",
+            "is_superuser",
             "password",
             "password_setup_link",
         ]
-        read_only_fields = ["id", "password_setup_link"]
+        read_only_fields = ["id", "is_superuser", "password_setup_link"]
 
     def get_password_setup_link(self, obj):
         uid = urlsafe_base64_encode(force_bytes(obj.pk))

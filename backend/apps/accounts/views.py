@@ -28,13 +28,17 @@ def is_system_user(user):
     return bool(user and user.email in SYSTEM_USER_EMAILS)
 
 
+def can_manage_users(user):
+    return bool(user and user.is_authenticated and (user.is_superuser or user.role == User.Role.ADMIN))
+
+
 class UserAccessPermission(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
         if request.method in SAFE_METHODS:
-            return True
-        return request.user.is_admin_role
+            return can_manage_users(request.user)
+        return can_manage_users(request.user)
 
 
 class LoginView(TokenObtainPairView):
@@ -131,7 +135,7 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        if not self.request.user.is_admin_role:
+        if not self.request.user.is_superuser:
             return AuditLog.objects.none()
         queryset = AuditLog.objects.select_related("user").all()
         params = self.request.query_params
@@ -240,8 +244,6 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = User.objects.select_related("sector").exclude(email__in=SYSTEM_USER_EMAILS).order_by("full_name")
         user = self.request.user
-        if user.is_admin_role:
+        if can_manage_users(user):
             return queryset
-        if user.is_supervisor_role:
-            return queryset.filter(sector_id=user.sector_id, is_active=True)
         return queryset.filter(id=user.id)
