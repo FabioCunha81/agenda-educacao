@@ -88,12 +88,20 @@ def snapshot_for(agenda):
 def chief_agenda_filter(user, prefix=""):
     field = f"{prefix}chief_name"
     chief_ref_field = f"{prefix}chief_ref__name"
+    chief_ref_cpf_field = f"{prefix}chief_ref__cpf"
+    chief_ref_team_field = f"{prefix}chief_ref__team__name"
     responsible_field = f"{prefix}responsible"
-    return (
+    query = (
         Q(**{f"{field}__iexact": user.full_name})
         | Q(**{f"{chief_ref_field}__iexact": user.full_name})
         | Q(**{responsible_field: user})
     )
+    cpf = "".join(char for char in str(user.cpf or "") if char.isdigit())
+    if cpf:
+        query |= Q(**{chief_ref_cpf_field: cpf})
+    if user.sector_id and user.sector and user.sector.name:
+        query |= Q(**{f"{chief_ref_team_field}__iexact": user.sector.name})
+    return query
 
 
 class SectorViewSet(viewsets.ModelViewSet):
@@ -909,12 +917,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
         if user.role == User.Role.SUPERVISOR:
             from rest_framework.exceptions import PermissionDenied
 
-            related_to_chief = (
-                agenda.chief_name.lower() == user.full_name.lower()
-                or (agenda.chief_ref and agenda.chief_ref.name.lower() == user.full_name.lower())
-                or agenda.responsible_id == user.id
-            )
-            if not related_to_chief:
+            if not Agenda.objects.filter(pk=agenda.pk).filter(chief_agenda_filter(user)).exists():
                 raise PermissionDenied("Você só pode relatar agendas em que você está vinculado como Chefe.")
         if user.role == User.Role.USER:
             from rest_framework.exceptions import PermissionDenied
