@@ -52,6 +52,7 @@ router.register("surveys", SatisfactionSurveyViewSet, basename="surveys")
 
 
 urlpatterns = [
+    path("", lambda request: HttpResponse("ok"), name="root_healthz"),
     path("healthz/", lambda request: HttpResponse("ok"), name="healthz"),
     path("admin/", admin.site.urls),
     path("api/auth/login/", LoginView.as_view(), name="token_obtain_pair"),
