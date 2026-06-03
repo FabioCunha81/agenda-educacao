@@ -5,8 +5,8 @@ import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@agenda.local");
-  const [password, setPassword] = useState("Admin@12345");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -78,14 +78,14 @@ export default function LoginPage() {
             E-mail
             <span className="input-icon">
               <Mail size={18} />
-              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Digite seu e-mail" required />
+              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Digite seu e-mail" autoComplete="username" required />
             </span>
           </label>
           <label>
             Senha
             <span className="input-icon">
               <Lock size={18} />
-              <input value={password} onChange={(e) => setPassword(e.target.value)} type={showPassword ? "text" : "password"} placeholder="Digite sua senha" required />
+              <input value={password} onChange={(e) => setPassword(e.target.value)} type={showPassword ? "text" : "password"} placeholder="Digite sua senha" autoComplete="current-password" required />
               <button
                 className="input-action-button"
                 type="button"
