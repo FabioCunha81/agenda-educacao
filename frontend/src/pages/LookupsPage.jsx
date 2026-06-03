@@ -113,7 +113,7 @@ export default function LookupsPage() {
     setMessage("");
     try {
       await api(`${activeType.endpoint}${row.id}/`, { method: "DELETE" });
-      setMessage("Cadastro excluÃ­do.");
+      setMessage("Cadastro excluído.");
       loadRows();
     } catch (err) {
       setMessage(err.message);
@@ -126,7 +126,7 @@ export default function LookupsPage() {
         <div className="page-title">
           <div>
             <h1>Cadastros</h1>
-            <p>Gerencie listas usadas nos formulÃ¡rios de novas agendas.</p>
+            <p>Gerencie listas usadas nos formulários de novas agendas.</p>
           </div>
         </div>
 

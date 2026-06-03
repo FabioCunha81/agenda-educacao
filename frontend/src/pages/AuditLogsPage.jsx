@@ -3,24 +3,24 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
 
 const actionOptions = [
-  ["", "Todas as acoes"],
+  ["", "Todas as a\u00e7\u00f5es"],
   ["LOGIN", "Login"],
-  ["CREATE", "Criacao"],
-  ["UPDATE", "Alteracao"],
-  ["DELETE", "Exclusao"],
-  ["STATUS_CHANGE", "Mudanca de status"],
+  ["CREATE", "Cria\u00e7\u00e3o"],
+  ["UPDATE", "Altera\u00e7\u00e3o"],
+  ["DELETE", "Exclus\u00e3o"],
+  ["STATUS_CHANGE", "Mudan\u00e7a de status"],
   ["PASSWORD_LINK", "Link de senha"],
-  ["SET_PASSWORD", "Definicao de senha"],
+  ["SET_PASSWORD", "Defini\u00e7\u00e3o de senha"],
   ["EMAIL", "Envio de e-mail"],
-  ["REPORT_EXPORT", "Exportacao de relatorio"],
+  ["REPORT_EXPORT", "Exporta\u00e7\u00e3o de relat\u00f3rio"],
 ];
 
 const moduleOptions = [
-  ["", "Todos os modulos"],
+  ["", "Todos os m\u00f3dulos"],
   ["Agendas", "Agendas"],
-  ["Usuarios", "Usuarios"],
-  ["Autenticacao", "Autenticacao"],
-  ["Relatorios", "Relatorios"],
+  ["Usuarios", "Usu\u00e1rios"],
+  ["Autenticacao", "Autentica\u00e7\u00e3o"],
+  ["Relatorios", "Relat\u00f3rios"],
 ];
 
 function formatDateTime(value) {
@@ -96,31 +96,31 @@ export default function AuditLogsPage() {
         <div className="page-title">
           <div>
             <h1>Auditoria</h1>
-            <p>Acompanhe acessos, cadastros, alteracoes e exportacoes do sistema.</p>
+            <p>Acompanhe acessos, cadastros, altera\u00e7\u00f5es e exporta\u00e7\u00f5es do sistema.</p>
           </div>
         </div>
 
         <div className="filters audit-filters">
           <label className="filter-field">
             <span>Buscar</span>
-            <input placeholder="Usuario, descricao ou IP" value={filters.q} onChange={(event) => updateFilter("q", event.target.value)} />
+            <input placeholder="Usu\u00e1rio, descri\u00e7\u00e3o ou IP" value={filters.q} onChange={(event) => updateFilter("q", event.target.value)} />
           </label>
           <label className="filter-field">
-            <span>Acao</span>
+            <span>A\u00e7\u00e3o</span>
             <select value={filters.action} onChange={(event) => updateFilter("action", event.target.value)}>
               {actionOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
           <label className="filter-field">
-            <span>Modulo</span>
+            <span>M\u00f3dulo</span>
             <select value={filters.module} onChange={(event) => updateFilter("module", event.target.value)}>
               {moduleOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
           <label className="filter-field">
-            <span>Usuario</span>
+            <span>Usuário</span>
             <select value={filters.user} onChange={(event) => updateFilter("user", event.target.value)}>
-              <option value="">Todos os usuarios</option>
+              <option value="">Todos os usuários</option>
               {users.map((user) => <option key={user.id} value={user.id}>{user.full_name || user.email}</option>)}
             </select>
           </label>
@@ -129,7 +129,7 @@ export default function AuditLogsPage() {
             <input type="date" value={filters.date_from} onChange={(event) => updateFilter("date_from", event.target.value)} />
           </label>
           <label className="filter-field">
-            <span>Ate</span>
+            <span>At\u00e9</span>
             <input type="date" value={filters.date_to} onChange={(event) => updateFilter("date_to", event.target.value)} />
           </label>
           <div className="audit-filter-actions">
@@ -144,10 +144,10 @@ export default function AuditLogsPage() {
             <thead>
               <tr>
                 <th>Data</th>
-                <th>Usuario</th>
-                <th>Acao</th>
-                <th>Modulo</th>
-                <th>Descricao</th>
+                <th>Usu\u00e1rio</th>
+                <th>A\u00e7\u00e3o</th>
+                <th>M\u00f3dulo</th>
+                <th>Descri\u00e7\u00e3o</th>
                 <th className="actions-heading">Detalhes</th>
               </tr>
             </thead>
@@ -186,15 +186,15 @@ export default function AuditLogsPage() {
             <dl>
               <dt>Data</dt>
               <dd>{formatDateTime(selected.created_at)}</dd>
-              <dt>Usuario</dt>
+              <dt>Usu\u00e1rio</dt>
               <dd>{selected.user_name || selected.user_email || "-"}</dd>
-              <dt>Acao</dt>
+              <dt>A\u00e7\u00e3o</dt>
               <dd>{selected.action_label}</dd>
-              <dt>Modulo</dt>
+              <dt>M\u00f3dulo</dt>
               <dd>{selected.module}</dd>
               <dt>IP</dt>
               <dd>{selected.ip_address || "-"}</dd>
-              <dt>Descricao</dt>
+              <dt>Descri\u00e7\u00e3o</dt>
               <dd>{selected.description}</dd>
             </dl>
             <div className="metadata-box">

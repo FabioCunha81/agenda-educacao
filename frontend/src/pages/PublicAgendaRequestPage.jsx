@@ -350,7 +350,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
               </div>
             </div>
             {message && <div className="alert">{message}</div>}
-            <button disabled={loading}><CalendarPlus size={18} /> {loading ? "Enviando..." : "Reenviar formulario"}</button>
+            <button disabled={loading}><CalendarPlus size={18} /> {loading ? "Enviando..." : "Reenviar formulário"}</button>
           </form>
         </section>
       </main>

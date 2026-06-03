@@ -139,6 +139,16 @@ class ChiefViewSet(LookupViewSet):
             queryset = Chief.objects.all()
         return queryset.select_related("team").order_by("team__name", "name")
 
+    def perform_destroy(self, instance):
+        cpf = "".join(char for char in str(instance.cpf or "") if char.isdigit())
+        linked_users = User.objects.filter(role=User.Role.SUPERVISOR)
+        if cpf:
+            linked_users = linked_users.filter(Q(cpf=cpf) | Q(full_name__iexact=instance.name))
+        else:
+            linked_users = linked_users.filter(full_name__iexact=instance.name)
+        linked_users.update(is_active=False)
+        super().perform_destroy(instance)
+
 
 class AgentViewSet(LookupViewSet):
     serializer_class = AgentSerializer

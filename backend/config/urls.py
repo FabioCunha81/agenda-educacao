@@ -4,7 +4,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from apps.accounts.views import AuditLogViewSet, LoginView, PasswordResetRequestView, SetPasswordView, UserViewSet
+from apps.accounts.views import AuditLogViewSet, CurrentUserView, LoginView, PasswordResetRequestView, SetPasswordView, UserViewSet
 from apps.schedules.views import (
     ActionTypeViewSet,
     AgentViewSet,
@@ -56,6 +56,7 @@ urlpatterns = [
     path("healthz/", lambda request: HttpResponse("ok"), name="healthz"),
     path("admin/", admin.site.urls),
     path("api/auth/login/", LoginView.as_view(), name="token_obtain_pair"),
+    path("api/auth/me/", CurrentUserView.as_view(), name="current_user"),
     path("api/auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/auth/password-reset/", PasswordResetRequestView.as_view(), name="password_reset"),
     path("api/auth/set-password/", SetPasswordView.as_view(), name="set_password"),

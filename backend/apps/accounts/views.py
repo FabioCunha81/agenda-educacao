@@ -60,6 +60,17 @@ class LoginView(TokenObtainPairView):
         return response
 
 
+class CurrentUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not request.user.is_active:
+            return Response({"detail": "Usuário inativo."}, status=status.HTTP_401_UNAUTHORIZED)
+        data = UserSerializer(request.user).data
+        data.pop("password_setup_link", None)
+        return Response(data)
+
+
 class PasswordResetRequestView(APIView):
     permission_classes = []
 

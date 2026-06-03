@@ -1,4 +1,5 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { api } from "../api/client.js";
 
 const AuthContext = createContext(null);
 
@@ -32,6 +33,22 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("user");
     setUser(null);
   };
+
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+    api("/auth/me/", { redirectOnUnauthorized: false })
+      .then((currentUser) => {
+        localStorage.setItem("user", JSON.stringify(currentUser));
+        setUser(currentUser);
+      })
+      .catch(() => {
+        logout();
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+      });
+  }, []);
 
   const value = useMemo(() => ({ user, login, logout, isAuthenticated: Boolean(user) }), [user]);
 

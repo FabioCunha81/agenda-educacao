@@ -1077,8 +1077,8 @@ export default function AgendaPage() {
         <div className="modal-backdrop" onClick={() => setHistoryAgenda(null)}>
           <article className="modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
-              <h2>HistÃ³rico da agenda</h2>
-              <button type="button" className="icon-button" onClick={() => setHistoryAgenda(null)} aria-label="Fechar">Ã—</button>
+              <h2>Histórico da agenda</h2>
+              <button type="button" className="icon-button" onClick={() => setHistoryAgenda(null)} aria-label="Fechar">×</button>
             </div>
             <div className="history-list">
               {(historyAgenda.history || []).length ? (
@@ -1091,7 +1091,7 @@ export default function AgendaPage() {
                   </div>
                 ))
               ) : (
-                <p>Nenhum histÃ³rico registrado.</p>
+                <p>Nenhum histórico registrado.</p>
               )}
             </div>
           </article>

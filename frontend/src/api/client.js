@@ -6,7 +6,7 @@ export function getToken() {
 
 function formatApiError(data) {
   if (!data || data instanceof Blob) {
-    return "Nao foi possivel concluir a operacao.";
+    return "Não foi possível concluir a operação.";
   }
   if (data.detail) {
     return data.detail;
@@ -30,7 +30,7 @@ function formatApiError(data) {
       return fieldMessages.join(" ");
     }
   }
-  return "Nao foi possivel concluir a operacao.";
+  return "Não foi possível concluir a operação.";
 }
 
 export async function api(path, options = {}) {
@@ -48,7 +48,7 @@ export async function api(path, options = {}) {
   try {
     response = await fetch(`${API_URL}${path}`, { ...fetchOptions, headers });
   } catch {
-    throw new Error("Nao foi possivel conectar a API. Verifique se o deploy da API terminou e se o servico agenda-educacao-api esta online.");
+    throw new Error("Não foi possível conectar à API. Verifique se o deploy da API terminou e se o serviço agenda-educacao-api está online.");
   }
   if (response.status === 204) {
     return null;
