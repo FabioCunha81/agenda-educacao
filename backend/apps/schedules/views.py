@@ -1937,8 +1937,8 @@ class InternalAgendaRequestView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        if not request.user.is_admin_role:
-            raise PermissionDenied("Apenas Gestores e Administração podem criar solicitações internas.")
+        if not (request.user.is_admin_role or request.user.role == User.Role.SUPERVISOR):
+            raise PermissionDenied("Apenas Chefes, Gestores e Administração podem criar solicitações internas.")
         serializer = PublicAgendaRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data

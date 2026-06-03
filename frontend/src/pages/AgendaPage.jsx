@@ -159,6 +159,7 @@ export default function AgendaPage() {
   const { user } = useAuth();
 
   const hasMaxAccess = user?.role === "ADMIN" || user?.role === "MANAGER";
+  const canUseRequestShortcuts = hasMaxAccess || user?.role === "SUPERVISOR";
   const canDelete = hasMaxAccess;
   const canChangeStatus = hasMaxAccess;
   const canManageRequests = hasMaxAccess;
@@ -588,7 +589,7 @@ export default function AgendaPage() {
             </div>
             <p style={{ margin: 0 }}>Avalie solicitações recebidas pelo formulário público e faça a escala operacional.</p>
           </div>
-          {canManageRequests && <div className="page-actions">
+          {canUseRequestShortcuts && <div className="page-actions">
             <a className="secondary action-link" href="/solicitacao-interna">
               <Plus size={18} /> Solicitação interna
             </a>

@@ -34,7 +34,7 @@ export default function App() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="agendas" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "SUPERVISOR"]}><AgendaPage /></ProtectedRoute>} />
-        <Route path="solicitacao-interna" element={<ProtectedRoute roles={["ADMIN", "MANAGER"]}><PublicAgendaRequestPage internalRequest /></ProtectedRoute>} />
+        <Route path="solicitacao-interna" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "SUPERVISOR"]}><PublicAgendaRequestPage internalRequest /></ProtectedRoute>} />
         <Route path="calendario" element={<CalendarPage />} />
         <Route path="relatorio-tecnico" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "SUPERVISOR"]}><TechnicalReportsPage /></ProtectedRoute>} />
         <Route path="relatorios" element={<ProtectedRoute roles={["ADMIN", "MANAGER"]}><ReportsPage /></ProtectedRoute>} />
