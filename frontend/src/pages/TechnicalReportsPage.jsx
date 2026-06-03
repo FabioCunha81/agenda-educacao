@@ -15,17 +15,17 @@ const emptyAction = {
   institution_name: "",
   start_time: "",
   final_hour: "",
-  approach: 0,
-  tests: 0,
-  used_caps: 0,
-  available_caps: 0,
-  distributed_folders: 0,
-  cricris: 0,
-  vetarolas: 0,
-  used_adhesives: 0,
-  sequence_certificates: 0,
-  gibis: 0,
-  distributed_certificates: 0,
+  approach: "",
+  tests: "",
+  used_caps: "",
+  available_caps: "",
+  distributed_folders: "",
+  cricris: "",
+  vetarolas: "",
+  used_adhesives: "",
+  sequence_certificates: "",
+  gibis: "",
+  distributed_certificates: "",
 };
 
 const empty = {
@@ -516,7 +516,7 @@ export default function TechnicalReportsPage() {
                   {numberFields.map((field) => (
                     <label className="field-label" key={field}>
                       <span>{fieldLabels[field]}</span>
-                      <input type="number" min="0" value={action[field] ?? 0} onChange={(event) => updateAction(index, field, event.target.value)} />
+                      <input type="number" min="0" value={action[field] === 0 ? "" : (action[field] ?? "")} onChange={(event) => updateAction(index, field, event.target.value)} />
                     </label>
                   ))}
                 </div>
