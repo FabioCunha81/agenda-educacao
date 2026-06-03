@@ -1,6 +1,37 @@
+from django.db.models import Q
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 from apps.accounts.models import User
+
+
+def agent_agenda_filter(user):
+    query = Q(created_by=user) | Q(responsible=user)
+    cpf = "".join(char for char in str(user.cpf or "") if char.isdigit())
+    if cpf:
+        query |= Q(agents_ref__cpf=cpf)
+    if user.full_name:
+        query |= Q(agents_ref__name__iexact=user.full_name) | Q(agents__icontains=user.full_name)
+    if user.sector_id and user.sector and user.sector.name:
+        query |= Q(team_ref__name__iexact=user.sector.name) | Q(team_name__iexact=user.sector.name)
+    return query
+
+
+def user_can_read_agenda(user, agenda):
+    if agenda.created_by_id == user.id or agenda.responsible_id == user.id:
+        return True
+    cpf = "".join(char for char in str(user.cpf or "") if char.isdigit())
+    if cpf and agenda.agents_ref.filter(cpf=cpf).exists():
+        return True
+    if user.full_name:
+        if agenda.agents_ref.filter(name__iexact=user.full_name).exists():
+            return True
+        if user.full_name.casefold() in (agenda.agents or "").casefold():
+            return True
+    if user.sector_id and user.sector and user.sector.name:
+        sector_name = user.sector.name.casefold()
+        team_ref_name = agenda.team_ref.name.casefold() if agenda.team_ref else ""
+        return sector_name in {team_ref_name, (agenda.team_name or "").casefold()}
+    return False
 
 
 class AgendaPermission(BasePermission):
@@ -20,7 +51,7 @@ class AgendaPermission(BasePermission):
         if request.method in SAFE_METHODS:
             if user.role == User.Role.SUPERVISOR:
                 return obj.sector_id == user.sector_id
-            return obj.created_by_id == user.id or obj.responsible_id == user.id
+            return user_can_read_agenda(user, obj)
         return False
 
 

@@ -66,7 +66,6 @@ export default function CalendarPage() {
     delete scopedFilters.date;
     const params = new URLSearchParams({
       ...scopedFilters,
-      source: "requests",
       date_from: toISO(days[0]),
       date_to: toISO(days[days.length - 1]),
     }).toString();

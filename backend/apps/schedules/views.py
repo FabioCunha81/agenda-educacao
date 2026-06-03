@@ -39,7 +39,7 @@ from .models import (
     Team,
     Vehicle,
 )
-from .permissions import AdminOrReadSectorPermission, AgendaPermission
+from .permissions import AdminOrReadSectorPermission, AgendaPermission, agent_agenda_filter
 from .emails import PUBLIC_REQUEST_SALT, public_update_url, send_agenda_available_dates_email, send_agenda_status_email, send_satisfaction_survey_email
 from .serializers import (
     ActionTypeSerializer,
@@ -218,7 +218,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
                 Q(sector_id=user.sector_id)
                 | chief_agenda_filter(user)
             )
-        return queryset.filter(created_by=user) | queryset.filter(responsible=user)
+        return queryset.filter(agent_agenda_filter(user))
 
     def get_queryset(self):
         scoped = self.get_scoped_queryset()
