@@ -4,18 +4,19 @@ import {
   CheckCircle2,
   Clock3,
   Download,
-  FileSpreadsheet,
   PauseCircle,
   Search,
   Star,
   StarHalf,
   Users,
   XCircle,
+  ThumbsUp,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { api, downloadUrl } from "../api/client.js";
+import { useEffect, useState } from "react";
+import { api } from "../api/client.js";
 import { formatDateBR } from "../utils/date.js";
-import { statusClass, statusLabel } from "../utils/status.js";
+import { statusLabel } from "../utils/status.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const emptyFilters = {
   q: "",
@@ -49,10 +50,26 @@ function dateToInputValue(date) {
 function DashboardCard({ active, config, data, onClick }) {
   const Icon = config.icon;
   return (
-    <button className={`metric-card ${config.tone} ${active ? "active" : ""}`} onClick={onClick} type="button">
-      <span className="metric-icon"><Icon size={18} /></span>
-      <span>{config.label}</span>
-      <strong>{data?.value ?? 0}</strong>
+    <button
+      className={`metric-card ${config.tone} ${active ? "active" : ""}`}
+      onClick={onClick}
+      type="button"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        boxShadow: active ? "0 10px 20px -5px rgba(0, 72, 215, 0.3)" : "none",
+        transform: active ? "translateY(-4px)" : "none",
+      }}
+    >
+      <span className="metric-icon" style={{ borderRadius: "10px", padding: "8px", margin: "0 auto 8px" }}>
+        <Icon size={20} />
+      </span>
+      <span style={{ fontSize: "13px", fontWeight: "600", color: "var(--text-soft)", display: "block" }}>{config.label}</span>
+      <strong style={{ fontSize: "28px", fontWeight: "800", marginTop: "4px", display: "block" }}>{data?.value ?? 0}</strong>
     </button>
   );
 }
@@ -67,56 +84,71 @@ function LineChart({ data = [] }) {
   const points = chartPoints.map((item) => `${item.x},${item.y}`).join(" ");
 
   return (
-    <div className="chart-card main-chart">
-      <div className="section-heading">
+    <div className="chart-card main-chart" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px" }}>
+      <div className="section-heading" style={{ marginBottom: "20px" }}>
         <div>
-          <h2>Evolução das agendas</h2>
-          <p>Comparativo diário do período selecionado.</p>
+          <h2 style={{ fontSize: "16px", fontWeight: "800" }}>Evolução das agendas</h2>
+          <p style={{ fontSize: "12px", color: "var(--text-soft)" }}>Comparativo diário do período selecionado.</p>
         </div>
       </div>
-      <div className="line-chart-wrap">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="line-chart">
-        <defs>
-          <linearGradient id="lineFill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#0048d7" stopOpacity="0.24" />
-            <stop offset="100%" stopColor="#0048d7" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-        <polyline points={`0,100 ${points} 100,100`} fill="url(#lineFill)" stroke="none" />
-        <polyline points={points} fill="none" stroke="#0048d7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" />
-      </svg>
+      <div className="line-chart-wrap" style={{ position: "relative", height: "260px", padding: "10px 0" }}>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="line-chart" style={{ height: "100%", width: "100%" }}>
+          <defs>
+            <linearGradient id="lineFill" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="#0048d7" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#0048d7" stopOpacity="0.01" />
+            </linearGradient>
+          </defs>
+          <polyline points={`0,100 ${points} 100,100`} fill="url(#lineFill)" stroke="none" />
+          <polyline points={points} fill="none" stroke="#0048d7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" />
+        </svg>
         {chartPoints.map((item, index) => (
           <span
             className="line-chart-value"
             data-tooltip={`${item.label}: ${item.value} agenda${item.value === 1 ? "" : "s"}`}
             key={`${item.label}-${index}`}
-            style={{ left: `${item.x}%`, top: `${Math.max(4, item.y - 9)}%` }}
+            style={{
+              position: "absolute",
+              left: `${item.x}%`,
+              top: `${Math.max(4, item.y - 9)}%`,
+              transform: "translateX(-50%)",
+              background: "var(--primary)",
+              color: "white",
+              padding: "2px 6px",
+              borderRadius: "12px",
+              fontSize: "10px",
+              fontWeight: "800",
+              boxShadow: "0 4px 6px rgba(0, 72, 215, 0.2)",
+            }}
             title={`${item.label}: ${item.value}`}
           >
             {item.value}
           </span>
         ))}
       </div>
-      <div className="chart-axis">
+      <div className="chart-axis" style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 0", fontSize: "11px", color: "var(--text-soft)" }}>
         {data.filter((_, index) => data.length <= 12 || index % 4 === 0).map((item) => <span key={item.label}>{item.label}</span>)}
       </div>
     </div>
   );
 }
 
+// REST OF FILE UNCHANGED...
 function BarList({ title, data = [] }) {
   const max = Math.max(...data.map((item) => item.value), 1);
   return (
-    <div className="chart-card">
-      <div className="section-heading">
-        <h2>{title}</h2>
+    <div className="chart-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px" }}>
+      <div className="section-heading" style={{ marginBottom: "16px" }}>
+        <h2 style={{ fontSize: "15px", fontWeight: "800" }}>{title}</h2>
       </div>
-      <div className="bar-list">
+      <div className="bar-list" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {data.map((item) => (
-          <div className="bar-row" key={item.label}>
-            <span>{item.label}</span>
-            <div><i style={{ width: `${(item.value / max) * 100}%` }} /></div>
-            <strong>{item.value}</strong>
+          <div className="bar-row" key={item.label} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <span style={{ flex: "1", fontSize: "13px", fontWeight: "500" }}>{item.label}</span>
+            <div style={{ flex: "2", height: "8px", background: "var(--surface-2)", borderRadius: "4px", overflow: "hidden" }}>
+              <i style={{ display: "block", height: "100%", width: `${(item.value / max) * 100}%`, background: "var(--primary)", borderRadius: "4px", transition: "width 0.6s ease" }} />
+            </div>
+            <strong style={{ width: "30px", textAlign: "right", fontSize: "13px", fontWeight: "700" }}>{item.value}</strong>
           </div>
         ))}
       </div>
@@ -134,17 +166,22 @@ function DonutChart({ data = [] }) {
     return `${colors[index % colors.length]} ${start}% ${current}%`;
   }).join(", ");
   return (
-    <div className="chart-card donut-card">
-      <div className="section-heading"><h2>Agendas por município</h2></div>
-      <div className="donut" style={{ background: `conic-gradient(${stops})` }}>
-        <div className="donut-center">
-          <span>{total}</span>
-          <small>agendas</small>
+    <div className="chart-card donut-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div className="section-heading" style={{ alignSelf: "stretch", marginBottom: "16px" }}>
+        <h2 style={{ fontSize: "15px", fontWeight: "800" }}>Agendas por município</h2>
+      </div>
+      <div className="donut" style={{ background: `conic-gradient(${stops})`, width: "160px", height: "160px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", boxShadow: "inset 0 0 10px rgba(0,0,0,0.1)" }}>
+        <div className="donut-center" style={{ width: "110px", height: "110px", background: "var(--surface)", borderRadius: "50%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 10px rgba(0,0,0,0.05)" }}>
+          <span style={{ fontSize: "24px", fontWeight: "900", color: "#17202a" }}>{total}</span>
+          <small style={{ fontSize: "11px", color: "var(--text-soft)", fontWeight: "600", textTransform: "uppercase" }}>agendas</small>
         </div>
       </div>
-      <div className="donut-legend">
+      <div className="donut-legend" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 12px", width: "100%", marginTop: "20px" }}>
         {data.map((item, index) => (
-          <span key={item.label}><i style={{ background: colors[index % colors.length] }} />{item.label} {Math.round((item.value / total) * 100)}%</span>
+          <span key={item.label} style={{ fontSize: "11px", display: "flex", alignItems: "center", gap: "6px", color: "var(--text-soft)" }}>
+            <i style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: colors[index % colors.length] }} />
+            {item.label} {Math.round((item.value / total) * 100)}%
+          </span>
         ))}
       </div>
     </div>
@@ -155,16 +192,18 @@ function Heatmap({ data = [] }) {
   const values = new Map(data.map((item) => [`${item.day}-${item.slot}`, item.total]));
   const max = Math.max(...data.map((item) => item.total), 1);
   return (
-    <div className="chart-card heatmap-card">
-      <div className="section-heading"><h2>Horários mais utilizados</h2></div>
-      <div className="heatmap">
-        <div className="heatmap-header">
-          <strong>Dia</strong>
+    <div className="chart-card heatmap-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px" }}>
+      <div className="section-heading" style={{ marginBottom: "16px" }}>
+        <h2 style={{ fontSize: "15px", fontWeight: "800" }}>Horários mais utilizados</h2>
+      </div>
+      <div className="heatmap" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        <div className="heatmap-header" style={{ display: "grid", gridTemplateColumns: "60px repeat(8, 1fr)", gap: "4px", marginBottom: "6px", fontSize: "11px", fontWeight: "700", color: "var(--text-soft)", textAlign: "center" }}>
+          <strong style={{ textAlign: "left" }}>Dia</strong>
           {hourSlots.map((slot) => <small key={slot}>{slot}</small>)}
         </div>
         {weekDays.map((day, dayIndex) => (
-          <div className="heatmap-row" key={day}>
-            <strong>{day}</strong>
+          <div className="heatmap-row" key={day} style={{ display: "grid", gridTemplateColumns: "60px repeat(8, 1fr)", gap: "4px", alignItems: "center" }}>
+            <strong style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-soft)" }}>{day}</strong>
             {hourSlots.map((slot) => {
               const value = values.get(`${dayIndex}-${slot}`) || 0;
               return (
@@ -172,9 +211,22 @@ function Heatmap({ data = [] }) {
                   className={value ? "" : "is-empty"}
                   key={slot}
                   title={`${day} ${slot}: ${value}`}
-                  style={{ backgroundColor: `rgba(0, 72, 215, ${0.14 + (value / max) * 0.72})` }}
+                  style={{
+                    display: "block",
+                    height: "28px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    backgroundColor: value ? `rgba(0, 72, 215, ${0.15 + (value / max) * 0.75})` : "var(--surface-2)",
+                    color: value ? "#fff" : "transparent",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "10px",
+                    fontWeight: "800",
+                  }}
                 >
-                  {value}
+                  {value || ""}
                 </i>
               );
             })}
@@ -191,19 +243,36 @@ function MiniCalendar({ days = [] }) {
     ? new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${days[0].date}T00:00:00Z`))
     : "mês";
   return (
-    <div className="chart-card mini-calendar-card">
-      <div className="section-heading">
+    <div className="chart-card mini-calendar-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px" }}>
+      <div className="section-heading" style={{ marginBottom: "16px" }}>
         <div>
-          <h2>Calendário de {monthLabel}</h2>
-          <p>Quantidade de agendas por dia.</p>
+          <h2 style={{ fontSize: "15px", fontWeight: "800" }}>Calendário de {monthLabel}</h2>
+          <p style={{ fontSize: "12px", color: "var(--text-soft)" }}>Quantidade de agendas por dia.</p>
         </div>
       </div>
-      <div className="mini-calendar">
+      <div className="mini-calendar" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "8px" }}>
         {days.map((day) => (
-          <button key={day.date} title={`${formatDateBR(day.date)}: ${day.total} agendas`} type="button">
-            <span>{day.day}</span>
-            <strong>{day.total}</strong>
-            <i style={{ height: `${Math.max(4, (day.total / max) * 22)}px` }} />
+          <button
+            key={day.date}
+            title={`${formatDateBR(day.date)}: ${day.total} agendas`}
+            type="button"
+            style={{
+              background: "var(--surface-2)",
+              border: "1px solid var(--line)",
+              borderRadius: "10px",
+              padding: "8px 4px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "4px",
+              position: "relative",
+              cursor: "pointer",
+              transition: "transform 0.2s ease, border-color 0.2s ease",
+            }}
+          >
+            <span style={{ fontSize: "12px", fontWeight: "700" }}>{day.day}</span>
+            <strong style={{ fontSize: "11px", color: day.total ? "var(--primary)" : "var(--text-soft)" }}>{day.total}</strong>
+            <i style={{ display: "block", width: "4px", height: "4px", borderRadius: "50%", background: day.total ? "var(--primary)" : "transparent" }} />
           </button>
         ))}
       </div>
@@ -211,71 +280,120 @@ function MiniCalendar({ days = [] }) {
   );
 }
 
+function MiniCalendarWrap({ calendar }) {
+  return <MiniCalendar days={calendar} />;
+}
+
 function Stars({ rating, max = 5 }) {
   const stars = [];
   for (let i = 1; i <= max; i++) {
     if (rating >= i) {
-      stars.push(<Star key={i} size={16} fill="#f59e0b" color="#f59e0b" />);
+      stars.push(<Star key={i} size={15} fill="#f59e0b" color="#f59e0b" />);
     } else if (rating >= i - 0.5) {
-      stars.push(<StarHalf key={i} size={16} fill="#f59e0b" color="#f59e0b" />);
+      stars.push(<StarHalf key={i} size={15} fill="#f59e0b" color="#f59e0b" />);
     } else {
-      stars.push(<Star key={i} size={16} color="#d1d5db" />);
+      stars.push(<Star key={i} size={15} color="#d1d5db" />);
     }
   }
   return <div className="stars-container" style={{ display: "flex", gap: "2px" }}>{stars}</div>;
 }
 
-function SatisfactionSurveyPanel({ surveys = {} }) {
+function SatisfactionSurveyPanel({ surveys = {}, onApproveSurvey }) {
   const { overall_rating = 0, total_responses = 0, team_ratings = [], messages = [] } = surveys;
-  
+  const { user } = useAuth();
+  const isModerator = user?.is_superuser || user?.role === "ADMIN" || user?.role === "MANAGER";
+
   return (
-    <div className="chart-card satisfaction-panel">
-      <div className="section-heading">
+    <div className="chart-card satisfaction-panel" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px" }}>
+      <div className="section-heading" style={{ marginBottom: "20px" }}>
         <div>
-          <h2>Indicadores de Satisfação</h2>
-          <p>Avaliações baseadas nas pesquisas de satisfação respondidas.</p>
+          <h2 style={{ fontSize: "15px", fontWeight: "800" }}>Indicadores de Satisfação</h2>
+          <p style={{ fontSize: "12px", color: "var(--text-soft)" }}>Avaliações baseadas nas pesquisas de satisfação respondidas.</p>
         </div>
       </div>
-      <div className="satisfaction-grid" style={{ display: "grid", gap: "24px", gridTemplateColumns: "1fr 1fr" }}>
+      <div className="satisfaction-grid" style={{ display: "grid", gap: "20px", gridTemplateColumns: "1fr 1fr" }}>
         <div className="satisfaction-ratings" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div className="overall-rating-card" style={{ background: "#f8fbff", padding: "16px", borderRadius: "12px", border: "1px solid var(--line)", display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ fontSize: "42px", fontWeight: "900", color: "#17202a", lineHeight: 1 }}>{overall_rating.toFixed(1)}</div>
+          <div className="overall-rating-card" style={{ background: "var(--surface-2)", padding: "16px", borderRadius: "12px", border: "1px solid var(--line)", display: "flex", alignItems: "center", gap: "16px" }}>
+            <div style={{ fontSize: "40px", fontWeight: "900", color: "#17202a", lineHeight: 1 }}>{overall_rating.toFixed(1)}</div>
             <div>
               <Stars rating={overall_rating} />
-              <div style={{ fontSize: "13px", color: "var(--text-soft)", marginTop: "4px" }}>Baseado em {total_responses} avaliações</div>
+              <div style={{ fontSize: "12px", color: "var(--text-soft)", marginTop: "4px", fontWeight: "500" }}>Baseado em {total_responses} avaliações</div>
             </div>
           </div>
           
-          <div className="team-ratings-list" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <h3 style={{ fontSize: "14px", fontWeight: "800", color: "#17202a", margin: "8px 0 0" }}>Avaliações por equipe</h3>
+          <div className="team-ratings-list" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <h3 style={{ fontSize: "13px", fontWeight: "800", color: "#17202a", margin: "4px 0" }}>Avaliações por equipe</h3>
             {team_ratings.length ? team_ratings.map((team, idx) => (
-              <div key={idx} className="team-rating-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "12px", borderBottom: "1px solid var(--line)" }}>
+              <div key={idx} className="team-rating-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "8px", borderBottom: "1px solid var(--line)" }}>
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  <strong style={{ fontSize: "14px", color: "#17202a" }}>{team.team}</strong>
-                  <span style={{ fontSize: "12px", color: "var(--text-soft)" }}>{team.count} avaliações</span>
+                  <strong style={{ fontSize: "13px", color: "#17202a" }}>{team.team}</strong>
+                  <span style={{ fontSize: "11px", color: "var(--text-soft)" }}>{team.count} avaliações</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "14px", fontWeight: "800" }}>{team.avg.toFixed(1)}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ fontSize: "13px", fontWeight: "800" }}>{team.avg.toFixed(1)}</span>
                   <Stars rating={team.avg} />
                 </div>
               </div>
-            )) : <p style={{ color: "var(--text-soft)", fontSize: "13px" }}>Nenhuma avaliação por equipe disponível.</p>}
+            )) : <p style={{ color: "var(--text-soft)", fontSize: "12px" }}>Nenhuma avaliação disponível.</p>}
           </div>
         </div>
 
-        <div className="satisfaction-messages" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <h3 style={{ fontSize: "14px", fontWeight: "800", color: "#17202a", margin: 0 }}>Mensagens recentes</h3>
-          <div className="messages-list" style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "400px", overflowY: "auto", paddingRight: "8px" }}>
+        <div className="satisfaction-messages" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <h3 style={{ fontSize: "13px", fontWeight: "800", color: "#17202a", margin: 0 }}>Mensagens de feedback</h3>
+          <div className="messages-list" style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "360px", overflowY: "auto", paddingRight: "4px" }}>
             {messages.length ? messages.map((msg, idx) => (
-              <div key={idx} className="message-card" style={{ background: "#fff", padding: "12px", borderRadius: "8px", border: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div
+                key={idx}
+                className="message-card"
+                style={{
+                  background: msg.is_approved ? "#fff" : "rgba(246, 189, 22, 0.06)",
+                  padding: "12px",
+                  borderRadius: "10px",
+                  border: msg.is_approved ? "1px solid var(--line)" : "1px solid var(--warning)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
+                  position: "relative",
+                  transition: "all 0.2s ease"
+                }}
+              >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Stars rating={msg.overall_rating} />
-                  <span style={{ fontSize: "11px", color: "var(--text-soft)", fontWeight: "700" }}>{new Date(msg.answered_at).toLocaleDateString("pt-BR")}</span>
+                  <span style={{ fontSize: "10px", color: "var(--text-soft)", fontWeight: "700" }}>{new Date(msg.answered_at).toLocaleDateString("pt-BR")}</span>
                 </div>
-                <p style={{ margin: 0, fontSize: "13px", color: "var(--text)", lineHeight: 1.5 }}>"{msg.suggestion}"</p>
-                {msg.team && <div style={{ fontSize: "11px", color: "var(--primary)", fontWeight: "800" }}>Equipe: {msg.team}</div>}
+                <p style={{ margin: 0, fontSize: "12.5px", color: "var(--text)", lineHeight: 1.4 }}>"{msg.suggestion}"</p>
+                
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
+                  {msg.team && <div style={{ fontSize: "11px", color: "var(--primary)", fontWeight: "800" }}>Equipe: {msg.team}</div>}
+                  
+                  {isModerator && !msg.is_approved && (
+                    <button
+                      onClick={() => onApproveSurvey(msg.id)}
+                      style={{
+                        background: "var(--primary)",
+                        border: "none",
+                        borderRadius: "6px",
+                        padding: "4px 8px",
+                        fontSize: "11px",
+                        fontWeight: "800",
+                        color: "#fff",
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        boxShadow: "0 2px 4px rgba(0,72,215,0.15)"
+                      }}
+                      type="button"
+                    >
+                      <ThumbsUp size={11} /> Aprovar
+                    </button>
+                  )}
+                  {msg.is_approved && (
+                    <span style={{ fontSize: "10px", color: "var(--success)", fontWeight: "700" }}>Aprovado</span>
+                  )}
+                </div>
               </div>
-            )) : <p style={{ color: "var(--text-soft)", fontSize: "13px" }}>Nenhuma mensagem recente.</p>}
+            )) : <p style={{ color: "var(--text-soft)", fontSize: "12px" }}>Nenhum feedback recente.</p>}
           </div>
         </div>
       </div>
@@ -285,31 +403,33 @@ function SatisfactionSurveyPanel({ surveys = {} }) {
 
 function ActivityPanel({ activity, advanced }) {
   return (
-    <aside className="dashboard-side">
-      <div className="chart-card">
-        <div className="section-heading"><h2>Equipes em campo hoje</h2></div>
-        <div className="field-team-list">
+    <aside className="dashboard-side" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      <div className="chart-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px" }}>
+        <div className="section-heading" style={{ marginBottom: "14px" }}><h2 style={{ fontSize: "15px", fontWeight: "800" }}>Equipes em campo hoje</h2></div>
+        <div className="field-team-list" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {(activity?.field_teams || []).length ? (
             activity.field_teams.map((item) => (
-              <span key={item.id}>
-                <i>{item.time}</i>
-                <strong>{item.team}</strong>
-                <small>{item.title} · {statusLabel[item.status]}</small>
+              <span key={item.id} style={{ display: "flex", flexDirection: "column", borderBottom: "1px solid var(--line)", paddingBottom: "8px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <strong style={{ fontSize: "13px" }}>{item.team}</strong>
+                  <i style={{ fontSize: "11px", fontStyle: "normal", color: "var(--primary)", fontWeight: "700" }}>{item.time}</i>
+                </div>
+                <small style={{ fontSize: "11.5px", color: "var(--text-soft)", marginTop: "2px" }}>{item.title} · <span style={{ color: "var(--success)", fontWeight: "600" }}>{statusLabel[item.status]}</span></small>
               </span>
             ))
           ) : (
-            <p>Nenhuma equipe em campo hoje.</p>
+            <p style={{ color: "var(--text-soft)", fontSize: "13px" }}>Nenhuma equipe em campo hoje.</p>
           )}
         </div>
       </div>
-      <div className="chart-card">
-        <div className="section-heading"><h2>Indicadores avançados</h2></div>
-        <div className="advanced-list">
-          <span>Taxa de aprovação <strong>{advanced?.approval_rate ?? 0}%</strong></span>
-          <span>Taxa de cancelamento <strong>{advanced?.cancellation_rate ?? 0}%</strong></span>
-          <span>Tempo médio de aprovação <strong>{advanced?.approval_avg_hours ?? 0}h</strong></span>
-          <span>Média por usuário <strong>{advanced?.avg_per_user ?? 0}</strong></span>
-          <span>Dentro do prazo <strong>{advanced?.sla ?? 0}%</strong></span>
+      <div className="chart-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px" }}>
+        <div className="section-heading" style={{ marginBottom: "14px" }}><h2 style={{ fontSize: "15px", fontWeight: "800" }}>Indicadores avançados</h2></div>
+        <div className="advanced-list" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <span style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>Taxa de aprovação <strong style={{ color: "var(--success)" }}>{advanced?.approval_rate ?? 0}%</strong></span>
+          <span style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>Taxa de cancelamento <strong style={{ color: "var(--danger)" }}>{advanced?.cancellation_rate ?? 0}%</strong></span>
+          <span style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>Tempo médio de aprovação <strong>{advanced?.approval_avg_hours ?? 0}h</strong></span>
+          <span style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>Média por usuário <strong>{advanced?.avg_per_user ?? 0}</strong></span>
+          <span style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>Dentro do prazo <strong style={{ color: "var(--primary)" }}>{advanced?.sla ?? 0}%</strong></span>
         </div>
       </div>
     </aside>
@@ -324,11 +444,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [refreshTick, setRefreshTick] = useState(0);
   const [error, setError] = useState("");
+  
   useEffect(() => {
     api("/municipalities/?page_size=500").then((data) => setMunicipalities(data.results || data));
   }, []);
 
-  useEffect(() => {
+  const loadDashboardData = () => {
     setLoading(true);
     setError("");
     const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => value)).toString();
@@ -336,12 +457,29 @@ export default function DashboardPage() {
       .then(setDashboard)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadDashboardData();
   }, [filters, refreshTick]);
 
   useEffect(() => {
     const interval = setInterval(() => setRefreshTick((current) => current + 1), 60000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleApproveSurvey = async (surveyId) => {
+    try {
+      await api(`/surveys/${surveyId}/`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_approved: true }),
+      });
+      loadDashboardData();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Erro ao aprovar avaliação.");
+    }
+  };
 
   const updateFilter = (field, value) => {
     if (field === "date_from" || field === "date_to") {
@@ -396,48 +534,89 @@ export default function DashboardPage() {
     }
   };
 
+  const { user } = useAuth();
+  const isModerator = user?.is_superuser || user?.role === "ADMIN" || user?.role === "MANAGER";
+
   return (
     <section className="page dashboard-page">
-      <div className="dashboard-hero">
+      <div className="dashboard-hero" style={{ background: "linear-gradient(135deg, #001338 0%, #002d72 100%)", padding: "28px", borderRadius: "16px", color: "#ffffff", marginBottom: "24px", display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 8px 32px 0 rgba(0, 19, 56, 0.15)" }}>
         <div>
-          <span>Visão operacional</span>
-          <h1>Dashboard</h1>
-          <p>Agenda OLS com indicadores, tendências, calendário e atividades recentes.</p>
+          <span style={{ fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1.5px", color: "#f6bd16", opacity: 0.95, display: "block", marginBottom: "2px" }}>Visão operacional</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+            <h1 style={{ color: "#ffffff", fontSize: "28px", fontWeight: "900", margin: "4px 0" }}>Dashboard</h1>
+            {isModerator && dashboard?.pending_moderation_count > 0 && (
+              <span
+                style={{
+                  background: "#f6bd16",
+                  color: "#001338",
+                  padding: "4px 10px",
+                  borderRadius: "20px",
+                  fontSize: "12px",
+                  fontWeight: "800",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  boxShadow: "0 4px 10px rgba(246, 189, 22, 0.3)",
+                  animation: "pulse 2s infinite"
+                }}
+              >
+                {dashboard.pending_moderation_count} avaliações pendentes
+              </span>
+            )}
+          </div>
+          <p style={{ margin: 0, color: "#d2e1ff", opacity: 0.9, fontSize: "13.5px", marginTop: "4px" }}>Agenda OLS com indicadores, tendências, calendário e atividades recentes.</p>
         </div>
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          <div className="hero-search">
-            <Search size={18} />
-            <input placeholder="Pesquisar agenda, local ou protocolo" value={filters.q} onChange={(event) => updateFilter("q", event.target.value)} />
+          <div className="hero-search" style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", borderRadius: "10px", display: "flex", alignItems: "center", padding: "0 12px" }}>
+            <Search size={18} color="#ffffff" style={{ opacity: 0.85 }} />
+            <input placeholder="Pesquisar agenda, local..." value={filters.q} onChange={(event) => updateFilter("q", event.target.value)} style={{ color: "#ffffff", background: "transparent", border: "none", outline: "none", minHeight: "40px", paddingLeft: "8px" }} />
           </div>
-          <button className="secondary export-link" onClick={(e) => handleExport("pdf", e)} style={{ height: "42px", padding: "0 16px", display: "inline-flex", alignItems: "center", gap: "8px", borderRadius: "8px", fontWeight: "600", fontSize: "14px" }} type="button">
-            <Download size={16} /> Exportar relatório
+          <button className="secondary export-link" onClick={(e) => handleExport("pdf", e)} style={{ height: "42px", padding: "0 18px", display: "inline-flex", alignItems: "center", gap: "8px", borderRadius: "10px", fontWeight: "800", fontSize: "13px", background: "#ffffff", color: "#001338", border: "none", cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", transition: "transform 0.2s ease" }} type="button">
+            <Download size={16} /> Exportar
           </button>
         </div>
       </div>
 
-      <div className="global-filters">
-        <input type="date" value={filters.date_from} onChange={(event) => updateFilter("date_from", event.target.value)} />
-        <input type="date" value={filters.date_to} onChange={(event) => updateFilter("date_to", event.target.value)} />
-        <select value={filters.status} onChange={(event) => updateFilter("status", event.target.value)}>
-          <option value="">Todos os status</option>
-          <option value="PENDING">Pendente</option>
-          <option value="APPROVED">Aprovada</option>
-          <option value="CANCELLED">Cancelada</option>
-        </select>
-        <select value={filters.municipality} onChange={(event) => updateFilter("municipality", event.target.value)}>
-          <option value="">Todos os municípios</option>
-          {municipalities.map((municipality) => <option key={municipality.id} value={municipality.id}>{municipality.name}</option>)}
-        </select>
-        <button className="secondary" type="button" onClick={() => { setFilters(emptyFilters); setChartRange(chartFilters[2]); }}>Limpar</button>
+
+      <div className="global-filters" style={{ border: "1px solid var(--line)", background: "var(--surface)", borderRadius: "14px", padding: "16px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "16px", marginBottom: "24px" }}>
+        <label className="filter-field" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-soft)", textTransform: "uppercase" }}>De</span>
+          <input type="date" value={filters.date_from} onChange={(event) => updateFilter("date_from", event.target.value)} style={{ borderRadius: "8px", border: "1px solid var(--line)", height: "36px", padding: "0 10px", fontSize: "12.5px", width: "100%" }} />
+        </label>
+        <label className="filter-field" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-soft)", textTransform: "uppercase" }}>Até</span>
+          <input type="date" value={filters.date_to} onChange={(event) => updateFilter("date_to", event.target.value)} style={{ borderRadius: "8px", border: "1px solid var(--line)", height: "36px", padding: "0 10px", fontSize: "12.5px", width: "100%" }} />
+        </label>
+        <label className="filter-field" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-soft)", textTransform: "uppercase" }}>Status</span>
+          <select value={filters.status} onChange={(event) => updateFilter("status", event.target.value)} style={{ borderRadius: "8px", border: "1px solid var(--line)", height: "36px", padding: "0 10px", fontSize: "12.5px", width: "100%" }}>
+            <option value="">Todos os status</option>
+            <option value="PENDING">Pendente</option>
+            <option value="APPROVED">Aprovada</option>
+            <option value="CANCELLED">Cancelada</option>
+          </select>
+        </label>
+        <label className="filter-field" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-soft)", textTransform: "uppercase" }}>Município</span>
+          <select value={filters.municipality} onChange={(event) => updateFilter("municipality", event.target.value)} style={{ borderRadius: "8px", border: "1px solid var(--line)", height: "36px", padding: "0 10px", fontSize: "12.5px", width: "100%" }}>
+            <option value="">Todos os municípios</option>
+            {municipalities.map((municipality) => <option key={municipality.id} value={municipality.id}>{municipality.name}</option>)}
+          </select>
+        </label>
+        <div style={{ display: "flex", alignItems: "flex-end" }}>
+          <button className="secondary" type="button" onClick={() => { setFilters(emptyFilters); setChartRange(chartFilters[2]); }} style={{ borderRadius: "8px", height: "36px", width: "100%", fontWeight: "600", fontSize: "13px" }}>Limpar</button>
+        </div>
       </div>
 
       {loading ? (
-        <div className="dashboard-skeleton"><span /><span /><span /></div>
+        <div className="dashboard-skeleton" style={{ minHeight: "400px", display: "flex", gap: "20px", alignItems: "center", justifyContent: "center" }}>
+          <div className="spinner" style={{ width: "40px", height: "40px", border: "4px solid var(--surface-2)", borderTopColor: "var(--primary)", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+          <span style={{ fontSize: "14px", color: "var(--text-soft)", fontWeight: "600" }}>Carregando dados operacionais...</span>
+        </div>
       ) : error ? (
         <div className="alert">Não foi possível carregar o Dashboard: {error}</div>
       ) : (
         <>
-          <div className="metric-grid">
+          <div className="metric-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "16px", marginBottom: "24px" }}>
             {cardConfig.map((config) => (
               <DashboardCard
                 active={filters.status === config.status}
@@ -449,25 +628,43 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          <div className="dashboard-layout">
-            <div className="dashboard-main">
-              <div className="chart-card">
-                <div className="chart-filter-tabs">
-                  {chartFilters.map((item, index) => (
-                    <button className={chartRange === item ? "active" : ""} key={item} onClick={() => applyChartRange(item)} type="button">{item}</button>
+          <div className="dashboard-layout" style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "24px" }}>
+            <div className="dashboard-main" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              <div className="chart-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px", position: "relative" }}>
+                <div className="chart-filter-tabs" style={{ position: "absolute", top: "20px", right: "20px", display: "flex", gap: "4px", background: "var(--surface-2)", padding: "2px", borderRadius: "8px" }}>
+                  {chartFilters.map((item) => (
+                    <button
+                      className={chartRange === item ? "active" : ""}
+                      key={item}
+                      onClick={() => applyChartRange(item)}
+                      type="button"
+                      style={{
+                        padding: "6px 12px",
+                        fontSize: "12.5px",
+                        borderRadius: "6px",
+                        border: "none",
+                        background: chartRange === item ? "var(--surface)" : "transparent",
+                        color: chartRange === item ? "var(--primary)" : "var(--text-soft)",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                        boxShadow: chartRange === item ? "0 2px 4px rgba(0,0,0,0.05)" : "none"
+                      }}
+                    >
+                      {item}
+                    </button>
                   ))}
                 </div>
                 <LineChart data={dashboard?.series?.daily || []} />
               </div>
-              <div className="analytics-grid">
+              <div className="analytics-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
                 <BarList title="Ações feitas por equipe" data={dashboard?.bars?.by_team_actions || []} />
                 <BarList title="Agendas por bairro" data={dashboard?.bars?.by_neighborhood || []} />
                 <DonutChart data={dashboard?.donut || []} />
                 <Heatmap data={dashboard?.heatmap || []} />
               </div>
-              <div className="analytics-grid bottom">
+              <div className="analytics-grid bottom" style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: "24px" }}>
                 <MiniCalendar days={dashboard?.calendar || []} />
-                <SatisfactionSurveyPanel surveys={dashboard?.surveys || {}} />
+                <SatisfactionSurveyPanel surveys={dashboard?.surveys || {}} onApproveSurvey={handleApproveSurvey} />
               </div>
             </div>
             <ActivityPanel activity={dashboard?.activity} advanced={dashboard?.advanced} />

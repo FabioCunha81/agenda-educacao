@@ -21,6 +21,7 @@ from apps.schedules.views import (
     PublicAgendaRequestView,
     PublicAgendaRequestUpdateView,
     SatisfactionSurveyPublicView,
+    SatisfactionSurveyViewSet,
     ReportViewSet,
     SectorViewSet,
     SupportViewSet,
@@ -47,6 +48,8 @@ router.register("event-reports", EventReportViewSet, basename="event-reports")
 router.register("education-reports", EducationReportViewSet, basename="education-reports")
 router.register("education-goals", EducationGoalViewSet, basename="education-goals")
 router.register("reports", ReportViewSet, basename="reports")
+router.register("surveys", SatisfactionSurveyViewSet, basename="surveys")
+
 
 urlpatterns = [
     path("healthz/", lambda request: HttpResponse("ok"), name="healthz"),

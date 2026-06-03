@@ -692,9 +692,11 @@ class SatisfactionSurveySerializer(serializers.ModelSerializer):
             "team_enthusiasm",
             "overall_rating",
             "suggestion",
+            "is_approved",
             "answered_at",
         ]
         read_only_fields = ["id", "protocol", "agenda_title", "team", "chief_name", "answered_at"]
+
 
     def validate(self, attrs):
         for field in [

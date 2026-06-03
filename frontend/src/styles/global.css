@@ -768,10 +768,48 @@ th {
 
 .page-title {
   align-items: center;
+  background: linear-gradient(135deg, #001338 0%, #002d72 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px 0 rgba(0, 19, 56, 0.15);
+  color: #ffffff;
   display: flex;
   gap: 16px;
   justify-content: space-between;
+  padding: 26px;
 }
+
+.page-title h1 {
+  color: #ffffff !important;
+  font-size: 28px;
+  font-weight: 900;
+  margin: 0;
+}
+
+.page-title p {
+  color: #d2e1ff !important;
+  font-size: 13.5px;
+  margin: 4px 0 0;
+  opacity: 0.9;
+}
+
+.page-title button,
+.page-title .action-link {
+  background: #ffffff !important;
+  color: #001338 !important;
+  font-weight: 800 !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  transition: transform 0.2s ease, background-color 0.2s ease !important;
+}
+
+.page-title button:hover,
+.page-title .action-link:hover {
+  background: #f0f4f8 !important;
+  transform: translateY(-1px);
+}
+
+
 
 .page-actions {
   align-items: center;

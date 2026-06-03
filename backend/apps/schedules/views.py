@@ -697,7 +697,8 @@ class AgendaViewSet(viewsets.ModelViewSet):
             if (calendar_start + timedelta(days=index)).month == today.month
         ]
 
-        surveys_qs = SatisfactionSurvey.objects.filter(agenda__in=base_qs, answered_at__isnull=False)
+        # Metrics only consider approved surveys
+        surveys_qs = SatisfactionSurvey.objects.filter(agenda__in=base_qs, answered_at__isnull=False, is_approved=True)
         overall_rating_avg = surveys_qs.aggregate(avg=Avg('overall_rating'))['avg'] or 0.0
 
         team_ratings = list(
@@ -707,11 +708,18 @@ class AgendaViewSet(viewsets.ModelViewSet):
             .order_by('-avg', '-count')[:10]
         )
 
+        # Message source includes all answered messages, moderation depends on roles
+        messages_qs = SatisfactionSurvey.objects.filter(agenda__in=base_qs, answered_at__isnull=False).exclude(suggestion="")
+        pending_moderation_count = SatisfactionSurvey.objects.filter(agenda__in=base_qs, answered_at__isnull=False, is_approved=False).count()
+        if not (request.user.is_superuser or request.user.role in ["ADMIN", "MANAGER"]):
+            messages_qs = messages_qs.filter(is_approved=True)
+
         recent_messages = list(
-            surveys_qs.exclude(suggestion="")
-            .order_by('-answered_at')
-            .values('team', 'suggestion', 'answered_at', 'overall_rating')[:10]
+
+            messages_qs.order_by('-answered_at')
+            .values('id', 'team', 'suggestion', 'answered_at', 'overall_rating', 'is_approved')[:15]
         )
+
 
         data = {
             "cards": {
@@ -758,7 +766,9 @@ class AgendaViewSet(viewsets.ModelViewSet):
                 ],
                 "messages": recent_messages,
             },
+            "pending_moderation_count": pending_moderation_count,
             "activity": {
+
                 "latest": recent[:6],
                 "field_teams": field_teams,
             },
@@ -2173,3 +2183,23 @@ class ReportViewSet(viewsets.ViewSet):
         response_file = HttpResponse(pdf_content, content_type="application/pdf")
         response_file["Content-Disposition"] = 'attachment; filename="relatorio-operacional-dashboard.pdf"'
         return response_file
+
+
+class SatisfactionSurveyViewSet(viewsets.ModelViewSet):
+    queryset = SatisfactionSurvey.objects.all()
+    serializer_class = SatisfactionSurveySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser or user.role in ["ADMIN", "MANAGER"]:
+            return SatisfactionSurvey.objects.all()
+        return SatisfactionSurvey.objects.filter(is_approved=True)
+
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        if request.method in ["PUT", "PATCH", "DELETE"]:
+            user = request.user
+            if not (user.is_superuser or user.role in ["ADMIN", "MANAGER"]):
+                self.permission_denied(request, message="Apenas Gestores e Administração podem moderar avaliações.")
+

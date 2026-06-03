@@ -35,10 +35,14 @@ export default function AppLayout() {
   return (
     <div className={`app-shell ${collapsed ? "is-collapsed" : ""} ${darkMode ? "dark-mode" : ""}`}>
       <aside className={`sidebar ${open ? "is-open" : ""}`}>
-        <div className="sidebar-logo">
+        <div className="sidebar-logo" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <img src={logoOperacaoLeiSeca} alt="Operação Lei Seca" />
+          <span className="logo-subtitle desktop-only-text" style={{ color: "#f6bd16", fontSize: "14px", fontWeight: "900", letterSpacing: "3px", marginTop: "8px", textTransform: "uppercase" }}>
+            Educação
+          </span>
         </div>
         <div className="brand">
+
           <div className="brand-text">
             <strong>Agenda Educação</strong>
             <span>{user?.is_superuser ? "CRIADOR" : roleLabel[user?.role] || user?.role}</span>
