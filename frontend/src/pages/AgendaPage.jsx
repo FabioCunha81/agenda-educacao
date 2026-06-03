@@ -696,9 +696,9 @@ export default function AgendaPage() {
                 <button type="button" className="secondary" onClick={() => setReviewStep("suggest_dates")}>
                   Sugerir datas
                 </button>
-                <button type="button" className="secondary" onClick={() => decideReview("PENDING")}>
-                  Manter pendente
-                </button>
+                <a href="/calendario" target="_blank" rel="noreferrer" className="button secondary" style={{ display: "inline-flex", alignItems: "center", gap: "8px", textDecoration: "none", color: "inherit" }}>
+                  Ver datas abertas
+                </a>
               </div>
             )}
             {editing && reviewStep === "suggest_dates" && (

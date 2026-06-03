@@ -1,9 +1,10 @@
 import { BarChart3, Bell, CalendarDays, LayoutDashboard, ListPlus, LogOut, Menu, Moon, Search, ShieldCheck, Sun, Target, Users, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import logoOperacaoLeiSeca from "../assets/operacao-lei-seca-logo.png";
 import { useAuth } from "../context/AuthContext.jsx";
 import { canAccessRoute, roleLabel } from "../utils/permissions.js";
+import { api } from "../api/client.js";
 
 const items = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -22,8 +23,17 @@ export default function AppLayout() {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState(0);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user && canAccessRoute(user, ["ADMIN", "MANAGER", "SUPERVISOR"])) {
+      api("/agendas/?status=PENDING&source=requests&page_size=1")
+        .then((data) => setPendingRequests(data.count || 0))
+        .catch(() => {});
+    }
+  }, [user]);
 
   const doLogout = () => {
     logout();
@@ -58,7 +68,17 @@ export default function AppLayout() {
           {visibleItems.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.to === "/"} onClick={() => setOpen(false)}>
               <item.icon size={18} />
-              <span>{item.label}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, justifyContent: "space-between" }}>
+                {item.label}
+                {item.to === "/agendas" && pendingRequests > 0 && (
+                  <span style={{
+                    background: "#f6bd16", color: "#001338", padding: "2px 8px", borderRadius: "12px", 
+                    fontSize: "11px", fontWeight: "800", boxShadow: "0 2px 6px rgba(246, 189, 22, 0.3)"
+                  }}>
+                    {pendingRequests}
+                  </span>
+                )}
+              </span>
             </NavLink>
           ))}
         </nav>
