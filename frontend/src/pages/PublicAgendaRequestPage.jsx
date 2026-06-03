@@ -111,6 +111,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
   const [form, setForm] = useState(empty);
   const [message, setMessage] = useState("");
   const [cepMessage, setCepMessage] = useState("");
+  const [dateMessage, setDateMessage] = useState("");
   const [cepLoading, setCepLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [protocol, setProtocol] = useState("");
@@ -134,6 +135,32 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
       .catch((err) => setMessage(err.message))
       .finally(() => setLoading(false));
   }, [token]);
+
+  useEffect(() => {
+    if (!form.date) {
+      setDateMessage("");
+      return;
+    }
+    const controller = new AbortController();
+    let url = `/public/agenda-request/?date=${form.date}`;
+    if (editMode && protocol) {
+      url += `&agenda_id=${protocol}`;
+    }
+    api(url, { signal: controller.signal })
+      .then((res) => {
+        if (res.available === false && res.message) {
+          setDateMessage(res.message);
+        } else {
+          setDateMessage("");
+        }
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setDateMessage("");
+        }
+      });
+    return () => controller.abort();
+  }, [form.date, editMode, protocol]);
 
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
   const updateActionsCount = (value) => {
@@ -294,12 +321,13 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
             <div className="form-section">
               <h3>Nova data solicitada</h3>
               <div className="split">
-                <label className="field-label">
+                <label className="field-label" style={{ flex: 1 }}>
                   <span>Data</span>
-                  <input type="date" value={form.date} onChange={(event) => update("date", event.target.value)} required />
+                  <input type="date" value={form.date} onChange={(event) => update("date", event.target.value)} required style={{ borderColor: dateMessage ? "var(--red)" : "" }} />
+                  {dateMessage && <small style={{ color: "var(--red)", marginTop: "4px", display: "block", fontSize: "11px", fontWeight: "600" }}>{dateMessage}</small>}
                 </label>
-                <label className="field-label">
-                  <span>Horario pretendido de inicio</span>
+                <label className="field-label" style={{ flex: 1 }}>
+                  <span>Horário pretendido de início</span>
                   <input type="time" value={form.start_time} onChange={(event) => update("start_time", event.target.value)} required />
                 </label>
               </div>
@@ -423,11 +451,12 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
               </div>
             </div>
             <div className="split">
-              <label className="field-label">
+              <label className="field-label" style={{ flex: 1 }}>
                 <span>Data</span>
-                <input type="date" value={form.date} onChange={(event) => update("date", event.target.value)} required />
+                <input type="date" value={form.date} onChange={(event) => update("date", event.target.value)} required style={{ borderColor: dateMessage ? "var(--red)" : "" }} />
+                {dateMessage && <small style={{ color: "var(--red)", marginTop: "4px", display: "block", fontSize: "11px", fontWeight: "600" }}>{dateMessage}</small>}
               </label>
-              <label className="field-label">
+              <label className="field-label" style={{ flex: 1 }}>
                 <span>Horário pretendido de início <b>*</b></span>
                 <input type="time" value={form.start_time} onChange={(event) => update("start_time", event.target.value)} required />
               </label>

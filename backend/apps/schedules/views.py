@@ -1650,6 +1650,36 @@ class EducationGoalViewSet(viewsets.ModelViewSet):
 class PublicAgendaRequestView(APIView):
     permission_classes = [AllowAny]
 
+    def get(self, request):
+        date_str = request.query_params.get("date")
+        if not date_str:
+            return response.Response({"detail": "Informe a data."}, status=400)
+            
+        try:
+            from datetime import datetime
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return response.Response({"detail": "Formato de data inválido."}, status=400)
+            
+        agenda_id = request.query_params.get("agenda_id")
+        qs = Agenda.objects.filter(
+            date=date_obj,
+            status__in=[Agenda.Status.PENDING, Agenda.Status.APPROVED]
+        )
+        if agenda_id and agenda_id.isdigit():
+            qs = qs.exclude(id=int(agenda_id))
+            
+        if qs.count() >= 4:
+            from apps.schedules.serializers import get_next_available_dates
+            suggested = get_next_available_dates(date_obj)
+            suggested_str = ", ".join(d.strftime("%d/%m/%Y") for d in suggested)
+            return response.Response({
+                "available": False,
+                "message": f"Infelizmente já atingimos o limite de vagas para esta data. Sugerimos os dias úteis disponíveis a seguir: {suggested_str}."
+            })
+            
+        return response.Response({"available": True})
+
     def post(self, request):
         serializer = PublicAgendaRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
