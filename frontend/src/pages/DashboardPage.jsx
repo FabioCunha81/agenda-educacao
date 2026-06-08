@@ -632,7 +632,7 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          <div className="dashboard-layout" style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "24px" }}>
+          <div className="dashboard-layout" style={{ display: "grid", gap: "24px" }}>
             <div className="dashboard-main" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
               <div className="chart-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px", position: "relative" }}>
                 <div className="chart-filter-tabs" style={{ position: "absolute", top: "20px", right: "20px", display: "flex", gap: "4px", background: "var(--surface-2)", padding: "2px", borderRadius: "8px" }}>
@@ -660,13 +660,13 @@ export default function DashboardPage() {
                 </div>
                 <LineChart data={dashboard?.series?.daily || []} />
               </div>
-              <div className="analytics-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+              <div className="analytics-grid" style={{ display: "grid", gap: "24px" }}>
                 <BarList title="Ações feitas por equipe" data={dashboard?.bars?.by_team_actions || []} />
                 <BarList title="Agendas por bairro" data={dashboard?.bars?.by_neighborhood || []} />
                 <DonutChart data={dashboard?.donut || []} />
                 <Heatmap data={dashboard?.heatmap || []} />
               </div>
-              <div className="analytics-grid bottom" style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: "24px" }}>
+              <div className="analytics-grid bottom" style={{ display: "grid", gap: "24px" }}>
                 <MiniCalendar days={dashboard?.calendar || []} />
                 <SatisfactionSurveyPanel surveys={dashboard?.surveys || {}} onApproveSurvey={handleApproveSurvey} />
               </div>

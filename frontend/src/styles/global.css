@@ -2708,9 +2708,29 @@ button.stat-card.active {
     grid-template-columns: 1fr;
   }
 
+  .dashboard-page .chart-filter-tabs {
+    justify-content: flex-start;
+    margin-bottom: 12px;
+    position: static !important;
+    width: 100%;
+  }
+
+  .dashboard-page .line-chart-wrap {
+    min-height: 220px;
+  }
+
+  .dashboard-page .line-chart {
+    height: 220px;
+  }
+
+  .dashboard-page .heatmap {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
   .heatmap-header,
   .heatmap-row {
-    grid-template-columns: 36px repeat(8, 48px);
+    grid-template-columns: 36px repeat(8, 48px) !important;
     min-width: 448px;
   }
 
