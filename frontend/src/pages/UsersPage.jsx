@@ -92,7 +92,7 @@ export default function UsersPage() {
       return;
     }
     const label = user.full_name || user.email;
-    if (!window.confirm(`Excluir o usuário ${label}? Esta ação não pode ser desfeita.`)) {
+    if (!window.confirm(`Excluir o usuário ${label}? Esta ação apagará também agendas, relatórios, históricos e pesquisas vinculados a ele. Esta ação não pode ser desfeita.`)) {
       return;
     }
     try {

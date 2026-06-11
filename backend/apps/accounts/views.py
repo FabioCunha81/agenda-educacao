@@ -3,6 +3,7 @@ import logging
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import EmailMessage
+from django.db import transaction
 from django.db.models.deletion import ProtectedError
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
@@ -31,6 +32,25 @@ def is_system_user(user):
 
 def can_manage_users(user):
     return bool(user and user.is_authenticated and (user.is_superuser or user.role == User.Role.ADMIN))
+
+
+def delete_user_dependencies(user):
+    from apps.schedules.models import (
+        Agenda,
+        AgendaHistory,
+        EducationAction,
+        EducationReport,
+        EventReport,
+        SatisfactionSurvey,
+    )
+
+    agendas = Agenda.objects.filter(Q(created_by=user) | Q(responsible=user))
+    EducationReport.objects.filter(Q(created_by=user) | Q(agenda__in=agendas)).delete()
+    EventReport.objects.filter(created_by=user).delete()
+    EducationAction.objects.filter(agenda__in=agendas).delete()
+    SatisfactionSurvey.objects.filter(agenda__in=agendas).delete()
+    AgendaHistory.objects.filter(changed_by=user).delete()
+    agendas.delete()
 
 
 class UserAccessPermission(BasePermission):
@@ -210,15 +230,12 @@ class UserViewSet(viewsets.ModelViewSet):
         target = {"target_user_id": instance.id, "email": instance.email, "role": instance.role}
         label = instance.full_name or instance.email
         try:
-            response = super().destroy(request, *args, **kwargs)
+            with transaction.atomic():
+                delete_user_dependencies(instance)
+                response = super().destroy(request, *args, **kwargs)
         except ProtectedError:
             return Response(
-                {
-                    "detail": (
-                        "Este usuário possui agendas, históricos ou relatórios vinculados. "
-                        "Para preservar os registros, desative o usuário em vez de excluí-lo."
-                    )
-                },
+                {"detail": "Não foi possível excluir todos os vínculos deste usuário automaticamente."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if response.status_code < 400:
