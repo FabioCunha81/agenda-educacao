@@ -78,6 +78,87 @@ class Chief(NamedLookup):
     phone = models.CharField(max_length=160, blank=True)
 
 
+class ShiftSchedule(models.Model):
+    date = models.DateField()
+    team = models.ForeignKey(Team, on_delete=models.PROTECT, related_name="shift_schedules")
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_shift_schedules",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="updated_shift_schedules",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["date", "team__name"]
+        constraints = [
+            models.UniqueConstraint(fields=["date", "team"], name="unique_shift_schedule_date_team"),
+        ]
+        indexes = [
+            models.Index(fields=["date", "team"], name="schedules_sh_date_team_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.date} - {self.team}"
+
+
+class ShiftSwapRequest(models.Model):
+    class MemberType(models.TextChoices):
+        CHIEF = "CHIEF", "Chefe"
+        AGENT = "AGENT", "Agente"
+        SUPPORT = "SUPPORT", "Apoio"
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Pendente"
+        APPROVED = "APPROVED", "Aprovada"
+        REJECTED = "REJECTED", "Rejeitada"
+
+    schedule = models.ForeignKey(ShiftSchedule, on_delete=models.CASCADE, related_name="swap_requests")
+    requester = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="shift_swap_requests",
+    )
+    member_type = models.CharField(max_length=16, choices=MemberType.choices)
+    from_member_id = models.PositiveIntegerField()
+    from_member_name = models.CharField(max_length=180)
+    target_team = models.ForeignKey(Team, on_delete=models.PROTECT, related_name="target_shift_swap_requests")
+    to_member_id = models.PositiveIntegerField()
+    to_member_name = models.CharField(max_length=180)
+    reason = models.TextField(blank=True)
+    attachment = models.FileField(upload_to="shift_swaps/", null=True, blank=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="decided_shift_swap_requests",
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    decision_note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status", "created_at"], name="shift_sw_status_idx"),
+            models.Index(fields=["schedule", "member_type"], name="shift_sw_sched_type_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.get_member_type_display()} - {self.from_member_name} por {self.to_member_name}"
+
+
 class Agenda(models.Model):
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pendente"

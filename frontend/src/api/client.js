@@ -34,6 +34,20 @@ function formatApiError(data) {
   return "Nao foi possivel concluir a operacao.";
 }
 
+async function formatResponseError(data, status) {
+  if (data instanceof Blob) {
+    const text = await data.text();
+    if (text.includes("no such table")) {
+      return "Banco local desatualizado. Rode as migracoes do backend e tente novamente.";
+    }
+    if (text.includes("UNIQUE constraint") || text.includes("duplicate key")) {
+      return "Esta equipe ja esta escalada para este dia.";
+    }
+    return `Nao foi possivel concluir a operacao. Erro ${status}.`;
+  }
+  return formatApiError(data);
+}
+
 export async function api(path, options = {}) {
   const { redirectOnUnauthorized = true, timeoutMs = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options;
   const headers = new Headers(options.headers || {});
@@ -78,7 +92,7 @@ export async function api(path, options = {}) {
       localStorage.removeItem("user");
       window.location.href = "/login";
     }
-    throw new Error(formatApiError(data));
+    throw new Error(await formatResponseError(data, response.status));
   }
   return data;
 }

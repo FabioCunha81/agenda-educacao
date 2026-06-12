@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <style>
+    body { margin: 0; }
+    .slide-container { width: 1280px; min-height: 720px; box-sizing: border-box; background: linear-gradient(135deg, #071A2C 0%, #0B2238 55%, #071A2C 100%); font-family: 'Inter', sans-serif; color: #F8FAFC; position: relative; margin-top: -1px; }
+    .slide-container .grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(216,227,234,0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(216,227,234,0.055) 1px, transparent 1px); background-size: 64px 64px; }
+    .slide-container .wrap { position: relative; z-index: 2; margin-left: 70px; padding-top: 56px; width: 1135px; }
+    .slide-container .kicker { color: #F2C14E; font-size: 15px; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 700; margin-bottom: 15px; }
+    .slide-container h1 { font-size: 37px; line-height: 1.08; margin: 0; letter-spacing: -0.03em; font-weight: 800; }
+    .slide-container .lead { margin-top: 18px; width: 1000px; color: #F8FAFC; font-size: 20px; line-height: 1.42; }
+    .slide-container .process { position: relative; margin-top: 48px; height: 270px; display: grid; grid-template-columns: repeat(6, 1fr); column-gap: 22px; align-items: start; }
+    .slide-container .rail { position: absolute; left: 58px; right: 58px; top: 66px; height: 3px; background: linear-gradient(90deg, #21A0A0 0%, rgba(216,227,234,0.48) 50%, #F2C14E 100%); }
+    .slide-container .stage { position: relative; min-height: 270px; background: rgba(216,227,234,0.035); border-top: 3px solid rgba(33,160,160,0.85); box-sizing: border-box; padding-top: 30px; padding-left: 12px; padding-right: 12px; }
+    .slide-container .stage:nth-child(4), .slide-container .stage:nth-child(6), .slide-container .stage:nth-child(7) { border-top-color: rgba(242,193,78,0.9); }
+    .slide-container .badge { width: 58px; height: 58px; background: #071A2C; border: 3px solid #21A0A0; display: flex; align-items: center; justify-content: center; box-sizing: border-box; margin-left: auto; margin-right: auto; color: #F8FAFC; font-size: 22px; font-weight: 800; }
+    .slide-container .stage:nth-child(4) .badge, .slide-container .stage:nth-child(6) .badge, .slide-container .stage:nth-child(7) .badge { border-color: #F2C14E; }
+    .slide-container .icon { text-align: center; color: #21A0A0; font-size: 27px; margin-top: 24px; margin-bottom: 14px; }
+    .slide-container .stage:nth-child(4) .icon, .slide-container .stage:nth-child(6) .icon, .slide-container .stage:nth-child(7) .icon { color: #F2C14E; }
+    .slide-container .stage-title { text-align: center; font-size: 17px; font-weight: 800; line-height: 1.18; margin-bottom: 10px; }
+    .slide-container .stage-text { color: #F8FAFC; font-size: 12.4px; line-height: 1.34; text-align: center; }
+    .slide-container .outcome { margin-top: 40px; display: grid; grid-template-columns: 240px 1fr; column-gap: 28px; align-items: center; border-top: 1px solid rgba(216,227,234,0.20); padding-top: 22px; }
+    .slide-container .outcome-label { color: #F2C14E; font-size: 14px; text-transform: uppercase; letter-spacing: 0.14em; font-weight: 800; }
+    .slide-container .outcome-text { color: #F8FAFC; font-size: 18px; line-height: 1.38; }
+    .slide-container .outcome-text strong { color: #F8FAFC; }
+    .slide-container .marker { position: absolute; right: 78px; bottom: 38px; color: rgba(216,227,234,0.72); font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <div class="grid"></div>
+    <main class="wrap">
+      <div class="kicker">Fluxo da solução</div>
+      <h1>O fluxo integra pedido, agenda, relatório e pesquisa</h1>
+      <p class="lead">A aplicação liga a entrada pública da solicitação à decisão administrativa, à escala operacional, ao registro técnico dos resultados e ao envio da pesquisa de satisfação.</p>
+      <section class="process" aria-label="Fluxo operacional da Agenda Educação OLS">
+        <div class="rail"></div>
+        <article class="stage">
+          <div class="badge">1</div>
+          <div class="icon"><i class="fa-solid fa-link"></i></div>
+          <div class="stage-title">Solicitação pública</div>
+          <div class="stage-text">Instituições ou responsáveis registram pedidos por meio de um link público.</div>
+        </article>
+        <article class="stage">
+          <div class="badge">2</div>
+          <div class="icon"><i class="fa-solid fa-clipboard-check"></i></div>
+          <div class="stage-title">Análise administrativa</div>
+          <div class="stage-text">A equipe avalia aprovação, recusa, reagendamento ou novas datas.</div>
+        </article>
+        <article class="stage">
+          <div class="badge">3</div>
+          <div class="icon"><i class="fa-solid fa-calendar-day"></i></div>
+          <div class="stage-title">Agenda operacional</div>
+          <div class="stage-text">O pedido aprovado recebe equipe, chefia, agentes, recursos e materiais.</div>
+        </article>
+        <article class="stage">
+          <div class="badge">4</div>
+          <div class="icon"><i class="fa-solid fa-people-group"></i></div>
+          <div class="stage-title">Execução da ação</div>
+          <div class="stage-text">A atividade educativa é realizada com base na escala e nas informações consolidadas.</div>
+        </article>
+        <article class="stage">
+          <div class="badge">5</div>
+          <div class="icon"><i class="fa-solid fa-file-lines"></i></div>
+          <div class="stage-title">Relatório Técnico</div>
+          <div class="stage-text">Quantitativos, ocorrências, materiais e resultados alimentam indicadores.</div>
+        </article>
+        <article class="stage">
+          <div class="badge">6</div>
+          <div class="icon"><i class="fa-solid fa-paper-plane"></i></div>
+          <div class="stage-title">Pesquisa de satisfação</div>
+          <div class="stage-text">Após a ação, o formulário é enviado para coletar feedback dos participantes.</div>
+        </article>
+      </section>
+      <section class="outcome">
+        <div class="outcome-label">Resultado integrado</div>
+        <div class="outcome-text"><strong>Dados operacionais consistentes e feedback dos participantes</strong> apoiam dashboards, estatísticas e decisões de gestão sobre as ações educativas.</div>
+      </section>
+    </main>
+    <div class="marker">Agenda Educação OLS</div>
+  </div>
+</body>
+</html>

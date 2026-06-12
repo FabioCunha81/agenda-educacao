@@ -2659,6 +2659,381 @@ button.stat-card.active {
 .app-shell.dark-mode .legend-dot.danger { background: #4a1d1d; border-color: #efa29a; }
 .app-shell.dark-mode .legend-dot.neutral { background: #243442; border-color: #7a91a5; }
 
+.shift-day-cell {
+  cursor: pointer;
+}
+
+.shift-day-cell:hover {
+  background: #f8fbff;
+}
+
+.shift-toolbar {
+  flex-wrap: wrap;
+}
+
+.shift-toolbar > strong {
+  min-width: 160px;
+  text-align: center;
+}
+
+.shift-team-pill {
+  background: #e8f1ff;
+  border: 1px solid #bfd8ff;
+  color: #0b3a80;
+  display: grid;
+  gap: 2px;
+  justify-content: flex-start;
+  min-height: 40px;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.shift-swap-alert {
+  align-items: center;
+  background: #fff4d6;
+  border: 1px solid #e7bd55;
+  color: #7a5200;
+  display: flex;
+  font-size: 12px;
+  gap: 6px;
+  justify-content: flex-start;
+  min-height: 32px;
+  padding: 7px 9px;
+  text-align: left;
+}
+
+.shift-team-pill strong,
+.shift-team-pill small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shift-team-pill > span {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.shift-team-pill b {
+  align-items: center;
+  background: #fff4d6;
+  border-radius: 999px;
+  color: #7a5200;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 10px;
+  gap: 3px;
+  padding: 3px 6px;
+}
+
+.shift-team-pill small {
+  color: #365a88;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.shift-modal {
+  max-height: min(92vh, 920px);
+  max-width: 980px;
+  overflow: auto;
+}
+
+.shift-team-modal {
+  max-width: 720px;
+}
+
+.shift-team-picker {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.shift-team-picker label {
+  align-items: center;
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 62px;
+  padding: 12px;
+}
+
+.shift-team-picker label.selected {
+  background: #e8f1ff;
+  border-color: #76a9ff;
+}
+
+.shift-team-picker input {
+  height: 18px;
+  width: 18px;
+}
+
+.shift-team-picker span {
+  display: grid;
+  gap: 3px;
+}
+
+.shift-team-picker strong,
+.shift-team-picker small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shift-team-picker small {
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.modal-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.modal-header-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.danger-action {
+  color: var(--danger);
+}
+
+.shift-editor-grid,
+.shift-swap-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.shift-editor-grid label,
+.shift-swap-grid label {
+  display: grid;
+  gap: 6px;
+}
+
+.shift-editor-grid label span,
+.shift-swap-grid label span {
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.shift-swap-grid .full {
+  grid-column: 1 / -1;
+}
+
+.shift-roster,
+.shift-swap-alert-panel,
+.shift-swap-box,
+.shift-swap-list {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.shift-swap-alert-panel h3 {
+  align-items: center;
+  color: #7a5200;
+  display: flex;
+  gap: 7px;
+  margin: 0;
+}
+
+.shift-service-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.shift-service-card > header {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.shift-service-card > header span {
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.shift-roster-group {
+  display: grid;
+  gap: 8px;
+}
+
+.shift-roster-group > strong {
+  color: var(--text);
+}
+
+.shift-member-list {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.shift-member-list span {
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+}
+
+.shift-member-list span.swapped {
+  background: #ddf8e8;
+  border-color: #77d69a;
+}
+
+.shift-member-list small {
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.swap-card {
+  align-items: center;
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px;
+}
+
+.swap-card:has(.swap-actions) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.swap-card div {
+  display: grid;
+  gap: 3px;
+}
+
+.swap-card span,
+.swap-card small {
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.swap-card a {
+  align-items: center;
+  color: var(--primary);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 5px;
+  text-decoration: none;
+}
+
+.swap-card b {
+  background: #fff4d6;
+  border-radius: 999px;
+  color: #7a5200;
+  font-size: 12px;
+  padding: 5px 9px;
+}
+
+.swap-card.approved b {
+  background: #ddf8e8;
+  color: var(--success);
+}
+
+.swap-card.rejected b {
+  background: #ffe5e1;
+  color: var(--danger);
+}
+
+.swap-actions {
+  display: flex;
+  gap: 8px;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.app-shell.dark-mode .shift-day-cell:hover {
+  background: #192936;
+}
+
+.app-shell.dark-mode .shift-team-pill {
+  background: #1d3550;
+  border-color: #3b5d7b;
+  color: #d8ecff;
+}
+
+.app-shell.dark-mode .shift-swap-alert {
+  background: #493b12;
+  border-color: #a57916;
+  color: #ffe9a6;
+}
+
+.app-shell.dark-mode .shift-team-pill small {
+  color: #a9c4dc;
+}
+
+.app-shell.dark-mode .shift-team-pill b {
+  background: #493b12;
+  color: #ffe9a6;
+}
+
+.app-shell.dark-mode .shift-member-list span,
+.app-shell.dark-mode .shift-team-picker label,
+.app-shell.dark-mode .shift-service-card,
+.app-shell.dark-mode .swap-card {
+  background: #1b2a36;
+  border-color: #365164;
+}
+
+.app-shell.dark-mode .shift-swap-alert-panel h3 {
+  color: #ffe9a6;
+}
+
+.app-shell.dark-mode .shift-member-list span.swapped {
+  background: #123f34;
+  border-color: #1f7a5d;
+}
+
+.app-shell.dark-mode .shift-team-picker label.selected {
+  background: #1d3550;
+  border-color: #5797e8;
+}
+
+.app-shell.dark-mode .swap-card b {
+  background: #493b12;
+  color: #ffe9a6;
+}
+
+.app-shell.dark-mode .swap-card.approved b {
+  background: #123f34;
+  color: #bdf8d8;
+}
+
+.app-shell.dark-mode .swap-card.rejected b {
+  background: #4a1d1d;
+  color: #ffc3c3;
+}
+
 .modal-backdrop {
   align-items: center;
   background: rgba(0, 19, 56, .52);
@@ -3121,6 +3496,12 @@ button.stat-card.active {
 
   .calendar-grid {
     grid-template-columns: repeat(7, minmax(150px, 1fr));
+  }
+
+  .shift-team-picker,
+  .shift-swap-grid,
+  .shift-member-list {
+    grid-template-columns: 1fr;
   }
 
   .visitor-event-header,

@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db.models import Q
 
 from .models import (
     ActionType,
@@ -17,6 +18,8 @@ from .models import (
     Neighborhood,
     Sector,
     SatisfactionSurvey,
+    ShiftSchedule,
+    ShiftSwapRequest,
     Support,
     Team,
     Vehicle,
@@ -123,6 +126,214 @@ class ChiefSerializer(LookupSerializer):
     class Meta(LookupSerializer.Meta):
         model = Chief
         fields = ["id", "source_id", "name", "cpf", "team", "team_name", "role", "address", "phone", "is_active"]
+
+
+def shift_swap_visibility_filter(user):
+    if not user or not user.is_authenticated:
+        return Q(pk__isnull=True)
+    if getattr(user, "is_admin_role", False):
+        return Q()
+
+    query = Q(requester=user)
+    if user.full_name:
+        query |= Q(from_member_name__iexact=user.full_name) | Q(to_member_name__iexact=user.full_name)
+
+    cpf = "".join(char for char in str(user.cpf or "") if char.isdigit())
+    member_models = [
+        (ShiftSwapRequest.MemberType.CHIEF, Chief),
+        (ShiftSwapRequest.MemberType.AGENT, Agent),
+        (ShiftSwapRequest.MemberType.SUPPORT, Support),
+    ]
+    if cpf:
+        for member_type, lookup_model in member_models:
+            member_ids = list(lookup_model.objects.filter(cpf=cpf).values_list("id", flat=True))
+            if member_ids:
+                query |= (
+                    Q(member_type=member_type, from_member_id__in=member_ids)
+                    | Q(member_type=member_type, to_member_id__in=member_ids)
+                )
+    return query
+
+
+class ShiftSwapRequestSerializer(serializers.ModelSerializer):
+    requester_name = serializers.CharField(source="requester.full_name", read_only=True)
+    target_team_name = serializers.CharField(source="target_team.name", read_only=True)
+    schedule_date = serializers.DateField(source="schedule.date", read_only=True)
+    schedule_team_name = serializers.CharField(source="schedule.team.name", read_only=True)
+    decided_by_name = serializers.CharField(source="decided_by.full_name", read_only=True)
+    attachment_url = serializers.FileField(source="attachment", read_only=True)
+    can_decide = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ShiftSwapRequest
+        fields = [
+            "id",
+            "schedule",
+            "schedule_date",
+            "schedule_team_name",
+            "requester",
+            "requester_name",
+            "member_type",
+            "from_member_id",
+            "from_member_name",
+            "target_team",
+            "target_team_name",
+            "to_member_id",
+            "to_member_name",
+            "reason",
+            "attachment",
+            "attachment_url",
+            "can_decide",
+            "status",
+            "decided_by",
+            "decided_by_name",
+            "decided_at",
+            "decision_note",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "requester",
+            "requester_name",
+            "from_member_name",
+            "to_member_name",
+            "status",
+            "decided_by",
+            "decided_by_name",
+            "decided_at",
+            "decision_note",
+            "created_at",
+            "updated_at",
+            "schedule_date",
+            "schedule_team_name",
+            "target_team_name",
+            "attachment_url",
+            "can_decide",
+        ]
+
+    def get_can_decide(self, obj):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if not user or not user.is_authenticated:
+            return False
+        can_manage = bool(
+            getattr(user, "is_superuser", False)
+            or getattr(user, "is_staff", False)
+            or getattr(user, "is_admin_role", False)
+        )
+        return can_manage and obj.status == ShiftSwapRequest.Status.PENDING and obj.requester_id != user.id
+
+    def _lookup_model(self, member_type):
+        return {
+            ShiftSwapRequest.MemberType.CHIEF: Chief,
+            ShiftSwapRequest.MemberType.AGENT: Agent,
+            ShiftSwapRequest.MemberType.SUPPORT: Support,
+        }.get(member_type)
+
+    def validate(self, attrs):
+        schedule = attrs.get("schedule") or getattr(self.instance, "schedule", None)
+        member_type = attrs.get("member_type") or getattr(self.instance, "member_type", None)
+        from_member_id = attrs.get("from_member_id") or getattr(self.instance, "from_member_id", None)
+        target_team = attrs.get("target_team") or getattr(self.instance, "target_team", None)
+        to_member_id = attrs.get("to_member_id") or getattr(self.instance, "to_member_id", None)
+        lookup_model = self._lookup_model(member_type)
+
+        if not lookup_model:
+            raise serializers.ValidationError("Informe o tipo de integrante da troca.")
+        if schedule and target_team and schedule.team_id == target_team.id:
+            raise serializers.ValidationError("Selecione uma equipe diferente para a troca.")
+
+        from_member = lookup_model.objects.filter(id=from_member_id, team=schedule.team, is_active=True).first()
+        if not from_member:
+            raise serializers.ValidationError("O integrante de origem precisa pertencer a equipe escalada.")
+        to_member = lookup_model.objects.filter(id=to_member_id, team=target_team, is_active=True).first()
+        if not to_member:
+            raise serializers.ValidationError("O integrante substituto precisa ser da equipe selecionada e da mesma funcao.")
+
+        attrs["from_member_name"] = from_member.name
+        attrs["to_member_name"] = to_member.name
+        return attrs
+
+
+class ShiftScheduleSerializer(serializers.ModelSerializer):
+    team_name = serializers.CharField(source="team.name", read_only=True)
+    created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
+    members = serializers.SerializerMethodField()
+    swap_requests = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ShiftSchedule
+        fields = [
+            "id",
+            "date",
+            "team",
+            "team_name",
+            "notes",
+            "members",
+            "swap_requests",
+            "created_by",
+            "created_by_name",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["created_by", "created_by_name", "created_at", "updated_at", "members", "swap_requests"]
+
+    def validate(self, attrs):
+        date = attrs.get("date") or getattr(self.instance, "date", None)
+        team = attrs.get("team") or getattr(self.instance, "team", None)
+        if date and team:
+            queryset = ShiftSchedule.objects.filter(date=date, team=team)
+            if self.instance:
+                queryset = queryset.exclude(pk=self.instance.pk)
+            if queryset.exists():
+                raise serializers.ValidationError("Esta equipe ja esta escalada para este dia.")
+        return attrs
+
+    def get_members(self, obj):
+        def row(item):
+            return {
+                "id": item.id,
+                "name": item.name,
+                "role": item.role,
+                "cpf": item.cpf,
+                "team": item.team_id,
+                "team_name": obj.team.name,
+            }
+
+        members = {
+            "chiefs": [row(item) for item in Chief.objects.filter(team=obj.team, is_active=True).order_by("name")],
+            "agents": [row(item) for item in Agent.objects.filter(team=obj.team, is_active=True).order_by("name")],
+            "supports": [row(item) for item in Support.objects.filter(team=obj.team, is_active=True).order_by("name")],
+        }
+        for swap in obj.swap_requests.filter(status=ShiftSwapRequest.Status.APPROVED):
+            group = {
+                ShiftSwapRequest.MemberType.CHIEF: "chiefs",
+                ShiftSwapRequest.MemberType.AGENT: "agents",
+                ShiftSwapRequest.MemberType.SUPPORT: "supports",
+            }.get(swap.member_type, "agents")
+            replacement = {
+                "id": f"swap-{swap.id}",
+                "name": swap.to_member_name,
+                "role": f"Troca aprovada: substitui {swap.from_member_name}",
+                "cpf": "",
+                "team": swap.target_team_id,
+                "team_name": swap.target_team.name,
+                "swapped": True,
+            }
+            for index, member in enumerate(members[group]):
+                if int(member["id"]) == int(swap.from_member_id):
+                    members[group][index] = replacement
+                    break
+            else:
+                members[group].append(replacement)
+        return members
+
+    def get_swap_requests(self, obj):
+        request = self.context.get("request")
+        queryset = obj.swap_requests.select_related("requester", "target_team", "decided_by")
+        if request:
+            queryset = queryset.filter(shift_swap_visibility_filter(request.user))
+        return ShiftSwapRequestSerializer(queryset, many=True, context=self.context).data
 
 
 class AgendaHistorySerializer(serializers.ModelSerializer):

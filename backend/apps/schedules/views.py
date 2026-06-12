@@ -11,7 +11,7 @@ from django.utils import timezone
 from openpyxl import Workbook
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
-from rest_framework import decorators, response, viewsets
+from rest_framework import decorators, parsers, response, status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
@@ -35,11 +35,13 @@ from .models import (
     Neighborhood,
     Sector,
     SatisfactionSurvey,
+    ShiftSchedule,
+    ShiftSwapRequest,
     Support,
     Team,
     Vehicle,
 )
-from .permissions import AdminOrReadSectorPermission, AgendaPermission, agent_agenda_filter
+from .permissions import AdminOrReadSectorPermission, AgendaPermission, ShiftSchedulePermission, agent_agenda_filter
 from .emails import PUBLIC_REQUEST_SALT, public_update_url, send_agenda_available_dates_email, send_agenda_status_email, send_satisfaction_survey_email
 from .serializers import (
     ActionTypeSerializer,
@@ -57,6 +59,9 @@ from .serializers import (
     PublicAgendaRequestRescheduleSerializer,
     SatisfactionSurveySerializer,
     SectorSerializer,
+    ShiftScheduleSerializer,
+    ShiftSwapRequestSerializer,
+    shift_swap_visibility_filter,
     SupportSerializer,
     TeamSerializer,
     VehicleSerializer,
@@ -172,6 +177,92 @@ class SupportViewSet(LookupViewSet):
         if self.request.query_params.get("include_inactive") == "true" and self.request.user.is_admin_role:
             queryset = Support.objects.all()
         return queryset.select_related("team").order_by("team__name", "name")
+
+
+class ShiftScheduleViewSet(viewsets.ModelViewSet):
+    serializer_class = ShiftScheduleSerializer
+    permission_classes = [IsAuthenticated, ShiftSchedulePermission]
+
+    def get_queryset(self):
+        queryset = ShiftSchedule.objects.select_related("team", "created_by").prefetch_related(
+            "swap_requests",
+            "swap_requests__requester",
+            "swap_requests__target_team",
+            "swap_requests__decided_by",
+        )
+        params = self.request.query_params
+        if params.get("date"):
+            queryset = queryset.filter(date=params["date"])
+        if params.get("date_from"):
+            queryset = queryset.filter(date__gte=params["date_from"])
+        if params.get("date_to"):
+            queryset = queryset.filter(date__lte=params["date_to"])
+        if params.get("team"):
+            queryset = queryset.filter(team_id=params["team"])
+        return queryset.order_by("date", "team__name")
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user, updated_by=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(updated_by=self.request.user)
+
+
+class ShiftSwapRequestViewSet(viewsets.ModelViewSet):
+    serializer_class = ShiftSwapRequestSerializer
+    permission_classes = [IsAuthenticated, ShiftSchedulePermission]
+    parser_classes = [parsers.JSONParser, parsers.MultiPartParser, parsers.FormParser]
+
+    def get_queryset(self):
+        queryset = ShiftSwapRequest.objects.select_related(
+            "schedule",
+            "schedule__team",
+            "target_team",
+            "requester",
+            "decided_by",
+        )
+        params = self.request.query_params
+        if params.get("status"):
+            queryset = queryset.filter(status=params["status"])
+        if params.get("schedule"):
+            queryset = queryset.filter(schedule_id=params["schedule"])
+        if params.get("date_from"):
+            queryset = queryset.filter(schedule__date__gte=params["date_from"])
+        if params.get("date_to"):
+            queryset = queryset.filter(schedule__date__lte=params["date_to"])
+        queryset = queryset.filter(shift_swap_visibility_filter(self.request.user))
+        return queryset.order_by("-created_at")
+
+    def perform_create(self, serializer):
+        serializer.save(requester=self.request.user)
+
+    def _decide(self, request, pk, decision):
+        swap = self.get_object()
+        if swap.requester_id == request.user.id:
+            return response.Response(
+                {"detail": "O solicitante nao pode aprovar ou rejeitar a propria troca."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if swap.status != ShiftSwapRequest.Status.PENDING:
+            return response.Response(
+                {"detail": "Esta solicitacao ja foi analisada."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        swap.status = decision
+        swap.decided_by = request.user
+        swap.decided_at = timezone.now()
+        swap.decision_note = request.data.get("decision_note", "")
+        swap.save(update_fields=["status", "decided_by", "decided_at", "decision_note", "updated_at"])
+        serializer = self.get_serializer(swap)
+        return response.Response(serializer.data)
+
+    @decorators.action(detail=True, methods=["post"])
+    def approve(self, request, pk=None):
+        return self._decide(request, pk, ShiftSwapRequest.Status.APPROVED)
+
+    @decorators.action(detail=True, methods=["post"])
+    def reject(self, request, pk=None):
+        return self._decide(request, pk, ShiftSwapRequest.Status.REJECTED)
 
 
 class ActionTypeViewSet(LookupViewSet):

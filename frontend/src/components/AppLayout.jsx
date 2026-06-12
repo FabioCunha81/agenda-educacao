@@ -10,6 +10,7 @@ const items = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["ADMIN", "MANAGER", "SUPERVISOR", "USER", "CREATOR"] },
   { to: "/agendas", label: "Solicitações", icon: CalendarDays, roles: ["ADMIN", "MANAGER", "SUPERVISOR"] },
   { to: "/calendario", label: "Calendário", icon: CalendarDays },
+  { to: "/escala", label: "Escala", icon: CalendarDays, roles: ["ADMIN", "MANAGER", "SUPERVISOR", "USER", "CREATOR"] },
   { to: "/relatorio-tecnico", label: "Relatório técnico", icon: BarChart3, roles: ["ADMIN", "MANAGER", "SUPERVISOR"] },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, roles: ["ADMIN", "MANAGER"] },
   { to: "/estatisticas", label: "Estatísticas", icon: BarChart3, roles: ["ADMIN", "MANAGER", "SUPERVISOR"] },

@@ -24,6 +24,8 @@ from apps.schedules.views import (
     SatisfactionSurveyViewSet,
     ReportViewSet,
     SectorViewSet,
+    ShiftScheduleViewSet,
+    ShiftSwapRequestViewSet,
     SupportViewSet,
     TeamViewSet,
     VehicleViewSet,
@@ -49,6 +51,8 @@ router.register("education-reports", EducationReportViewSet, basename="education
 router.register("education-goals", EducationGoalViewSet, basename="education-goals")
 router.register("reports", ReportViewSet, basename="reports")
 router.register("surveys", SatisfactionSurveyViewSet, basename="surveys")
+router.register("shift-schedules", ShiftScheduleViewSet, basename="shift-schedules")
+router.register("shift-swaps", ShiftSwapRequestViewSet, basename="shift-swaps")
 
 
 urlpatterns = [

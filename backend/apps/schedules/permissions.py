@@ -62,3 +62,23 @@ class AdminOrReadSectorPermission(BasePermission):
         if request.method in SAFE_METHODS:
             return True
         return request.user.is_admin_role
+
+
+class ShiftSchedulePermission(BasePermission):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.role == User.Role.VISITOR:
+            return False
+        if view.action in {"approve", "reject", "destroy"}:
+            return request.user.is_superuser or request.user.is_staff or request.user.is_admin_role
+        return True
+
+    def has_object_permission(self, request, view, obj):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.role == User.Role.VISITOR:
+            return False
+        if view.action in {"approve", "reject", "destroy"}:
+            return request.user.is_superuser or request.user.is_staff or request.user.is_admin_role
+        return True
