@@ -300,6 +300,38 @@ class AgendaSerializer(serializers.ModelSerializer):
         survey = obj.satisfaction_surveys.order_by("-created_at").first()
         return survey.answered_at if survey else None
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if getattr(getattr(request, "user", None), "role", None) == "VISITOR":
+            hidden_fields = [
+                "vehicle",
+                "vehicle_ref",
+                "vehicle_name",
+                "team_name",
+                "team_ref",
+                "team_ref_name",
+                "chief_name",
+                "chief_ref",
+                "chief_ref_name",
+                "team_phone",
+                "agents",
+                "agents_ref",
+                "support_1",
+                "support_1_ref",
+                "support_2",
+                "support_2_ref",
+                "responsible",
+                "responsible_name",
+                "created_by",
+                "created_by_name",
+                "history",
+            ]
+            for field in hidden_fields:
+                if field in data:
+                    data[field] = [] if field in {"agents_ref", "history"} else None
+        return data
+
 
 def report_text(report):
     agenda = report.agenda

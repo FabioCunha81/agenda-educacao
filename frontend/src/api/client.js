@@ -1,4 +1,5 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8012/api";
+const DEFAULT_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 12000);
 
 export function getToken() {
   return localStorage.getItem("accessToken");
@@ -6,7 +7,7 @@ export function getToken() {
 
 function formatApiError(data) {
   if (!data || data instanceof Blob) {
-    return "Não foi possível concluir a operação.";
+    return "Nao foi possivel concluir a operacao.";
   }
   if (data.detail) {
     return data.detail;
@@ -30,11 +31,11 @@ function formatApiError(data) {
       return fieldMessages.join(" ");
     }
   }
-  return "Não foi possível concluir a operação.";
+  return "Nao foi possivel concluir a operacao.";
 }
 
 export async function api(path, options = {}) {
-  const { redirectOnUnauthorized = true, ...fetchOptions } = options;
+  const { redirectOnUnauthorized = true, timeoutMs = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options;
   const headers = new Headers(options.headers || {});
   if (!(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
@@ -45,10 +46,25 @@ export async function api(path, options = {}) {
   }
 
   let response;
+  const controller = fetchOptions.signal ? null : new AbortController();
+  const timeoutId = controller && timeoutMs > 0
+    ? window.setTimeout(() => controller.abort(), timeoutMs)
+    : null;
   try {
-    response = await fetch(`${API_URL}${path}`, { ...fetchOptions, headers });
-  } catch {
-    throw new Error("Não foi possível conectar à API. Verifique se o deploy da API terminou e se o serviço agenda-educacao-api está online.");
+    response = await fetch(`${API_URL}${path}`, {
+      ...fetchOptions,
+      headers,
+      signal: fetchOptions.signal || controller?.signal,
+    });
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error("A API demorou para responder. Verifique se o backend local esta rodando.");
+    }
+    throw new Error("Nao foi possivel conectar a API. Verifique se o backend local esta rodando.");
+  } finally {
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+    }
   }
   if (response.status === 204) {
     return null;

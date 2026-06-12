@@ -15,6 +15,15 @@ import TechnicalReportsPage from "./pages/TechnicalReportsPage.jsx";
 import UsersPage from "./pages/UsersPage.jsx";
 import StatisticsPage from "./pages/StatisticsPage.jsx";
 import SatisfactionSurveyPage from "./pages/SatisfactionSurveyPage.jsx";
+import { useAuth } from "./context/AuthContext.jsx";
+
+function HomeRoute() {
+  const { user } = useAuth();
+  if (user?.role === "VISITOR") {
+    return <Navigate to="/calendario" replace />;
+  }
+  return <DashboardPage />;
+}
 
 export default function App() {
   return (
@@ -32,13 +41,13 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<DashboardPage />} />
+        <Route index element={<HomeRoute />} />
         <Route path="agendas" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "SUPERVISOR"]}><AgendaPage /></ProtectedRoute>} />
         <Route path="solicitacao-interna" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "SUPERVISOR"]}><PublicAgendaRequestPage internalRequest /></ProtectedRoute>} />
         <Route path="calendario" element={<CalendarPage />} />
         <Route path="relatorio-tecnico" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "SUPERVISOR"]}><TechnicalReportsPage /></ProtectedRoute>} />
         <Route path="relatorios" element={<ProtectedRoute roles={["ADMIN", "MANAGER"]}><ReportsPage /></ProtectedRoute>} />
-        <Route path="estatisticas" element={<ProtectedRoute roles={["ADMIN", "MANAGER"]}><StatisticsPage /></ProtectedRoute>} />
+        <Route path="estatisticas" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "SUPERVISOR"]}><StatisticsPage /></ProtectedRoute>} />
         <Route path="metas" element={<ProtectedRoute roles={["ADMIN", "MANAGER"]}><GoalsPage /></ProtectedRoute>} />
         <Route path="cadastros" element={<ProtectedRoute roles={["ADMIN", "MANAGER"]}><LookupsPage /></ProtectedRoute>} />
         <Route path="usuarios" element={<ProtectedRoute roles={["ADMIN", "CREATOR"]}><UsersPage /></ProtectedRoute>} />

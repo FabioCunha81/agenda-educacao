@@ -1,7 +1,8 @@
-import { ChevronLeft, ChevronRight, MapPin, Navigation, Users } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Navigation, Users } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client.js";
 import Filters from "../components/Filters.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import { formatDateBR } from "../utils/date.js";
 import { statusClass, statusLabel } from "../utils/status.js";
 
@@ -14,12 +15,77 @@ function serviceTeamLabel(agenda) {
 }
 
 function fullAddress(agenda) {
-  return [agenda.address, agenda.neighborhood, agenda.city, agenda.state].filter(Boolean).join(", ");
+  return [agenda.address, agenda.neighborhood, agenda.city, agenda.state].filter(Boolean).map(cleanText).join(", ");
 }
 
 function mapsUrl(agenda) {
   const query = fullAddress(agenda) || agenda.location || agenda.institution_location;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function valueOrDash(value) {
+  return cleanText(value) || "-";
+}
+
+function cleanText(value) {
+  if (value === undefined || value === null) return "";
+  let text = String(value);
+  if (!text) return "";
+
+  if (/[ÃÂâ]/.test(text)) {
+    try {
+      const bytes = Uint8Array.from([...text].map((char) => char.charCodeAt(0) & 255));
+      const decoded = new TextDecoder("utf-8").decode(bytes);
+      if (decoded && !decoded.includes("�")) {
+        text = decoded;
+      }
+    } catch {
+      // Keep the original text if browser decoding is unavailable.
+    }
+  }
+
+  return text
+    .replaceAll("Coordena??o", "Coordenação")
+    .replaceAll("Coordena?o", "Coordenação")
+    .replaceAll("Educa??o", "Educação")
+    .replaceAll("Educa?o", "Educação")
+    .replaceAll("Opera??o", "Operação")
+    .replaceAll("Opera?o", "Operação")
+    .replaceAll("A??o", "Ação")
+    .replaceAll("A?o", "Ação")
+    .replaceAll("a??o", "ação")
+    .replaceAll("a?o", "ação")
+    .replaceAll("Solicita??o", "Solicitação")
+    .replaceAll("Solicita?o", "Solicitação")
+    .replaceAll("Institui??o", "Instituição")
+    .replaceAll("Institui?o", "Instituição")
+    .replaceAll("Munic??pio", "Município")
+    .replaceAll("Munic?pio", "Município")
+    .replaceAll("Respons??vel", "Responsável")
+    .replaceAll("Respons?vel", "Responsável")
+    .replaceAll("P??blico", "Público")
+    .replaceAll("P?blico", "Público")
+    .replaceAll("Et??ria", "Etária")
+    .replaceAll("Et?ria", "Etária")
+    .replaceAll("Fun??o", "Função")
+    .replaceAll("Fun?o", "Função")
+    .replaceAll("Hor??rio", "Horário")
+    .replaceAll("Hor?rio", "Horário")
+    .replaceAll("Endere??o", "Endereço")
+    .replaceAll("Endere?o", "Endereço")
+    .replaceAll("calend??rio", "calendário")
+    .replaceAll("calend?rio", "calendário")
+    .replaceAll("Calend??rio", "Calendário")
+    .replaceAll("Calend?rio", "Calendário");
+}
+
+function DetailItem({ label, children, className = "" }) {
+  return (
+    <div className={`detail-item ${className}`}>
+      <span>{label}</span>
+      <strong>{children}</strong>
+    </div>
+  );
 }
 
 async function loadAllAgendas(query) {
@@ -34,6 +100,7 @@ async function loadAllAgendas(query) {
 }
 
 export default function CalendarPage() {
+  const { user } = useAuth();
   const [cursor, setCursor] = useState(new Date());
   const [view, setView] = useState("month");
   const [filters, setFilters] = useState({});
@@ -41,6 +108,7 @@ export default function CalendarPage() {
   const [sectors, setSectors] = useState([]);
   const [selected, setSelected] = useState(null);
   const requestSeq = useRef(0);
+  const isVisitor = user?.role === "VISITOR";
 
   const days = useMemo(() => {
     if (view === "day") return [new Date(cursor)];
@@ -56,8 +124,10 @@ export default function CalendarPage() {
   }, [cursor, view]);
 
   useEffect(() => {
-    api("/sectors/").then((data) => setSectors(data.results || data));
-  }, []);
+    if (!isVisitor) {
+      api("/sectors/").then((data) => setSectors(data.results || data));
+    }
+  }, [isVisitor]);
 
   useEffect(() => {
     const scopedFilters = Object.fromEntries(
@@ -94,12 +164,12 @@ export default function CalendarPage() {
         <div className="segmented">
           {["month", "week", "day"].map((mode) => (
             <button key={mode} className={view === mode ? "active" : ""} onClick={() => setView(mode)}>
-              {mode === "month" ? "Mes" : mode === "week" ? "Semana" : "Dia"}
+              {mode === "month" ? "Mês" : mode === "week" ? "Semana" : "Dia"}
             </button>
           ))}
         </div>
       </div>
-      <Filters filters={filters} setFilters={setFilters} sectors={sectors} showUser={false} />
+      {!isVisitor && <Filters filters={filters} setFilters={setFilters} sectors={sectors} showUser={false} />}
       <div className="calendar-toolbar">
         <button className="icon-button" onClick={() => move(-1)} aria-label="Anterior"><ChevronLeft size={18} /></button>
         <strong>{cursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</strong>
@@ -124,8 +194,8 @@ export default function CalendarPage() {
               <span>{day.getDate()}</span>
               {dayAgendas.map((agenda) => (
                 <button key={agenda.id} className={`event-pill ${statusClass[agenda.status]}`} onClick={() => setSelected(agenda)}>
-                  <strong>{agenda.start_time.slice(0, 5)} · {serviceTeamLabel(agenda)}</strong>
-                  <small>{agenda.title}</small>
+                  <strong>{agenda.start_time.slice(0, 5)}{!isVisitor && ` - ${serviceTeamLabel(agenda)}`}</strong>
+                  <small>{valueOrDash(agenda.title)}</small>
                 </button>
               ))}
             </article>
@@ -134,27 +204,73 @@ export default function CalendarPage() {
       </div>
       {selected && (
         <div className="modal-backdrop" onClick={() => setSelected(null)}>
-          <article className="modal" onClick={(event) => event.stopPropagation()}>
-            <h2>{selected.title}</h2>
-            <p>{selected.description}</p>
+          <article className={`modal ${isVisitor ? "visitor-event-modal" : ""}`} onClick={(event) => event.stopPropagation()}>
+            {isVisitor ? (
+              <>
+                <header className="visitor-event-header">
+                  <div>
+                    <span className={`status-chip ${statusClass[selected.status]}`}>{statusLabel[selected.status]}</span>
+                    <h2>{valueOrDash(selected.title)}</h2>
+                    <p>{valueOrDash(selected.description || "Detalhes da ação agendada para acompanhamento institucional.")}</p>
+                  </div>
+                </header>
+                <div className="visitor-event-summary">
+                  <span><CalendarDays size={17} /> {formatDateBR(selected.date)}</span>
+                  <span><Clock size={17} /> {selected.start_time.slice(0, 5)} às {selected.end_time.slice(0, 5)}</span>
+                  <span><MapPin size={17} /> {valueOrDash(selected.city || selected.municipality_ref_name || "Município não informado")}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2>{valueOrDash(selected.title)}</h2>
+                <p>{valueOrDash(selected.description)}</p>
+              </>
+            )}
             <div className="calendar-detail-actions">
               <a className="secondary action-link" href={mapsUrl(selected)} target="_blank" rel="noreferrer">
                 <Navigation size={16} /> Abrir GPS
               </a>
             </div>
+            {isVisitor && (
+              <div className="visitor-detail-sections">
+                <section>
+                  <h3>Dados do evento</h3>
+                  <div className="detail-grid">
+                    <DetailItem label="Tipo de atividade">{valueOrDash(selected.activity_type || selected.action_type || selected.action_type_ref_name)}</DetailItem>
+                    <DetailItem label="Público">{valueOrDash(selected.audience)}</DetailItem>
+                    <DetailItem label="Faixa etária">{valueOrDash(selected.age_ranges)}</DetailItem>
+                    <DetailItem label="Tipo de solicitante">{valueOrDash(selected.requester_entity_type)}</DetailItem>
+                  </div>
+                </section>
+                <section>
+                  <h3>Local e acesso</h3>
+                  <div className="detail-grid">
+                    <DetailItem label="Local" className="full">{valueOrDash(selected.institution_location || selected.location)}</DetailItem>
+                    <DetailItem label="Endereço" className="full">{fullAddress(selected) || "-"}</DetailItem>
+                    <DetailItem label="Município">{valueOrDash(selected.city || selected.municipality_ref_name)}</DetailItem>
+                  </div>
+                </section>
+              </div>
+            )}
+            {!isVisitor && (
             <dl>
               <dt>Protocolo</dt><dd>#{selected.id}</dd>
               <dt>Horário</dt><dd>{formatDateBR(selected.date)} das {selected.start_time.slice(0, 5)} às {selected.end_time.slice(0, 5)}</dd>
               <dt>Status</dt><dd>{statusLabel[selected.status]}</dd>
-              <dt>Equipe de serviço</dt><dd><Users size={15} /> {serviceTeamLabel(selected)}</dd>
-              <dt>Chefe</dt><dd>{selected.chief_name || selected.chief_ref_name || "-"}</dd>
-              <dt>Agentes</dt><dd>{selected.agents || "-"}</dd>
-              <dt>Responsável</dt><dd>{selected.responsible_name}</dd>
+              {!isVisitor && (
+                <>
+                  <dt>Equipe de serviço</dt><dd><Users size={15} /> {serviceTeamLabel(selected)}</dd>
+                  <dt>Chefe</dt><dd>{selected.chief_name || selected.chief_ref_name || "-"}</dd>
+                  <dt>Agentes</dt><dd>{selected.agents || "-"}</dd>
+                  <dt>Responsável</dt><dd>{selected.responsible_name}</dd>
+                </>
+              )}
               <dt>Local</dt><dd>{selected.institution_location || selected.location}</dd>
               <dt>Endereço</dt><dd><MapPin size={15} /> {fullAddress(selected) || "-"}</dd>
-              <dt>Viatura</dt><dd>{selected.vehicle || "-"}</dd>
+              {!isVisitor && <><dt>Viatura</dt><dd>{selected.vehicle || "-"}</dd></>}
               <dt>Município</dt><dd>{selected.city || "-"}</dd>
             </dl>
+            )}
             <button onClick={() => setSelected(null)}>Fechar</button>
           </article>
         </div>

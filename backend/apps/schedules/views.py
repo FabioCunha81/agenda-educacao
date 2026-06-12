@@ -211,6 +211,8 @@ class AgendaViewSet(viewsets.ModelViewSet):
         )
         if user.is_admin_role:
             return queryset
+        elif user.role == User.Role.VISITOR:
+            return queryset
         elif user.role == User.Role.SUPERVISOR:
             if self.request.query_params.get("reportable") == "true":
                 return queryset.filter(chief_agenda_filter(user))
@@ -1051,8 +1053,8 @@ class EducationReportViewSet(viewsets.ModelViewSet):
 
     @decorators.action(detail=False, methods=["get"])
     def statistics(self, request):
-        if not request.user.is_admin_role:
-            raise PermissionDenied("Apenas Gestores e Administração podem acessar estatísticas.")
+        if not (request.user.is_admin_role or request.user.role == User.Role.SUPERVISOR):
+            raise PermissionDenied("Apenas Chefes, Gestores e Administração podem acessar estatísticas.")
         reports = self.get_queryset()
         actions = EducationAction.objects.filter(report_id__in=reports.values("id"))
         params = request.query_params
@@ -1291,8 +1293,8 @@ class EducationReportViewSet(viewsets.ModelViewSet):
 
     @decorators.action(detail=False, methods=["get"], url_path="export-statistics")
     def export_statistics(self, request):
-        if not request.user.is_admin_role:
-            raise PermissionDenied("Apenas Gestores e Administração podem exportar estatísticas.")
+        if not (request.user.is_admin_role or request.user.role == User.Role.SUPERVISOR):
+            raise PermissionDenied("Apenas Chefes, Gestores e Administração podem exportar estatísticas.")
         from reportlab.lib import colors
         from reportlab.lib.units import mm
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, KeepTogether

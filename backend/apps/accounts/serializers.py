@@ -122,6 +122,10 @@ class UserSerializer(serializers.ModelSerializer):
             "password_setup_link",
         ]
         read_only_fields = ["id", "is_superuser", "password_setup_link"]
+        extra_kwargs = {
+            "full_name": {"required": False, "allow_blank": True},
+            "cpf": {"required": False, "allow_blank": True},
+        }
 
     def get_password_setup_link(self, obj):
         uid = urlsafe_base64_encode(force_bytes(obj.pk))
@@ -154,6 +158,10 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop("password", None)
+        if validated_data.get("role") == User.Role.VISITOR and not validated_data.get("full_name"):
+            sector = validated_data.get("sector")
+            label = sector.name if sector else validated_data.get("email", "")
+            validated_data["full_name"] = f"Visitante - {label}".strip()
         user = User(**validated_data)
         user.username = user.email
         if password:

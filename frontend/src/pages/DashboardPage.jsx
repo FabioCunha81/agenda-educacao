@@ -172,7 +172,7 @@ function DonutChart({ data = [] }) {
       </div>
       <div className="donut" style={{ background: `conic-gradient(${stops})`, width: "160px", height: "160px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", boxShadow: "inset 0 0 10px rgba(0,0,0,0.1)" }}>
         <div className="donut-center" style={{ width: "110px", height: "110px", background: "var(--surface)", borderRadius: "50%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 10px rgba(0,0,0,0.05)" }}>
-          <span style={{ fontSize: "24px", fontWeight: "900", color: "#17202a" }}>{total}</span>
+          <span style={{ fontSize: "24px", fontWeight: "900", color: "var(--text)" }}>{total}</span>
           <small style={{ fontSize: "11px", color: "var(--text-soft)", fontWeight: "600", textTransform: "uppercase" }}>agendas</small>
         </div>
       </div>
@@ -313,7 +313,7 @@ function SatisfactionSurveyPanel({ surveys = {}, onApproveSurvey }) {
       <div className="satisfaction-grid" style={{ display: "grid", gap: "20px", gridTemplateColumns: "1fr 1fr" }}>
         <div className="satisfaction-ratings" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div className="overall-rating-card" style={{ background: "var(--surface-2)", padding: "16px", borderRadius: "12px", border: "1px solid var(--line)", display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ fontSize: "40px", fontWeight: "900", color: "#17202a", lineHeight: 1 }}>{overall_rating.toFixed(1)}</div>
+            <div className="overall-rating-value" style={{ fontSize: "40px", fontWeight: "900", color: "var(--text)", lineHeight: 1 }}>{overall_rating.toFixed(1)}</div>
             <div>
               <Stars rating={overall_rating} />
               <div style={{ fontSize: "12px", color: "var(--text-soft)", marginTop: "4px", fontWeight: "500" }}>Baseado em {total_responses} avaliações</div>
@@ -321,11 +321,11 @@ function SatisfactionSurveyPanel({ surveys = {}, onApproveSurvey }) {
           </div>
           
           <div className="team-ratings-list" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <h3 style={{ fontSize: "13px", fontWeight: "800", color: "#17202a", margin: "4px 0" }}>Avaliações por equipe</h3>
+            <h3 style={{ fontSize: "13px", fontWeight: "800", color: "var(--text)", margin: "4px 0" }}>Avaliações por equipe</h3>
             {team_ratings.length ? team_ratings.map((team, idx) => (
               <div key={idx} className="team-rating-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "8px", borderBottom: "1px solid var(--line)" }}>
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  <strong style={{ fontSize: "13px", color: "#17202a" }}>{team.team}</strong>
+                  <strong style={{ fontSize: "13px", color: "var(--text)" }}>{team.team}</strong>
                   <span style={{ fontSize: "11px", color: "var(--text-soft)" }}>{team.count} avaliações</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -338,7 +338,7 @@ function SatisfactionSurveyPanel({ surveys = {}, onApproveSurvey }) {
         </div>
 
         <div className="satisfaction-messages" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          <h3 style={{ fontSize: "13px", fontWeight: "800", color: "#17202a", margin: 0 }}>Mensagens de feedback</h3>
+          <h3 style={{ fontSize: "13px", fontWeight: "800", color: "var(--text)", margin: 0 }}>Mensagens de feedback</h3>
           <div className="messages-list" style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "360px", overflowY: "auto", paddingRight: "4px" }}>
             {messages.length ? messages.map((msg, idx) => (
               <div
@@ -403,7 +403,7 @@ function SatisfactionSurveyPanel({ surveys = {}, onApproveSurvey }) {
 function ActivityPanel({ activity, advanced }) {
   return (
     <aside className="dashboard-side" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      <div className="chart-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px" }}>
+      <div className="chart-card field-teams-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px" }}>
         <div className="section-heading" style={{ marginBottom: "14px" }}><h2 style={{ fontSize: "15px", fontWeight: "800" }}>Equipes em campo hoje</h2></div>
         <div className="field-team-list" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {(activity?.field_teams || []).length ? (
@@ -421,7 +421,7 @@ function ActivityPanel({ activity, advanced }) {
           )}
         </div>
       </div>
-      <div className="chart-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px" }}>
+      <div className="chart-card advanced-indicators-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px" }}>
         <div className="section-heading" style={{ marginBottom: "14px" }}><h2 style={{ fontSize: "15px", fontWeight: "800" }}>Indicadores avançados</h2></div>
         <div className="advanced-list" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <span style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>Taxa de aprovação <strong style={{ color: "var(--success)" }}>{advanced?.approval_rate ?? 0}%</strong></span>

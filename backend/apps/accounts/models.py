@@ -28,6 +28,7 @@ class User(AbstractUser):
         ADMIN = "ADMIN", "Administrador"
         MANAGER = "MANAGER", "Gestor"
         SUPERVISOR = "SUPERVISOR", "Supervisor"
+        VISITOR = "VISITOR", "Visitante"
         USER = "USER", "Usuário comum"
 
     username = models.CharField(max_length=150, unique=False, blank=True)

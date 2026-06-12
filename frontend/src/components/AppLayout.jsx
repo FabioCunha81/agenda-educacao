@@ -7,12 +7,12 @@ import { canAccessRoute, roleLabel } from "../utils/permissions.js";
 import { api } from "../api/client.js";
 
 const items = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["ADMIN", "MANAGER", "SUPERVISOR", "USER", "CREATOR"] },
   { to: "/agendas", label: "Solicitações", icon: CalendarDays, roles: ["ADMIN", "MANAGER", "SUPERVISOR"] },
   { to: "/calendario", label: "Calendário", icon: CalendarDays },
   { to: "/relatorio-tecnico", label: "Relatório técnico", icon: BarChart3, roles: ["ADMIN", "MANAGER", "SUPERVISOR"] },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, roles: ["ADMIN", "MANAGER"] },
-  { to: "/estatisticas", label: "Estatísticas", icon: BarChart3, roles: ["ADMIN", "MANAGER"] },
+  { to: "/estatisticas", label: "Estatísticas", icon: BarChart3, roles: ["ADMIN", "MANAGER", "SUPERVISOR"] },
   { to: "/metas", label: "Metas", icon: Target, roles: ["ADMIN", "MANAGER"] },
   { to: "/cadastros", label: "Cadastros", icon: ListPlus, roles: ["ADMIN", "MANAGER"] },
   { to: "/usuarios", label: "Usuários", icon: Users, roles: ["ADMIN", "CREATOR"] },

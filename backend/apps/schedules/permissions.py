@@ -46,7 +46,7 @@ class AgendaPermission(BasePermission):
 
     def has_object_permission(self, request, view, obj):
         user = request.user
-        if user.is_admin_role:
+        if user.is_admin_role or user.role == User.Role.VISITOR:
             return True
         if request.method in SAFE_METHODS:
             if user.role == User.Role.SUPERVISOR:

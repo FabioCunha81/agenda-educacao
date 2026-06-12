@@ -4,15 +4,11 @@ import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { roleLabel } from "../utils/permissions.js";
 
-const empty = { full_name: "", cpf: "", email: "", phone: "", role: "USER", sector: "", is_active: true };
+const empty = { full_name: "", cpf: "", email: "", phone: "", role: "USER", sector: "", sector_name: "", is_active: true };
 
 const adminRoles = new Set(["ADMIN", "MANAGER"]);
-const hiddenSectorNames = new Set([
-  "solicitações externas",
-  "solicitações internas",
-  "solicitaã§ãµes externas",
-  "solicitaã§ãµes internas",
-]);
+const visitorRoles = new Set(["VISITOR"]);
+const teamNames = ["ALFA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOX", "GOLF", "HOTEL"];
 
 function formatPhone(value) {
   const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
@@ -30,6 +26,10 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(value || "").trim());
 }
 
+function normalizeSectorName(value) {
+  return String(value || "").trim().replace(/\s+/g, " ");
+}
+
 export default function UsersPage() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
@@ -42,16 +42,30 @@ export default function UsersPage() {
   const load = () => api("/users/").then((data) => setUsers(data.results || data));
 
   const adminUsers = useMemo(() => users.filter((user) => adminRoles.has(user.role)), [users]);
-  const operationalUsers = useMemo(() => users.filter((user) => !adminRoles.has(user.role)), [users]);
-  const visibleSectors = useMemo(
-    () => sectors.filter((sector) => !hiddenSectorNames.has(String(sector.name || "").trim().toLowerCase())),
-    [sectors]
-  );
+  const visitorUsers = useMemo(() => users.filter((user) => visitorRoles.has(user.role)), [users]);
+  const operationalUsers = useMemo(() => users.filter((user) => !adminRoles.has(user.role) && !visitorRoles.has(user.role)), [users]);
 
   useEffect(() => {
     load().catch((err) => setMessage(err.message));
     api("/sectors/").then((data) => setSectors(data.results || data)).catch((err) => setMessage(err.message));
   }, []);
+
+  const resolveSector = async (name) => {
+    const normalizedName = normalizeSectorName(name);
+    if (!normalizedName) {
+      return "";
+    }
+    const existing = sectors.find((sector) => sector.name?.trim().toLowerCase() === normalizedName.toLowerCase());
+    if (existing) {
+      return existing.id;
+    }
+    const created = await api("/sectors/", {
+      method: "POST",
+      body: JSON.stringify({ name: normalizedName, description: "", is_active: true }),
+    });
+    setSectors((current) => [...current, created]);
+    return created.id;
+  };
 
   const submit = async (event) => {
     event.preventDefault();
@@ -60,13 +74,26 @@ export default function UsersPage() {
       setMessage("Informe um telefone válido com DDD.");
       return;
     }
+    const sectorName = normalizeSectorName(form.sector_name);
+    if (form.role === "VISITOR" && !sectorName) {
+      setMessage("Informe o nome do setor do visitante.");
+      return;
+    }
     if (!isValidEmail(form.email)) {
       setMessage("Informe um e-mail válido.");
       return;
     }
-    const payload = { ...form, email: form.email.trim().toLowerCase(), phone: phoneDigits };
     const isEditing = Boolean(editing);
     try {
+      const sectorId = await resolveSector(sectorName);
+      const payload = {
+        ...form,
+        sector: sectorId,
+        email: form.email.trim().toLowerCase(),
+        phone: form.role === "VISITOR" ? "" : phoneDigits,
+        cpf: form.role === "VISITOR" ? "" : form.cpf,
+        full_name: form.role === "VISITOR" ? (form.full_name || `Visitante - ${sectorName || form.email}`) : form.full_name,
+      };
       const saved = isEditing
         ? await api(`/users/${editing}/`, { method: "PUT", body: JSON.stringify(payload) })
         : await api("/users/", { method: "POST", body: JSON.stringify(payload) });
@@ -83,7 +110,7 @@ export default function UsersPage() {
   const edit = (user) => {
     setEditing(user.id);
     setPasswordLink(user.password_setup_link || "");
-    setForm({ ...user, cpf: user.cpf || "", sector: user.sector || "", is_active: user.is_active });
+    setForm({ ...user, cpf: user.cpf || "", sector: user.sector || "", sector_name: user.sector_name || "", is_active: user.is_active });
   };
 
   const remove = async (user) => {
@@ -122,7 +149,7 @@ export default function UsersPage() {
   const renderUsersTable = (items, emptyMessage) => (
     <table>
       <thead>
-        <tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th>Ocupação</th><th>Equipe</th><th className="actions-heading">Ações</th></tr>
+        <tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th>Ocupação</th><th>Setor</th><th className="actions-heading">Ações</th></tr>
       </thead>
       <tbody>
         {items.map((item) => (
@@ -170,44 +197,93 @@ export default function UsersPage() {
           <h2>Usuários operacionais</h2>
           {renderUsersTable(operationalUsers, "Nenhum agente ou chefe cadastrado.")}
         </div>
+        <div className="table-wrap users-table-wrap">
+          <h2>Visitantes</h2>
+          {renderUsersTable(visitorUsers, "Nenhum visitante cadastrado.")}
+        </div>
       </div>
       <aside className="side-panel">
         <h2>{editing ? "Editar usuário" : "Novo usuário"}</h2>
         <form className="stack-form" onSubmit={submit}>
-          <input placeholder="Nome completo" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required />
-          <input placeholder="CPF" value={form.cpf || ""} onChange={(e) => setForm({ ...form, cpf: e.target.value })} required />
-          <input
-            placeholder="Telefone"
-            value={formatPhone(form.phone)}
-            onChange={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })}
-            inputMode="numeric"
-            autoComplete="tel"
-            maxLength="15"
-            pattern="\(\d{2}\) \d{4,5}-\d{4}"
-            title="Informe um telefone com DDD. Exemplo: (21) 99999-9999"
-          />
-          <input
-            placeholder="E-mail"
-            type="email"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            autoComplete="email"
-            inputMode="email"
-            pattern="[^\s@]+@[^\s@]+\.[^\s@]{2,}"
-            title="Informe um e-mail válido. Exemplo: nome@dominio.com"
-            required
-          />
-          <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-            <option value="USER">Agente</option>
-            <option value="SUPERVISOR">Chefe</option>
-            <option value="MANAGER">Gestor</option>
-            <option value="ADMIN">Administração</option>
-          </select>
-          <select value={form.sector || ""} onChange={(e) => setForm({ ...form, sector: e.target.value })}>
-            <option value="">{visibleSectors.length ? "Sem equipe" : "Nenhuma equipe carregada"}</option>
-            {visibleSectors.map((sector) => <option key={sector.id} value={sector.id}>{sector.name}</option>)}
-          </select>
-          <label className="checkbox"><input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} /> Usuário ativo</label>
+          <label>
+            Perfil
+            <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+              <option value="USER">Agente</option>
+              <option value="SUPERVISOR">Chefe</option>
+              <option value="MANAGER">Gestor</option>
+              <option value="VISITOR">Visitante</option>
+              <option value="ADMIN">Administração</option>
+            </select>
+          </label>
+          {form.role !== "VISITOR" && (
+            <>
+              <label>
+                Nome completo
+                <input placeholder="Digite o nome completo" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required />
+              </label>
+              <label>
+                CPF
+                <input placeholder="Digite o CPF" value={form.cpf || ""} onChange={(e) => setForm({ ...form, cpf: e.target.value })} required />
+              </label>
+              <label>
+                Telefone
+                <input
+                  placeholder="Digite o telefone"
+                  value={formatPhone(form.phone)}
+                  onChange={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })}
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  maxLength="15"
+                  pattern="\(\d{2}\) \d{4,5}-\d{4}"
+                  title="Informe um telefone com DDD. Exemplo: (21) 99999-9999"
+                />
+              </label>
+            </>
+          )}
+          <label>
+            E-mail
+            <input
+              placeholder="Digite o e-mail"
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              autoComplete="email"
+              inputMode="email"
+              pattern="[^\s@]+@[^\s@]+\.[^\s@]{2,}"
+              title="Informe um e-mail válido. Exemplo: nome@dominio.com"
+              required
+            />
+          </label>
+          {form.role === "VISITOR" ? (
+            <label>
+              Nome do setor
+              <input
+                placeholder="Digite o nome do setor"
+                value={form.sector_name || ""}
+                onChange={(e) => setForm({ ...form, sector: "", sector_name: e.target.value })}
+                required
+              />
+            </label>
+          ) : (
+            <label>
+              Nome da equipe
+              <select
+                value={form.sector_name || ""}
+                onChange={(e) => {
+                  const selectedName = e.target.value;
+                  const selectedSector = sectors.find((sector) => sector.name?.trim().toLowerCase() === selectedName.toLowerCase());
+                  setForm({ ...form, sector: selectedSector?.id || "", sector_name: selectedName });
+                }}
+              >
+                <option value="">Sem equipe</option>
+                {teamNames.map((name) => <option key={name} value={name}>{name}</option>)}
+              </select>
+            </label>
+          )}
+          <label className="checkbox">
+            <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
+            Usuário ativo
+          </label>
           {message && <div className="alert">{message}</div>}
           {passwordLink && (
             <div className="copy-box">
