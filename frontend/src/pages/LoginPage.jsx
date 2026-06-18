@@ -1,8 +1,28 @@
-import { CalendarDays, ChevronRight, Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
+import { ChevronRight, Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client.js";
+import cardImage from "../assets/Captura de tela 2026-06-17 124452.jpg";
+import leiSecaLogo from "../assets/operacao-lei-seca-logo.png";
 import { useAuth } from "../context/AuthContext.jsx";
+
+const showcaseCards = [
+  {
+    title: "Palestra Empresa",
+    imagePosition: "center",
+    variant: "left",
+  },
+  {
+    title: "Educação Escola Nota 10 Infantil",
+    imagePosition: "left center",
+    variant: "active",
+  },
+  {
+    title: "Palestras com cadeirantes",
+    imagePosition: "right center",
+    variant: "right",
+  },
+];
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -49,29 +69,25 @@ export default function LoginPage() {
     <main className="login-page">
       <section className="login-panel lei-seca-login">
         <aside className="login-showcase" aria-label="Operação Lei Seca">
-          <div className="showcase-title">
-            <span>Operação</span>
-            <strong>Lei Seca</strong>
-            <em>Colabore</em>
+          <div className="showcase-logo">
+            <img src={leiSecaLogo} alt="Operação Lei Seca" />
           </div>
-          <div className="showcase-copy">
-            <p>Dirigir é sua <strong>responsabilidade.</strong></p>
-            <p>A segurança é <strong>de todos!</strong></p>
-          </div>
-          <div className="showcase-pills">
-            <span><ShieldCheck size={18} /> Fiscalização</span>
-            <span><ShieldCheck size={18} /> Prevenção</span>
-            <span><ShieldCheck size={18} /> Cidadania</span>
+          <div className="login-card-stack" aria-label="Ações educativas">
+            {showcaseCards.map((card) => (
+              <article className={`login-action-card ${card.variant}`} key={card.title}>
+                <img src={cardImage} alt="" style={{ objectPosition: card.imagePosition }} />
+                <h2>{card.title}</h2>
+              </article>
+            ))}
           </div>
         </aside>
+
         <form onSubmit={submit} className="login-form">
-          <div className="login-mascot" />
           <div className="login-brand">
-            <span className="login-calendar"><CalendarDays size={34} /></span>
             <div>
               <span className="eyebrow">Operação Lei Seca</span>
-              <h1>PSI</h1>
-              <p>Plataforma de Sistemas Integrados da OLS</p>
+              <h1>SISTEMA INTEGRADO DA EDUCAÇÃO</h1>
+              <p>Gestão da educação da Operação Lei Seca</p>
             </div>
           </div>
           <label>

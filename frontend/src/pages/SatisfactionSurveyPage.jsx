@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { api } from "../api/client.js";
 
 import soprinhoMascot from "../assets/soprinho-transparent.png";
+import leiSecaLogo from "../assets/logo lei seca preto.jpg.jpeg";
 
 const fields = [
   ["audiovisual_resources", "Recursos áudio-visuais: apresentação (slides) e vídeos exibidos durante a palestra."],
@@ -60,9 +61,8 @@ export default function SatisfactionSurveyPage() {
           </div>
         </div>
         <div className="public-intro-card">
-          <div className="lei-seca-wordmark">
-            <small>OPERAÇÃO</small>
-            <strong>LEI SECA</strong>
+          <div style={{ textAlign: "center", marginBottom: "10px" }}>
+            <img src={leiSecaLogo} alt="Operação Lei Seca" style={{ maxWidth: "250px", width: "100%" }} />
           </div>
           <div className="public-intro-title">AVALIAÇÃO DE AGENDAMENTO</div>
           <p>Prezados,</p>
@@ -75,9 +75,9 @@ export default function SatisfactionSurveyPage() {
             {fields.map(([key, label]) => (
               <div className="field-card" key={key}>
                 <strong>{label}</strong>
-                <div className="segmented-options" role="radiogroup" aria-label={label}>
-                  {[1, 2, 3, 4, 5].map((rating) => (
-                    <label className="radio-option option-tile" key={rating}>
+                <div className="rating-scale">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
+                    <label className="rating-option" key={rating}>
                       <input
                         type="radio"
                         name={key}

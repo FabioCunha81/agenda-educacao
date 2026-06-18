@@ -1,4 +1,4 @@
-import { CheckCircle2, ClipboardCheck, Copy, ExternalLink, History, Plus, Save, Trash2, XCircle } from "lucide-react";
+import { CheckCircle2, ClipboardCheck, Copy, ExternalLink, History, Plus, Save, Trash2, XCircle, Edit } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
 import Filters from "../components/Filters.jsx";
@@ -64,6 +64,7 @@ const emptyForm = {
   origin: "INTERNAL",
   cancel_reason: "",
   notes: "",
+  materials: [],
   kit_1: "",
   kit_1_quantity: "",
   material_1: "",
@@ -88,12 +89,32 @@ const emptyForm = {
 
 const agendaFields = Object.keys(emptyForm);
 
+function normalizeMaterialRows(rows = []) {
+  return rows
+    .filter((item) => item?.kit || item?.material)
+    .map((item, index) => ({
+      id: item.id,
+      position: item.position || index + 1,
+      kit: item.kit || null,
+      kit_name: item.kit_name || "",
+      material: item.material || null,
+      material_name: item.material_name || "",
+      quantity: item.quantity ?? "",
+    }));
+}
+
 function valueForPayload(value) {
   return value === "" ? null : value;
 }
 
 function normalizePayload(form) {
   const payload = { ...form };
+  payload.materials = normalizeMaterialRows(form.materials).map((item, index) => ({
+    position: index + 1,
+    kit: item.kit || null,
+    material: item.material || null,
+    quantity: valueForPayload(item.quantity),
+  }));
   const vehicles = [form.vehicle_ref, form.vehicle_2_ref, form.vehicle_3_ref]
     .map((id) => form.lookupVehicles?.find((vehicle) => String(vehicle.id) === String(id))?.name)
     .filter(Boolean);
@@ -130,6 +151,14 @@ function normalizePayload(form) {
   return payload;
 }
 
+function selectedMaterialRow(form, type, id) {
+  return (form.materials || []).find((item) => item[type] && String(item[type]) === String(id));
+}
+
+function selectedMaterialQuantity(form, type, id) {
+  return selectedMaterialRow(form, type, id)?.quantity ?? "";
+}
+
 function serviceOrderLabel(agenda) {
   const number = agenda?.service_order_number;
   return number ? `OS ${String(number).padStart(4, "0")}` : "-";
@@ -163,6 +192,7 @@ export default function AgendaPage() {
   const [availableDates, setAvailableDates] = useState([]);
   const [availableDatesLoading, setAvailableDatesLoading] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [scheduledShifts, setScheduledShifts] = useState(null);
   const { user } = useAuth();
 
   const hasMaxAccess = user?.role === "ADMIN" || user?.role === "MANAGER";
@@ -220,6 +250,16 @@ export default function AgendaPage() {
 
   useEffect(loadAgendas, [filters]);
 
+  useEffect(() => {
+    if (form.date) {
+      api(`/shift-schedules/?date=${form.date}&page_size=1000`)
+        .then((data) => setScheduledShifts(data.results || data))
+        .catch(() => setScheduledShifts(null));
+    } else {
+      setScheduledShifts(null);
+    }
+  }, [form.date]);
+
   const goToPage = (url) => {
     if (!url) return;
     const parsed = new URL(url);
@@ -271,6 +311,110 @@ export default function AgendaPage() {
     update(field, selected?.name || "");
   };
 
+  const toggleAgendaMaterial = (type, option, checked) => {
+    setForm((current) => {
+      const rows = normalizeMaterialRows(current.materials);
+      const nextRows = checked
+        ? [
+            ...rows,
+            {
+              position: rows.length + 1,
+              kit: type === "kit" ? option.id : null,
+              kit_name: type === "kit" ? option.name : "",
+              material: type === "material" ? option.id : null,
+              material_name: type === "material" ? option.name : "",
+              quantity: "",
+            },
+          ]
+        : rows.filter((item) => String(item[type]) !== String(option.id));
+      return { ...current, materials: nextRows };
+    });
+  };
+
+  const updateAgendaMaterialQuantity = (type, id, quantity) => {
+    setForm((current) => ({
+      ...current,
+      materials: normalizeMaterialRows(current.materials).map((item) => (
+        String(item[type]) === String(id) ? { ...item, quantity } : item
+      )),
+    }));
+  };
+
+  const kitDetailsMap = {
+    "PALESTRA": ["Notebook", "Cabo HDMI", "Data show (projetor)", "Microfone", "Caixa de som", "Pen drive com apresentação", "Totem Ball pequeno"],
+    "CIRCUITO": ["Óculos simulador de embriaguez", "Cones pequenos", "03 cones grandes", "Baldinho", "Bolinha", "Torre de copos ou cubos", "04 metros de fita zebrada", "03 bichinhos sonoros"],
+    "INFANTIL": ["01 carrinho elétrico", "02 carrinhos pedal", "02 motos elétricas grandes", "01 moto elétrica pequena", "Pista de lona", "Placas de trânsito", "Coletes infantis", "Chapéu de motorista", "CNH infantil educativa", "CRLV infantil educativo"],
+    "LÚDICO": ["Fantasia do Soprinho", "Fantasia do Homem-Balão (necessita de reforma/manutenção)"],
+    "GOL": ["Baliza inflável", "Óculos simulador", "Bola"],
+    "BLITZ": ["Barraca com laterais", "Mesa", "02 cadeiras", "Totem Ball grande", "06 cones grandes"],
+  };
+
+  const getKitDetails = (name) => {
+    const upper = (name || "").toUpperCase();
+    for (const [key, items] of Object.entries(kitDetailsMap)) {
+      if (upper.includes(key)) return items.join(" • ");
+    }
+    return "";
+  };
+
+  const filteredKits = lookups.kits.filter((kit) => {
+    const upper = (kit.name || "").toUpperCase();
+    return Object.keys(kitDetailsMap).some((key) => upper.includes(key));
+  });
+
+  const allowedMaterials = [
+    "VENTAROLAS",
+    "ADESIVOS",
+    "FOLDERS",
+    "REVISTINHAS EDUCATIVAS",
+  ];
+
+  const distributionKits = lookups.kits.filter((kit) => {
+    const upper = (kit.name || "").toUpperCase();
+    return allowedMaterials.some((allowed) => upper.includes(allowed));
+  });
+
+  const renderMaterialChecklist = (title, type, options) => (
+    <div className="material-checklist">
+      <h4>{title}</h4>
+      <div className="material-checklist-list">
+        {options.length ? options.map((item) => {
+          const checked = Boolean(selectedMaterialRow(form, type, item.id));
+          const details = type === "kit" ? getKitDetails(item.name) : "";
+          return (
+            <div className="material-checklist-row" key={`${type}-${item.id}`} style={{ alignItems: "flex-start", padding: "8px 0" }}>
+              <label className="checkbox" style={{ alignItems: "flex-start", flex: 1 }}>
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(event) => toggleAgendaMaterial(type, item, event.target.checked)}
+                  style={{ marginTop: "4px" }}
+                />
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <span style={{ fontWeight: checked ? "600" : "normal" }}>{item.name}</span>
+                  {details && (
+                    <span style={{ fontSize: "11px", color: "var(--text-soft)", lineHeight: "1.3" }}>
+                      • {details}
+                    </span>
+                  )}
+                </div>
+              </label>
+              <input
+                type="number"
+                min="0"
+                placeholder="Qtd"
+                value={selectedMaterialQuantity(form, type, item.id)}
+                onChange={(event) => updateAgendaMaterialQuantity(type, item.id, event.target.value)}
+                disabled={!checked}
+                style={{ width: "60px", padding: "4px 8px" }}
+              />
+            </div>
+          );
+        }) : <div className="empty-selection">Nenhum item cadastrado.</div>}
+      </div>
+    </div>
+  );
+
   const belongsToTeam = (item, teamId, teamName) => {
     if (!teamId && !teamName) return true;
     return String(item.team || "") === String(teamId || "") || String(item.team_name || "").toUpperCase() === String(teamName || "").toUpperCase();
@@ -282,11 +426,54 @@ export default function AgendaPage() {
 
   const selectedTeam = lookups.teams.find((team) => String(team.id) === String(form.team_ref));
   const selectedTeamName = selectedTeam?.name || form.team_name;
-  const teamChiefs = lookups.chiefs.filter((chief) => belongsToTeam(chief, form.team_ref, selectedTeamName));
-  const allAgents = lookups.agents.filter((agent) => !isSupportRole(agent));
-  const teamAgents = lookups.agents.filter((agent) => belongsToTeam(agent, form.team_ref, selectedTeamName) && !isSupportRole(agent));
-  const teamSupports = lookups.supports.filter((support) => belongsToTeam(support, form.team_ref, selectedTeamName));
-  const supportOptions = lookups.supports;
+
+  const availableTeams = useMemo(() => {
+    if (scheduledShifts && form.date) {
+      const ids = scheduledShifts.map((s) => String(s.team));
+      return lookups.teams.filter((t) => ids.includes(String(t.id)));
+    }
+    return lookups.teams;
+  }, [lookups.teams, scheduledShifts, form.date]);
+
+  const selectedShift = useMemo(() => {
+    return scheduledShifts?.find((s) => String(s.team) === String(form.team_ref));
+  }, [scheduledShifts, form.team_ref]);
+
+  const teamChiefs = useMemo(() => {
+    if (selectedShift && selectedShift.members) {
+      return selectedShift.members.chiefs.filter(m => !m.is_absent);
+    }
+    return lookups.chiefs.filter((chief) => belongsToTeam(chief, form.team_ref, selectedTeamName));
+  }, [lookups.chiefs, form.team_ref, selectedTeamName, selectedShift]);
+
+  const allAgents = useMemo(() => {
+    if (selectedShift && selectedShift.members) {
+       return selectedShift.members.agents.filter(m => !m.is_absent);
+    }
+    return lookups.agents.filter((agent) => !isSupportRole(agent));
+  }, [lookups.agents, selectedShift]);
+
+  const teamAgents = useMemo(() => {
+    if (selectedShift && selectedShift.members) {
+       return selectedShift.members.agents.filter(m => !m.is_absent);
+    }
+    return lookups.agents.filter((agent) => belongsToTeam(agent, form.team_ref, selectedTeamName) && !isSupportRole(agent));
+  }, [lookups.agents, form.team_ref, selectedTeamName, selectedShift]);
+
+  const teamSupports = useMemo(() => {
+    if (selectedShift && selectedShift.members) {
+       return selectedShift.members.supports.filter(m => !m.is_absent);
+    }
+    return lookups.supports.filter((support) => belongsToTeam(support, form.team_ref, selectedTeamName));
+  }, [lookups.supports, form.team_ref, selectedTeamName, selectedShift]);
+
+  const supportOptions = useMemo(() => {
+    if (selectedShift && selectedShift.members) {
+       return selectedShift.members.supports.filter(m => !m.is_absent);
+    }
+    return lookups.supports;
+  }, [lookups.supports, selectedShift]);
+
   const selectedAgentIds = (form.agents_ref || []).map(String);
   const selectedAgents = selectedAgentIds
     .map((id) => lookups.agents.find((agent) => String(agent.id) === id))
@@ -365,7 +552,7 @@ export default function AgendaPage() {
     setIsModalOpen(true);
     setForm(
       agendaFields.reduce((values, field) => {
-        const value = agenda[field] ?? "";
+        const value = field === "materials" ? normalizeMaterialRows(agenda.materials) : agenda[field] ?? "";
         values[field] = field === "responsible"
           ? (user?.id || value)
           : field.endsWith("_time") && value ? value.slice(0, 5) : value;
@@ -446,10 +633,8 @@ export default function AgendaPage() {
       const hasTeam = nextForm.team_ref || nextForm.team_name || nextForm.sector;
       const hasChief = nextForm.chief_ref || nextForm.chief_name;
       const hasAgents = (nextForm.agents_ref || []).length || nextForm.agents;
-      const hasKitQuantity = nextForm.kit_1_quantity;
-      nextForm.kit_1 = nextForm.kit_1 || lookups.kits[0]?.name || "KIT PADRÃO";
-      if (!hasSchedule || !hasResponsible || !hasLocation || !hasVehicle || !hasTeam || !hasChief || !hasAgents || !hasKitQuantity) {
-        setMessage("Para aprovar, informe data, horário, responsável, local, viatura, equipe, chefe, agentes e quantidade de kits.");
+      if (!hasSchedule || !hasResponsible || !hasLocation || !hasVehicle || !hasTeam || !hasChief || !hasAgents) {
+        setMessage("Para aprovar, informe data, horário, responsável, local, viatura, equipe, chefe e agentes.");
         return;
       }
     }
@@ -632,7 +817,7 @@ export default function AgendaPage() {
             <thead>
               <tr>
                 <th>Protocolo</th>
-                <th>O.S.</th>
+                <th>Ordem de Serviço</th>
                 <th>Solicitante</th>
                 <th>Instituição</th>
                 <th>Data</th>
@@ -678,10 +863,12 @@ export default function AgendaPage() {
         <div className="modal-backdrop" onClick={() => setIsModalOpen(false)}>
           <article className="modal agenda-modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
-              <h2>{editing ? "Avaliar solicitação" : "Nova agenda"}</h2>
+              <h2>{editing ? (reviewStep === "form" ? "Editar solicitação" : "Avaliar solicitação") : "Nova agenda"}</h2>
               <button type="button" className="icon-button" onClick={() => setIsModalOpen(false)} aria-label="Fechar">×</button>
             </div>
-            <div className="review-card">
+            {reviewStep !== "form" && (
+              <>
+                <div className="review-card">
               <strong>Solicitação recebida pelo formulário</strong>
               <span>{form.external_responsible || "Solicitante não informado"} · {form.institution_location || form.location || "Local não informado"}</span>
               <small>Confira os dados enviados. Se aprovar, preencha a escala operacional antes de confirmar.</small>
@@ -723,11 +910,16 @@ export default function AgendaPage() {
                 </button>
               </div>
             )}
+            </>
+            )}
             {editing && reviewStep === "summary" && message && <div className="alert">{message}</div>}
             {editing && reviewStep === "summary" && canManageRequests && (
               <div className="review-actions">
                 <button type="button" className="approve-action" onClick={() => setReviewStep("schedule")}>
                   <CheckCircle2 size={18} /> Aprovar
+                </button>
+                <button type="button" className="secondary" onClick={() => setReviewStep("form")}>
+                  <Edit size={18} /> Editar solicitação
                 </button>
                 <button type="button" className="danger" onClick={() => decideReview("CANCELLED")}>
                   <XCircle size={18} /> Recusar
@@ -847,7 +1039,7 @@ export default function AgendaPage() {
                       <span>Equipe</span>
                       <select value={form.team_ref || ""} onChange={(e) => handleTeamChange(e.target.value)} required>
                         <option value="">Selecione a equipe</option>
-                        {lookups.teams.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                        {availableTeams.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                       </select>
                     </label>
                     <label className="field-label">
@@ -867,7 +1059,7 @@ export default function AgendaPage() {
                       <span>Viatura</span>
                       <select value={form.vehicle_ref || ""} onChange={(e) => selectLookup("vehicle_ref", "vehicle", lookups.vehicles, e.target.value)} required>
                         <option value="">Selecione a viatura</option>
-                        {lookups.vehicles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                        {lookups.vehicles.map((item) => <option key={item.id} value={item.id} disabled={[String(form.vehicle_2_ref), String(form.vehicle_3_ref)].includes(String(item.id))}>{item.name}</option>)}
                       </select>
                     </label>
                   </div>
@@ -876,14 +1068,14 @@ export default function AgendaPage() {
                       <span>Viatura 2</span>
                       <select value={form.vehicle_2_ref || ""} onChange={(e) => update("vehicle_2_ref", e.target.value)}>
                         <option value="">Sem segunda viatura</option>
-                        {lookups.vehicles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                        {lookups.vehicles.map((item) => <option key={item.id} value={item.id} disabled={[String(form.vehicle_ref), String(form.vehicle_3_ref)].includes(String(item.id))}>{item.name}</option>)}
                       </select>
                     </label>
                     <label className="field-label">
                       <span>Viatura 3</span>
                       <select value={form.vehicle_3_ref || ""} onChange={(e) => update("vehicle_3_ref", e.target.value)}>
                         <option value="">Sem terceira viatura</option>
-                        {lookups.vehicles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                        {lookups.vehicles.map((item) => <option key={item.id} value={item.id} disabled={[String(form.vehicle_ref), String(form.vehicle_2_ref)].includes(String(item.id))}>{item.name}</option>)}
                       </select>
                     </label>
                   </div>
@@ -932,10 +1124,10 @@ export default function AgendaPage() {
                       </select>
                     </label>
                   </div>
-                  <label className="field-label">
-                    <span>Quantidade de kits</span>
-                    <input type="number" min="1" placeholder="Informe a quantidade" value={form.kit_1_quantity} onChange={(e) => update("kit_1_quantity", e.target.value)} required />
-                  </label>
+                  <div className="material-selection-grid">
+                    {renderMaterialChecklist("Material/equipamento", "kit", filteredKits)}
+                    {renderMaterialChecklist("Material distribuição", "kit", distributionKits)}
+                  </div>
                 </div>
                 {message && <div className="alert">{message}</div>}
                 <div className="review-actions">
@@ -945,7 +1137,7 @@ export default function AgendaPage() {
                 </div>
               </form>
             )}
-            {!editing && (
+            {reviewStep === "form" && (
             <form onSubmit={submit} className="stack-form">
           <div className="form-section">
             <h3>Dados da agenda</h3>
@@ -975,7 +1167,9 @@ export default function AgendaPage() {
           </div>
 
           <div className="form-section">
-            <h3>Equipe e local</h3>
+            <h3>{!editing ? "Equipe e local" : "Local"}</h3>
+            {!editing && (
+              <>
             <div className="compact-grid">
               <select value={form.vehicle_ref || ""} onChange={(e) => selectLookup("vehicle_ref", "vehicle", lookups.vehicles, e.target.value)}>
                 <option value="">Viatura</option>
@@ -1007,6 +1201,8 @@ export default function AgendaPage() {
                 {lookups.supports.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
             </div>
+            </>
+            )}
             <input placeholder="Instituição/local" value={form.institution_location} onChange={(e) => update("institution_location", e.target.value)} />
             <input placeholder="Local" value={form.location} onChange={(e) => update("location", e.target.value)} required />
             <input placeholder="Endereço" value={form.address} onChange={(e) => update("address", e.target.value)} />
@@ -1021,18 +1217,22 @@ export default function AgendaPage() {
               </select>
             </div>
             <input placeholder="UF" value={form.state} onChange={(e) => update("state", e.target.value)} />
+            {!editing && (
             <select value={form.sector} onChange={(e) => update("sector", e.target.value)} required>
               <option value="">Equipe</option>
               {sectors.map((sector) => <option key={sector.id} value={sector.id}>{sector.name}</option>)}
             </select>
+            )}
           </div>
 
           <div className="form-section">
             <h3>Responsável e público</h3>
+            {!editing && (
             <select value={form.responsible} onChange={(e) => update("responsible", e.target.value)} required>
               <option value="">Responsável interno</option>
               {responsibleOptions.map((option) => <option key={option.id} value={option.id}>{option.full_name}</option>)}
             </select>
+            )}
             <input placeholder="Responsável no local" value={form.external_responsible} onChange={(e) => update("external_responsible", e.target.value)} />
             <div className="compact-grid">
               <input placeholder="Telefone do responsável" value={form.external_responsible_phone} onChange={(e) => update("external_responsible_phone", e.target.value)} />
@@ -1054,27 +1254,29 @@ export default function AgendaPage() {
             <textarea placeholder="Observação" value={form.notes} onChange={(e) => update("notes", e.target.value)} />
           </div>
 
+          {!editing && (
           <div className="form-section">
             <h3>Kits e materiais</h3>
             {Array.from({ length: 7 }, (_, index) => {
               const number = index + 1;
               return (
                 <div className="kit-row" key={number}>
-                  <select value="" onChange={(e) => selectNameByValue(`kit_${number}`, lookups.kits, e.target.value)}>
+                  <select value="" onChange={(e) => selectNameByValue(`kit_${number}`, filteredKits, e.target.value)}>
                     <option value="">{form[`kit_${number}`] || `Kit ${number}`}</option>
-                    {lookups.kits.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                    {filteredKits.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                   </select>
                   <input type="number" min="0" placeholder={`QTD ${number}`} value={form[`kit_${number}_quantity`]} onChange={(e) => update(`kit_${number}_quantity`, e.target.value)} />
                   {number < 7 && (
-                    <select value="" onChange={(e) => selectNameByValue(`material_${number}`, lookups.materials, e.target.value)}>
+                    <select value="" onChange={(e) => selectNameByValue(`material_${number}`, distributionKits, e.target.value)}>
                       <option value="">{form[`material_${number}`] || `Material ${number}`}</option>
-                      {lookups.materials.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                      {distributionKits.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                     </select>
                   )}
                 </div>
               );
             })}
           </div>
+          )}
           {message && <div className="alert">{message}</div>}
           <button><Save size={18} /> Salvar</button>
             </form>

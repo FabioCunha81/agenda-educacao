@@ -75,15 +75,15 @@ export default function AppLayout() {
           <span className="logo-subtitle desktop-only-text">
             Educação
           </span>
-          <div className="psi-logo-art desktop-only-text" aria-label="PSI - Plataforma de Sistemas Integrados">
-            <strong>PSI</strong>
-            <span>Plataforma de Sistemas Integrados</span>
+          <div className="psi-logo-art desktop-only-text" aria-label="SISTEMA INTEGRADO DA EDUCAÇÃO">
+            <strong>SIED</strong>
+            <span>Sistema Integrado da Educação</span>
           </div>
         </div>
         <div className="brand">
 
           <div className="brand-text">
-            <strong>PSI</strong>
+            <strong>SIED</strong>
             <span>{user?.is_superuser ? "CRIADOR" : roleLabel[user?.role] || user?.role}</span>
           </div>
           <button className="icon-button desktop-only" onClick={() => setCollapsed((value) => !value)} aria-label="Recolher menu">

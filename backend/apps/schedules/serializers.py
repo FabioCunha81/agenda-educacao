@@ -7,6 +7,7 @@ from .models import (
     Agenda,
     AgendaHistory,
     AgendaMaterial,
+    AccessibilityBlocklist,
     EducationAction,
     EducationGoal,
     EducationReport,
@@ -406,7 +407,7 @@ class AgendaSerializer(serializers.ModelSerializer):
     sector_name = serializers.CharField(source="sector.name", read_only=True)
     created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
     history = AgendaHistorySerializer(many=True, read_only=True)
-    materials = AgendaMaterialSerializer(many=True, read_only=True)
+    materials = AgendaMaterialSerializer(many=True, required=False)
     vehicle_name = serializers.CharField(source="vehicle_ref.name", read_only=True)
     team_ref_name = serializers.CharField(source="team_ref.name", read_only=True)
     chief_ref_name = serializers.CharField(source="chief_ref.name", read_only=True)
@@ -518,7 +519,7 @@ class AgendaSerializer(serializers.ModelSerializer):
             "history",
             "materials",
         ]
-        read_only_fields = ["created_by", "service_order_number", "created_at", "updated_at", "history", "materials"]
+        read_only_fields = ["created_by", "service_order_number", "created_at", "updated_at", "history"]
 
     def validate(self, attrs):
         instance = self.instance
@@ -559,6 +560,28 @@ class AgendaSerializer(serializers.ModelSerializer):
     def get_satisfaction_survey_answered_at(self, obj):
         survey = obj.satisfaction_surveys.order_by("-created_at").first()
         return survey.answered_at if survey else None
+
+    def create(self, validated_data):
+        materials_data = validated_data.pop("materials", [])
+        agenda = super().create(validated_data)
+        self._save_materials(agenda, materials_data)
+        return agenda
+
+    def update(self, instance, validated_data):
+        materials_data = validated_data.pop("materials", None)
+        agenda = super().update(instance, validated_data)
+        if materials_data is not None:
+            agenda.materials.all().delete()
+            self._save_materials(agenda, materials_data)
+        return agenda
+
+    def _save_materials(self, agenda, materials_data):
+        for position, material_data in enumerate(materials_data, start=1):
+            material_data.pop("id", None)
+            material_data.pop("position", None)
+            if not material_data.get("kit") and not material_data.get("material"):
+                continue
+            AgendaMaterial.objects.create(agenda=agenda, position=position, **material_data)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -700,6 +723,10 @@ class EducationActionSerializer(serializers.ModelSerializer):
             "start_time",
             "final_hour",
             "approach",
+            "equipment_materials_removed",
+            "equipment_materials_distributed",
+            "distribution_materials_removed",
+            "distribution_materials_distributed",
             "approached_lectures",
             "approached_actions",
             "tests",
@@ -763,6 +790,14 @@ class EducationReportSerializer(serializers.ModelSerializer):
             "education_pcd",
             "education_agents",
             "changes_staff",
+            "approximate_public",
+            "accessibility_conditions_met",
+            "materials_removed",
+            "materials_spent",
+            "equipment_materials_removed",
+            "equipment_materials_distributed",
+            "distribution_materials_removed",
+            "distribution_materials_distributed",
             "breathalyzers",
             "cars",
             "changes_general",
@@ -802,6 +837,12 @@ class EducationReportSerializer(serializers.ModelSerializer):
         agenda = attrs.get("agenda", getattr(instance, "agenda", None))
         if not agenda:
             raise serializers.ValidationError("Informe o protocolo da solicitação.")
+        status = attrs.get("status", getattr(instance, "status", None))
+        accessibility = attrs.get("accessibility_conditions_met", getattr(instance, "accessibility_conditions_met", ""))
+        if status == EducationReport.ReportStatus.SUBMITTED and accessibility not in {"YES", "NO"}:
+            raise serializers.ValidationError({
+                "accessibility_conditions_met": "Informe se o local atendeu às condições de acessibilidade para cadeirantes."
+            })
         return attrs
 
     def create(self, validated_data):
@@ -869,6 +910,32 @@ def get_next_available_dates(start_date, limit=3):
         
     return available_dates
 
+
+def normalize_block_value(value):
+    return " ".join(str(value or "").strip().casefold().split())
+
+
+def find_accessibility_block(attrs):
+    institution = normalize_block_value(attrs.get("institution_location"))
+    responsible = normalize_block_value(attrs.get("external_responsible"))
+    phone = normalize_block_value(attrs.get("external_responsible_phone"))
+    email = normalize_block_value(attrs.get("external_email"))
+    cpf = normalize_block_value(attrs.get("requester_cpf"))
+
+    for block in AccessibilityBlocklist.objects.filter(is_active=True):
+        if block.institution_location and normalize_block_value(block.institution_location) == institution:
+            return block
+        if block.external_email and normalize_block_value(block.external_email) == email:
+            return block
+        if block.requester_cpf and normalize_block_value(block.requester_cpf) == cpf:
+            return block
+        if block.external_responsible and normalize_block_value(block.external_responsible) == responsible:
+            return block
+        if block.external_responsible_phone and normalize_block_value(block.external_responsible_phone) == phone:
+            return block
+    return None
+
+
 class PublicAgendaRequestSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=180)
     description = serializers.CharField()
@@ -911,6 +978,12 @@ class PublicAgendaRequestSerializer(serializers.Serializer):
     notes = serializers.CharField(required=False, allow_blank=True)
 
     def validate(self, attrs):
+        blocked = find_accessibility_block(attrs)
+        if blocked:
+            raise serializers.ValidationError(
+                "Solicitação recusada automaticamente: instituição ou solicitante possui restrição ativa por não atender às condições de acessibilidade para cadeirantes."
+            )
+
         if attrs["start_time"] >= attrs["end_time"]:
             raise serializers.ValidationError("A hora final deve ser maior que a hora inicial.")
             

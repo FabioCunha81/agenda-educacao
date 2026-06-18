@@ -16,16 +16,10 @@ const emptyAction = {
   start_time: "",
   final_hour: "",
   approach: "",
-  tests: "",
-  used_caps: "",
-  available_caps: "",
-  distributed_folders: "",
-  cricris: "",
-  vetarolas: "",
-  used_adhesives: "",
-  sequence_certificates: "",
-  gibis: "",
-  distributed_certificates: "",
+  equipment_materials_removed: "",
+  equipment_materials_distributed: "",
+  distribution_materials_removed: "",
+  distribution_materials_distributed: "",
 };
 
 const empty = {
@@ -42,6 +36,10 @@ const empty = {
   education_pcd: "",
   education_agents: "",
   changes_staff: "",
+  approximate_public: "",
+  accessibility_conditions_met: "",
+  materials_removed: "",
+  materials_spent: "",
   breathalyzers: "",
   cars: "",
   changes_general: "",
@@ -55,30 +53,10 @@ const empty = {
 
 const numberFields = [
   "approach",
-  "tests",
-  "used_caps",
-  "available_caps",
-  "distributed_folders",
-  "cricris",
-  "vetarolas",
-  "used_adhesives",
-  "sequence_certificates",
-  "gibis",
-  "distributed_certificates",
 ];
 
 const fieldLabels = {
   approach: "Abordagens",
-  tests: "Testes",
-  used_caps: "Bocais usados",
-  available_caps: "Bocais disponíveis",
-  distributed_folders: "Pastas",
-  cricris: "Cricris",
-  vetarolas: "Vetarolas",
-  used_adhesives: "Adesivos",
-  sequence_certificates: "Sequência certificados",
-  gibis: "Gibis",
-  distributed_certificates: "Certificados",
 };
 
 function nullable(value) {
@@ -108,6 +86,106 @@ function joinValues(values, fallback = "") {
   return values.filter(Boolean).join("\n") || fallback;
 }
 
+function formatContactValue(value = "") {
+  const text = String(value || "").trim();
+  if (!text) return "";
+
+  const normalized = text.replace(/\s*,\s*/g, ", ").replace(/\s+/g, " ");
+  if (normalized.includes(",")) {
+    return normalized.split(",").map((part) => part.trim()).filter(Boolean).join(", ");
+  }
+
+  const email = normalized.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "";
+  const withoutEmail = email ? normalized.replace(email, "").trim() : normalized;
+  const phone = withoutEmail.match(/\+?\d[\d\s().-]{7,}\d/)?.[0]?.trim() || "";
+  const name = phone ? withoutEmail.replace(phone, "").trim() : withoutEmail;
+  const parts = [name, phone, email].filter(Boolean);
+
+  return parts.length > 1 ? parts.join(", ") : normalized;
+}
+
+function joinContactValues(values, fallback = "") {
+  return values.map((value) => String(value || "").trim()).filter(Boolean).join(", ") || fallback;
+}
+
+function parseMaterialRows(value = "") {
+  return String(value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const normalized = line.replace(/\[\s*\]/g, "|").replace(/\s+-\s+/g, " | ");
+      const [rawName, rawQuantity = ""] = normalized.split("|").map((part) => part.trim());
+      const quantity = rawQuantity.match(/\d+/)?.[0] || "";
+      return { name: rawName, quantity };
+    })
+    .filter((item) => item.name);
+}
+
+function serializeMaterialRows(rows = []) {
+  return rows
+    .filter((item) => item.name)
+    .map((item) => `${item.name} | ${Number(item.quantity || 0)}`)
+    .join("\n");
+}
+
+function MaterialSummary({ title, value }) {
+  const rows = parseMaterialRows(value);
+  return (
+    <div className="material-entry-card material-entry-card-readonly">
+      {title && (
+        <div className="material-entry-heading">
+          <span>{title}</span>
+          <small>{rows.length} {rows.length === 1 ? "item" : "itens"}</small>
+        </div>
+      )}
+      <div className="material-entry-list">
+        {rows.length ? rows.map((row, rowIndex) => (
+          <div className="material-entry-row" key={`${row.name}-${rowIndex}`}>
+            <strong>{row.name}</strong>
+            <span>{row.quantity || "-"}</span>
+          </div>
+        )) : <p>Nenhum material vinculado.</p>}
+      </div>
+    </div>
+  );
+}
+
+function MaterialQuantityEditor({ title, value, onChange }) {
+  const rows = parseMaterialRows(value);
+  const updateRow = (rowIndex, quantity) => {
+    const nextRows = rows.map((row, index) => (
+      index === rowIndex ? { ...row, quantity } : row
+    ));
+    onChange(serializeMaterialRows(nextRows));
+  };
+
+  return (
+    <div className="material-entry-card">
+      {title && (
+        <div className="material-entry-heading">
+          <span>{title}</span>
+          <small>Preencha a quantidade distribuída</small>
+        </div>
+      )}
+      <div className="material-entry-list">
+        {rows.length ? rows.map((row, rowIndex) => (
+          <label className="material-entry-row editable" key={`${row.name}-${rowIndex}`}>
+            <strong>{row.name}</strong>
+            <input
+              type="number"
+              min="0"
+              placeholder="0"
+              value={row.quantity}
+              onChange={(event) => updateRow(rowIndex, event.target.value)}
+            />
+          </label>
+        )) : <p>Nenhum material disponível nesta agenda.</p>}
+      </div>
+    </div>
+  );
+}
+
 function materialsFromAgenda(agenda) {
   const rows = [];
   for (let index = 1; index <= 7; index += 1) {
@@ -124,6 +202,55 @@ function materialsFromAgenda(agenda) {
     });
   }
   return rows.join("\n");
+}
+
+function materialLine(name, quantity) {
+  return name ? `${name}${quantity ? ` - ${quantity}` : ""}` : "";
+}
+
+function materialsByTypeFromAgenda(agenda) {
+  const equipmentRemoved = [];
+  const equipmentDistributed = [];
+  const distributionRemoved = [];
+  const distributionDistributed = [];
+
+  const addLines = (kitName, kitQuantity, matName, matQuantity) => {
+    if (kitName) {
+      equipmentRemoved.push(`${kitName}${kitQuantity ? ` - ${kitQuantity}` : ""}`);
+      equipmentDistributed.push(`${kitName} [   ]`);
+    }
+    if (matName) {
+      distributionRemoved.push(`${matName}${matQuantity ? ` - ${matQuantity}` : ""}`);
+      distributionDistributed.push(`${matName} [   ]`);
+    }
+  };
+
+  for (let index = 1; index <= 7; index += 1) {
+    addLines(
+      agenda[`kit_${index}`],
+      agenda[`kit_${index}_quantity`],
+      agenda[`material_${index}`],
+      null
+    );
+  }
+
+  if (agenda.materials?.length) {
+    agenda.materials.forEach((item) => {
+      addLines(
+        item.kit_name,
+        item.kit ? item.quantity : null,
+        item.material_name,
+        item.material ? item.quantity : null
+      );
+    });
+  }
+
+  return {
+    equipmentRemoved: equipmentRemoved.join("\n"),
+    equipmentDistributed: equipmentDistributed.join("\n"),
+    distributionRemoved: distributionRemoved.join("\n"),
+    distributionDistributed: distributionDistributed.join("\n"),
+  };
 }
 
 function protocolDetails(agenda) {
@@ -182,6 +309,7 @@ function normalizePayload(form) {
     source_id: nullable(form.source_id),
     agenda: nullable(form.agenda),
     management_id: nullable(form.management_id),
+    approximate_public: nullable(form.approximate_public),
     lat: nullable(form.lat),
     lng: nullable(form.lng),
     actions: form.actions.map((action) => ({
@@ -205,6 +333,7 @@ export default function TechnicalReportsPage() {
   const [isGeocoding, setIsGeocoding] = useState(false);
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN" || user?.role === "MANAGER";
+  const requestFieldsReadOnly = Boolean(form.agenda);
 
   const selectedAgenda = useMemo(
     () => agendas.find((agenda) => String(agenda.id) === String(form.agenda)),
@@ -231,6 +360,7 @@ export default function TechnicalReportsPage() {
 
   const applyAgenda = (agenda) => {
     const details = protocolDetails(agenda);
+    const selectedMaterials = materialsByTypeFromAgenda(agenda);
     setForm((current) => ({
       ...current,
       agenda: agenda.id,
@@ -242,6 +372,8 @@ export default function TechnicalReportsPage() {
       education_pcd: current.education_pcd || details.audience,
       education_agents: current.education_agents || details.agents,
       changes_staff: current.changes_staff || details.notes,
+      approximate_public: current.approximate_public || "",
+      materials_removed: current.materials_removed || materialsFromAgenda(agenda),
       breathalyzers: current.breathalyzers || details.resources,
       cars: current.cars || joinValues([agenda.vehicle, agenda.vehicle_name]),
       changes_general: current.changes_general || joinValues([
@@ -250,7 +382,7 @@ export default function TechnicalReportsPage() {
           ? `Acessibilidade: rampas ${agenda.has_ramps || "-"}, elevadores ${agenda.has_elevators || "-"}, banheiros adaptados ${agenda.has_accessible_bathrooms || "-"}`
           : "",
       ]),
-      contact_received: current.contact_received || joinValues([
+      contact_received: current.contact_received || joinContactValues([
         agenda.external_responsible,
         agenda.external_responsible_phone,
         agenda.external_email,
@@ -265,6 +397,10 @@ export default function TechnicalReportsPage() {
         type_audience: action.type_audience || agenda.audience || "",
         start_time: action.start_time || agenda.start_time?.slice(0, 5) || "",
         final_hour: action.final_hour || agenda.end_time?.slice(0, 5) || "",
+        equipment_materials_removed: action.equipment_materials_removed || selectedMaterials.equipmentRemoved,
+        equipment_materials_distributed: action.equipment_materials_distributed || selectedMaterials.equipmentDistributed,
+        distribution_materials_removed: action.distribution_materials_removed || selectedMaterials.distributionRemoved,
+        distribution_materials_distributed: action.distribution_materials_distributed || selectedMaterials.distributionDistributed,
       })),
     }));
   };
@@ -468,11 +604,11 @@ export default function TechnicalReportsPage() {
               </label>
               <label className="field-label">
                 <span>Data</span>
-                <input type="date" value={form.operation_date} onChange={(event) => update("operation_date", event.target.value)} required />
+                <input type="date" value={form.operation_date} onChange={(event) => update("operation_date", event.target.value)} readOnly={requestFieldsReadOnly} required />
               </label>
               <label className="field-label">
                 <span>Equipe</span>
-                <input value={form.team} onChange={(event) => update("team", event.target.value)} required />
+                <input value={form.team} onChange={(event) => update("team", event.target.value)} readOnly={requestFieldsReadOnly} required />
               </label>
             </div>
           </div>
@@ -481,27 +617,27 @@ export default function TechnicalReportsPage() {
             <h3>Efetivo e recursos</h3>
             <label className="field-label report-text-box">
               <span>Público e dados da solicitação</span>
-              <textarea value={form.education_pcd || ""} onChange={(event) => update("education_pcd", event.target.value)} />
+              <textarea value={form.education_pcd || ""} onChange={(event) => update("education_pcd", event.target.value)} readOnly={requestFieldsReadOnly} />
             </label>
             <label className="field-label report-text-box">
               <span>Efetivo escalado</span>
-              <textarea value={form.education_agents || ""} onChange={(event) => update("education_agents", event.target.value)} />
+              <textarea value={form.education_agents || ""} onChange={(event) => update("education_agents", event.target.value)} readOnly={requestFieldsReadOnly} />
             </label>
             <label className="field-label report-text-box">
               <span>Observações do protocolo</span>
-              <textarea value={form.changes_staff || ""} onChange={(event) => update("changes_staff", event.target.value)} />
+              <textarea value={form.changes_staff || ""} onChange={(event) => update("changes_staff", event.target.value)} readOnly={requestFieldsReadOnly} />
             </label>
             <label className="field-label report-text-box">
               <span>Recursos, kits e materiais</span>
-              <textarea value={form.breathalyzers || ""} onChange={(event) => update("breathalyzers", event.target.value)} />
+              <textarea value={form.breathalyzers || ""} onChange={(event) => update("breathalyzers", event.target.value)} readOnly={requestFieldsReadOnly} />
             </label>
             <label className="field-label report-text-box">
               <span>Viaturas</span>
-              <textarea value={form.cars || ""} onChange={(event) => update("cars", event.target.value)} />
+              <textarea value={form.cars || ""} onChange={(event) => update("cars", event.target.value)} readOnly={requestFieldsReadOnly} />
             </label>
             <label className="field-label report-text-box">
               <span>Complementos e alterações</span>
-              <textarea value={form.changes_general || ""} onChange={(event) => update("changes_general", event.target.value)} />
+              <textarea value={form.changes_general || ""} onChange={(event) => update("changes_general", event.target.value)} readOnly={requestFieldsReadOnly} />
             </label>
           </div>
 
@@ -516,24 +652,60 @@ export default function TechnicalReportsPage() {
                   </button>
                 </div>
                 <div className="compact-grid">
-                  <input placeholder="Local da ação" value={action.place_action || ""} onChange={(event) => updateAction(index, "place_action", event.target.value)} />
-                  <input placeholder="Tipo da ação" value={action.type_action || ""} onChange={(event) => updateAction(index, "type_action", event.target.value)} />
+                  <input placeholder="Local da ação" value={action.place_action || ""} onChange={(event) => updateAction(index, "place_action", event.target.value)} readOnly={requestFieldsReadOnly} />
+                  <input placeholder="Tipo da ação" value={action.type_action || ""} onChange={(event) => updateAction(index, "type_action", event.target.value)} readOnly={requestFieldsReadOnly} />
                 </div>
                 <div className="compact-grid">
-                  <input placeholder="Tipo de público" value={action.type_audience || ""} onChange={(event) => updateAction(index, "type_audience", event.target.value)} />
-                  <input placeholder="Instituição" value={action.institution_name || ""} onChange={(event) => updateAction(index, "institution_name", event.target.value)} />
+                  <input placeholder="Tipo de público" value={action.type_audience || ""} onChange={(event) => updateAction(index, "type_audience", event.target.value)} readOnly={requestFieldsReadOnly} />
+                  <input placeholder="Instituição" value={action.institution_name || ""} onChange={(event) => updateAction(index, "institution_name", event.target.value)} readOnly={requestFieldsReadOnly} />
                 </div>
                 <div className="compact-grid">
-                  <input placeholder="Hora inicial" value={action.start_time || ""} onChange={(event) => updateAction(index, "start_time", event.target.value)} />
-                  <input placeholder="Hora final" value={action.final_hour || ""} onChange={(event) => updateAction(index, "final_hour", event.target.value)} />
+                  <input placeholder="Hora inicial" value={action.start_time || ""} onChange={(event) => updateAction(index, "start_time", event.target.value)} readOnly={requestFieldsReadOnly} />
+                  <input placeholder="Hora final" value={action.final_hour || ""} onChange={(event) => updateAction(index, "final_hour", event.target.value)} readOnly={requestFieldsReadOnly} />
                 </div>
-                <div className="compact-grid horus-count-grid">
-                  {numberFields.map((field) => (
-                    <label className="field-label" key={field}>
-                      <span>{fieldLabels[field]}</span>
-                      <input type="number" min="0" value={action[field] === 0 ? "" : (action[field] ?? "")} onChange={(event) => updateAction(index, field, event.target.value)} />
+                <div className="chief-required-block">
+                  <h4>PREENCHIMENTO OBRIGATÓRIO</h4>
+                  <div className="compact-grid horus-count-grid">
+                    {numberFields.map((field) => (
+                      <label className="field-label" key={field}>
+                        <span>{fieldLabels[field]}</span>
+                        <input type="number" min="0" value={action[field] === 0 ? "" : (action[field] ?? "")} onChange={(event) => updateAction(index, field, event.target.value)} required />
+                      </label>
+                    ))}
+                    <label className="field-label">
+                      <span>Número aproximado de público</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={form.approximate_public || ""}
+                        onChange={(event) => update("approximate_public", event.target.value)}
+                        required
+                      />
                     </label>
-                  ))}
+                    <label className="field-label">
+                      <span>O local atendeu às condições de acessibilidade para cadeirantes?</span>
+                      <select
+                        value={form.accessibility_conditions_met || ""}
+                        onChange={(event) => update("accessibility_conditions_met", event.target.value)}
+                        required
+                      >
+                        <option value="">Selecione</option>
+                        <option value="YES">Sim</option>
+                        <option value="NO">Não</option>
+                      </select>
+                    </label>
+                  </div>
+                  <small>Bloco de preenchimento obrigatório pelo chefe. Se a resposta for não, a instituição ou solicitante entrará na lista de restrição para novas solicitações.</small>
+                </div>
+                <div className="report-material-grid">
+                  <div className="field-label report-text-box">
+                    <span>Material/equipamento retirado</span>
+                    <MaterialSummary value={action.equipment_materials_removed || ""} />
+                  </div>
+                  <div className="field-label report-text-box">
+                    <span>Material/equipamento distribuído</span>
+                    <MaterialQuantityEditor value={action.equipment_materials_distributed || ""} onChange={(value) => updateAction(index, "equipment_materials_distributed", value)} />
+                  </div>
                 </div>
               </div>
             ))}
@@ -542,7 +714,13 @@ export default function TechnicalReportsPage() {
 
           <div className="form-section">
             <h3>Contato, ocorrências e localização</h3>
-            <input placeholder="Contato recebido" value={form.contact_received || ""} onChange={(event) => update("contact_received", event.target.value)} />
+            <input
+              placeholder="Contato recebido"
+              value={form.contact_received || ""}
+              onChange={(event) => update("contact_received", event.target.value)}
+              onBlur={(event) => update("contact_received", formatContactValue(event.target.value))}
+              readOnly={requestFieldsReadOnly}
+            />
             <textarea placeholder="Observação de ocorrência" value={form.occurrence_observation || ""} onChange={(event) => update("occurrence_observation", event.target.value)} />
             <div className="location-tools">
               <input type="number" step="0.00000001" placeholder="Latitude" value={form.lat || ""} onChange={(event) => update("lat", event.target.value)} />

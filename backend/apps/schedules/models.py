@@ -449,6 +449,18 @@ class EducationReport(models.Model):
     education_pcd = models.TextField(blank=True)
     education_agents = models.TextField(blank=True)
     changes_staff = models.TextField(blank=True)
+    approximate_public = models.PositiveIntegerField(null=True, blank=True)
+    accessibility_conditions_met = models.CharField(
+        max_length=3,
+        choices=[("YES", "Sim"), ("NO", "Não")],
+        blank=True,
+    )
+    materials_removed = models.TextField(blank=True)
+    materials_spent = models.TextField(blank=True)
+    equipment_materials_removed = models.TextField(blank=True)
+    equipment_materials_distributed = models.TextField(blank=True)
+    distribution_materials_removed = models.TextField(blank=True)
+    distribution_materials_distributed = models.TextField(blank=True)
     breathalyzers = models.CharField(max_length=220, blank=True)
     cars = models.CharField(max_length=220, blank=True)
     changes_general = models.TextField(blank=True)
@@ -479,6 +491,30 @@ class EducationReport(models.Model):
         return f"{protocol}Relatorio - {self.team}"
 
 
+class AccessibilityBlocklist(models.Model):
+    institution_location = models.CharField(max_length=220, blank=True)
+    external_responsible = models.CharField(max_length=160, blank=True)
+    external_responsible_phone = models.CharField(max_length=160, blank=True)
+    external_email = models.EmailField(blank=True)
+    requester_cpf = models.CharField(max_length=20, blank=True)
+    reason = models.TextField(blank=True)
+    source_agenda = models.ForeignKey(Agenda, on_delete=models.SET_NULL, null=True, blank=True, related_name="accessibility_blocks")
+    source_report = models.ForeignKey(EducationReport, on_delete=models.SET_NULL, null=True, blank=True, related_name="accessibility_blocks")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["is_active", "institution_location"]),
+            models.Index(fields=["is_active", "external_email"]),
+            models.Index(fields=["is_active", "requester_cpf"]),
+        ]
+
+    def __str__(self):
+        return self.institution_location or self.external_responsible or self.external_email or "Restrição de acessibilidade"
+
+
 class EducationAction(models.Model):
     report = models.ForeignKey(EducationReport, on_delete=models.CASCADE, related_name="actions")
     agenda = models.ForeignKey(Agenda, on_delete=models.SET_NULL, null=True, blank=True, related_name="education_actions")
@@ -490,6 +526,10 @@ class EducationAction(models.Model):
     start_time = models.CharField(max_length=30, blank=True)
     final_hour = models.CharField(max_length=30, blank=True)
     approach = models.PositiveIntegerField(default=0)
+    equipment_materials_removed = models.TextField(blank=True)
+    equipment_materials_distributed = models.TextField(blank=True)
+    distribution_materials_removed = models.TextField(blank=True)
+    distribution_materials_distributed = models.TextField(blank=True)
     approached_lectures = models.PositiveIntegerField(default=0)
     approached_actions = models.PositiveIntegerField(default=0)
     tests = models.PositiveIntegerField(default=0)

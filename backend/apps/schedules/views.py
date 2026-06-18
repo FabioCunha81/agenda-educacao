@@ -1,3 +1,4 @@
+import re
 from collections import Counter, defaultdict
 from datetime import date, timedelta
 
@@ -28,6 +29,7 @@ from .models import (
     EducationGoal,
     EducationReport,
     EventReport,
+    AccessibilityBlocklist,
     Chief,
     Kit,
     Material,
@@ -706,6 +708,46 @@ class AgendaViewSet(viewsets.ModelViewSet):
                 scoped = scoped.filter(search_filter)
             return scoped
 
+        def parse_material_distribution(value):
+            rows = []
+            for line in (value or "").splitlines():
+                text = line.strip()
+                if not text:
+                    continue
+                text = re.sub(r"\[\s*\]", "| 0", text)
+                if "|" in text:
+                    name, quantity = [part.strip() for part in text.rsplit("|", 1)]
+                else:
+                    match = re.match(r"^(?P<name>.+?)\s+-\s*(?P<quantity>\d+)\s*$", text)
+                    if not match:
+                        continue
+                    name = match.group("name").strip()
+                    quantity = match.group("quantity")
+                quantity_match = re.search(r"\d+", str(quantity))
+                if not name or not quantity_match:
+                    continue
+                total = int(quantity_match.group(0))
+                if total > 0:
+                    rows.append((name, total))
+            return rows
+
+        def distributed_materials_summary(scoped):
+            action_scope = EducationAction.objects.filter(
+                Q(agenda_id__in=scoped.values("id")) | Q(report__agenda_id__in=scoped.values("id")),
+                report__status=EducationReport.ReportStatus.SUBMITTED,
+            ).distinct()
+            totals = Counter()
+            for equipment, distribution in action_scope.values_list(
+                "equipment_materials_distributed",
+                "distribution_materials_distributed",
+            ):
+                for name, quantity in parse_material_distribution(equipment):
+                    totals[name] += quantity
+                for name, quantity in parse_material_distribution(distribution):
+                    totals[name] += quantity
+            items = [{"label": label, "value": value} for label, value in totals.most_common(8)]
+            return {"total": sum(totals.values()), "items": items}
+
         def action_team_queryset():
             scoped = dashboard_base_queryset().filter(
                 status__in=[Agenda.Status.APPROVED, Agenda.Status.COMPLETED]
@@ -922,6 +964,34 @@ class AgendaViewSet(viewsets.ModelViewSet):
             .values('id', 'team', 'suggestion', 'answered_at', 'overall_rating', 'is_approved')[:15]
         )
 
+        distributed_materials = distributed_materials_summary(qs)
+        chief_reports = EducationReport.objects.filter(
+            agenda_id__in=qs.values("id"),
+            status=EducationReport.ReportStatus.SUBMITTED,
+        ).distinct()
+        chief_actions = EducationAction.objects.filter(report_id__in=chief_reports.values("id"))
+        chief_reported_agendas = qs.filter(id__in=chief_reports.values("agenda_id")).distinct()
+        chief_totals = chief_actions.aggregate(
+            approaches=Sum("approach"),
+            registered_actions=Count("id"),
+        )
+        chief_report_totals = chief_reports.aggregate(
+            reports_count=Count("id"),
+            reported_public=Sum("approximate_public"),
+        )
+        chief_request_totals = chief_reported_agendas.aggregate(
+            requested_public=Sum("quantity"),
+            requested_actions=Sum("actions_count"),
+        )
+        chief_reports_count = chief_report_totals["reports_count"] or 0
+        reported_public = chief_report_totals["reported_public"] or 0
+        requested_public = chief_request_totals["requested_public"] or 0
+        registered_actions = chief_totals["registered_actions"] or 0
+        requested_actions = chief_request_totals["requested_actions"] or 0
+        approaches = chief_totals["approaches"] or 0
+
+        def rate(value, base):
+            return round((value / base) * 100, 1) if base else 0
 
         data = {
             "cards": {
@@ -967,6 +1037,24 @@ class AgendaViewSet(viewsets.ModelViewSet):
                     for tr in team_ratings if tr["avg"] is not None
                 ],
                 "messages": recent_messages,
+            },
+            "materials": {
+                "distributed": distributed_materials,
+            },
+            "chief_fillings": {
+                "approaches": approaches,
+                "requested_public": requested_public,
+                "reported_public": reported_public,
+                "public_difference": reported_public - requested_public,
+                "public_execution_rate": rate(reported_public, requested_public),
+                "requested_actions": requested_actions,
+                "registered_actions": registered_actions,
+                "actions_difference": registered_actions - requested_actions,
+                "actions_execution_rate": rate(registered_actions, requested_actions),
+                "reports_count": chief_reports_count,
+                "requests_with_report": chief_reported_agendas.count(),
+                "average_public_per_report": round(reported_public / chief_reports_count, 1) if chief_reports_count else 0,
+                "average_approaches_per_action": round(approaches / registered_actions, 1) if registered_actions else 0,
             },
             "pending_moderation_count": pending_moderation_count,
             "activity": {
@@ -1131,6 +1219,7 @@ class EducationReportViewSet(viewsets.ModelViewSet):
             self._validate_agenda_access(serializer.validated_data["agenda"])
             report = serializer.save(created_by=self.request.user)
             if report.status == EducationReport.ReportStatus.SUBMITTED:
+                self._register_accessibility_block(report)
                 transaction.on_commit(lambda: send_satisfaction_survey_email(report))
 
     def perform_update(self, serializer):
@@ -1140,7 +1229,10 @@ class EducationReportViewSet(viewsets.ModelViewSet):
             self._validate_agenda_access(agenda)
             report = serializer.save()
             if previous_status != EducationReport.ReportStatus.SUBMITTED and report.status == EducationReport.ReportStatus.SUBMITTED:
+                self._register_accessibility_block(report)
                 transaction.on_commit(lambda: send_satisfaction_survey_email(report))
+            elif report.status == EducationReport.ReportStatus.SUBMITTED:
+                self._register_accessibility_block(report)
 
     def _validate_agenda_access(self, agenda):
         user = self.request.user
@@ -1151,6 +1243,24 @@ class EducationReportViewSet(viewsets.ModelViewSet):
         allowed = Agenda.objects.filter(pk=agenda.pk).filter(chief_agenda_filter(user)).exists()
         if not allowed:
             raise PermissionDenied("Você só pode preencher relatórios dos protocolos em que é Chefe responsável.")
+
+    def _register_accessibility_block(self, report):
+        if report.accessibility_conditions_met != "NO" or not report.agenda_id:
+            return
+        agenda = report.agenda
+        AccessibilityBlocklist.objects.update_or_create(
+            source_report=report,
+            defaults={
+                "institution_location": agenda.institution_location or agenda.location or "",
+                "external_responsible": agenda.external_responsible or "",
+                "external_responsible_phone": agenda.external_responsible_phone or "",
+                "external_email": agenda.external_email or agenda.contact_email or "",
+                "requester_cpf": agenda.requester_cpf or "",
+                "source_agenda": agenda,
+                "reason": "Local não atendeu às condições de acessibilidade para cadeirantes no relatório técnico.",
+                "is_active": True,
+            },
+        )
 
     @decorators.action(detail=False, methods=["get"])
     def statistics(self, request):

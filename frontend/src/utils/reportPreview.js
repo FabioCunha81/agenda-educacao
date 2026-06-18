@@ -2,16 +2,6 @@ import { formatDateBR } from "./date.js";
 
 const numberFields = [
   "approach",
-  "tests",
-  "used_caps",
-  "available_caps",
-  "distributed_folders",
-  "cricris",
-  "vetarolas",
-  "used_adhesives",
-  "sequence_certificates",
-  "gibis",
-  "distributed_certificates",
 ];
 
 export function reportName(report) {
@@ -42,7 +32,11 @@ export function buildPreview(report) {
         `   Local: ${action.place_action || "não informado"}\n` +
         `   Público: ${action.type_audience || "não informado"}\n` +
         `   Horário: ${action.start_time || "--"} às ${action.final_hour || "--"}\n` +
-        `   Abordagens: ${action.approach || 0} | Testes: ${action.tests || 0} | Pastas: ${action.distributed_folders || 0} | Certificados: ${action.distributed_certificates || 0}`
+        `   Abordagens: ${action.approach || 0}\n` +
+        `   Material/equipamento retirado: ${action.equipment_materials_removed ? action.equipment_materials_removed.replace(/\\n/g, ", ") : "-"}\n` +
+        `   Material/equipamento distribuído: ${action.equipment_materials_distributed ? action.equipment_materials_distributed.replace(/\\n/g, ", ") : "-"}\n` +
+        `   Material distribuição retirado: ${action.distribution_materials_removed ? action.distribution_materials_removed.replace(/\\n/g, ", ") : "-"}\n` +
+        `   Material distribuição distribuído: ${action.distribution_materials_distributed ? action.distribution_materials_distributed.replace(/\\n/g, ", ") : "-"}`
       )).join("\n\n")
     : "Nenhuma ação registrada.";
 
@@ -63,15 +57,7 @@ export function buildPreview(report) {
     `Alterações gerais: ${report.changes_general || "não informado"}\n\n` +
     `AÇÕES\n${actionLines}\n\n` +
     `TOTAIS\n` +
-    `Abordagens: ${totals.approach}\n` +
-    `Testes: ${totals.tests}\n` +
-    `Bocais usados/disponíveis: ${totals.used_caps}/${totals.available_caps}\n` +
-    `Pastas: ${totals.distributed_folders}\n` +
-    `Cricris: ${totals.cricris}\n` +
-    `Vetarolas: ${totals.vetarolas}\n` +
-    `Adesivos: ${totals.used_adhesives}\n` +
-    `Gibis: ${totals.gibis}\n` +
-    `Certificados: ${totals.distributed_certificates}\n\n` +
+    `Abordagens: ${totals.approach}\n\n` +
     `CONTATO/OCORRÊNCIAS\n` +
     `Contato recebido: ${report.contact_received || "não informado"}\n` +
     `Observação de ocorrência: ${report.occurrence_observation || "não informado"}\n` +

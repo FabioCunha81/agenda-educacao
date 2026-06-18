@@ -38,7 +38,7 @@ const cardConfig = [
 
 const chartFilters = ["Hoje", "Semana", "Mês", "Ano"];
 const weekDays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-const hourSlots = ["06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00"];
+const hourSlots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
 
 function dateToInputValue(date) {
   const year = date.getFullYear();
@@ -71,6 +71,91 @@ function DashboardCard({ active, config, data, onClick }) {
       <span style={{ fontSize: "13px", fontWeight: "600", color: "var(--text-soft)", display: "block" }}>{config.label}</span>
       <strong style={{ fontSize: "28px", fontWeight: "800", marginTop: "4px", display: "block" }}>{data?.value ?? 0}</strong>
     </button>
+  );
+}
+
+const chiefComparisonConfig = [
+  {
+    key: "public",
+    label: "Público",
+    icon: Users,
+    requested: "requested_public",
+    reported: "reported_public",
+    difference: "public_difference",
+    rate: "public_execution_rate",
+    note: "Média por relatório",
+    average: "average_public_per_report",
+  },
+  {
+    key: "actions",
+    label: "Ações",
+    icon: CalendarCheck,
+    requested: "requested_actions",
+    reported: "registered_actions",
+    difference: "actions_difference",
+    rate: "actions_execution_rate",
+    note: "Registradas pelos chefes",
+  },
+  {
+    key: "approaches",
+    label: "Abordagens",
+    icon: Users,
+    reported: "approaches",
+    note: "Média por ação",
+    average: "average_approaches_per_action",
+  },
+  {
+    key: "reports",
+    label: "Relatórios",
+    icon: CheckCircle2,
+    reported: "reports_count",
+    note: "Solicitações com relatório",
+    average: "requests_with_report",
+  },
+];
+
+function formatMetric(value) {
+  return Number(value || 0).toLocaleString("pt-BR");
+}
+
+function formatDifference(value) {
+  const number = Number(value || 0);
+  return `${number > 0 ? "+" : ""}${number.toLocaleString("pt-BR")}`;
+}
+
+function ChiefFillingsMetrics({ data = {} }) {
+  return (
+    <div className="chart-card chief-fillings-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px", marginBottom: "24px" }}>
+      <div className="section-heading" style={{ marginBottom: "14px" }}>
+        <div>
+          <h2 style={{ fontSize: "15px", fontWeight: "800" }}>Números preenchidos pelos chefes</h2>
+          <p style={{ fontSize: "12px", color: "var(--text-soft)", marginTop: "3px" }}>Comparativo entre a solicitação enviada e o preenchimento dos relatórios técnicos.</p>
+        </div>
+      </div>
+      <div className="chief-fillings-grid">
+        {chiefComparisonConfig.map((item) => {
+          const Icon = item.icon;
+          const difference = Number(data[item.difference] || 0);
+          return (
+            <div className="chief-filling-metric" key={item.key}>
+              <span><Icon size={17} /></span>
+              <small>{item.label}</small>
+              <strong>{formatMetric(data[item.reported])}</strong>
+              {item.requested && (
+                <div className="chief-comparison-lines">
+                  <b>Solicitado: {formatMetric(data[item.requested])}</b>
+                  <b>Diferença: <em className={difference >= 0 ? "positive" : "negative"}>{formatDifference(difference)}</em></b>
+                  <b>Execução: {Number(data[item.rate] || 0).toLocaleString("pt-BR")}%</b>
+                </div>
+              )}
+              {item.note && (
+                <p>{item.note}: <b>{formatMetric(data[item.average])}</b></p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -191,18 +276,19 @@ function DonutChart({ data = [] }) {
 function Heatmap({ data = [] }) {
   const values = new Map(data.map((item) => [`${item.day}-${item.slot}`, item.total]));
   const max = Math.max(...data.map((item) => item.total), 1);
+  const gridTemplateColumns = `34px repeat(${hourSlots.length}, minmax(34px, 1fr))`;
   return (
     <div className="chart-card heatmap-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px" }}>
       <div className="section-heading" style={{ marginBottom: "16px" }}>
         <h2 style={{ fontSize: "15px", fontWeight: "800" }}>Horários mais utilizados</h2>
       </div>
       <div className="heatmap" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <div className="heatmap-header" style={{ display: "grid", gridTemplateColumns: "60px repeat(8, 1fr)", gap: "4px", marginBottom: "6px", fontSize: "11px", fontWeight: "700", color: "var(--text-soft)", textAlign: "center" }}>
+        <div className="heatmap-header" style={{ display: "grid", gridTemplateColumns, gap: "3px", marginBottom: "6px", fontSize: "10px", fontWeight: "700", color: "var(--text-soft)", textAlign: "center" }}>
           <strong style={{ textAlign: "left" }}>Dia</strong>
           {hourSlots.map((slot) => <small key={slot}>{slot}</small>)}
         </div>
         {weekDays.map((day, dayIndex) => (
-          <div className="heatmap-row" key={day} style={{ display: "grid", gridTemplateColumns: "60px repeat(8, 1fr)", gap: "4px", alignItems: "center" }}>
+          <div className="heatmap-row" key={day} style={{ display: "grid", gridTemplateColumns, gap: "3px", alignItems: "center" }}>
             <strong style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-soft)" }}>{day}</strong>
             {hourSlots.map((slot) => {
               const value = values.get(`${dayIndex}-${slot}`) || 0;
@@ -212,7 +298,7 @@ function Heatmap({ data = [] }) {
                   key={slot}
                   title={`${day} ${slot}: ${value}`}
                   style={{
-                    height: "28px",
+                    height: "24px",
                     borderRadius: "6px",
                     cursor: "pointer",
                     transition: "all 0.2s ease",
@@ -400,7 +486,8 @@ function SatisfactionSurveyPanel({ surveys = {}, onApproveSurvey }) {
   );
 }
 
-function ActivityPanel({ activity, advanced }) {
+function ActivityPanel({ activity, advanced, materials }) {
+  const distributedMaterials = materials?.distributed || { total: 0, items: [] };
   return (
     <aside className="dashboard-side" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       <div className="chart-card field-teams-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px" }}>
@@ -418,6 +505,25 @@ function ActivityPanel({ activity, advanced }) {
             ))
           ) : (
             <p style={{ color: "var(--text-soft)", fontSize: "13px" }}>Nenhuma equipe em campo hoje.</p>
+          )}
+        </div>
+      </div>
+      <div className="chart-card materials-dashboard-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px" }}>
+        <div className="section-heading" style={{ marginBottom: "14px" }}>
+          <div>
+            <h2 style={{ fontSize: "15px", fontWeight: "800" }}>Materiais distribuídos</h2>
+            <p style={{ color: "var(--text-soft)", fontSize: "12px", margin: "3px 0 0" }}>Total consolidado dos relatórios enviados.</p>
+          </div>
+          <strong style={{ background: "#edf4ff", borderRadius: "10px", color: "#0048d7", fontSize: "20px", padding: "8px 12px" }}>{distributedMaterials.total}</strong>
+        </div>
+        <div className="advanced-list" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {distributedMaterials.items?.length ? distributedMaterials.items.map((item) => (
+            <span key={item.label} style={{ alignItems: "center", display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "13px" }}>
+              <span style={{ color: "var(--text)", fontWeight: "700", overflowWrap: "anywhere" }}>{item.label}</span>
+              <strong style={{ color: "var(--primary)" }}>{item.value}</strong>
+            </span>
+          )) : (
+            <p style={{ color: "var(--text-soft)", fontSize: "13px", margin: 0 }}>Nenhum material distribuído registrado.</p>
           )}
         </div>
       </div>
@@ -547,7 +653,7 @@ export default function DashboardPage() {
         <div>
           <span style={{ fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1.5px", color: "#f6bd16", opacity: 0.95, display: "block", marginBottom: "2px" }}>Visão operacional</span>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-            <h1 style={{ color: "#ffffff", fontSize: "28px", fontWeight: "900", margin: "4px 0" }}>Dashboard</h1>
+            <h1 style={{ color: "#ffffff", fontSize: "38px", fontWeight: "900", margin: "4px 0", lineHeight: 1 }}>Dashboard</h1>
             {isModerator && dashboard?.pending_moderation_count > 0 && (
               <span
                 style={{
@@ -567,7 +673,7 @@ export default function DashboardPage() {
               </span>
             )}
           </div>
-          <p style={{ margin: 0, color: "#d2e1ff", opacity: 0.9, fontSize: "13.5px", marginTop: "4px" }}>PSI OLS com indicadores, tendências, calendário e atividades recentes.</p>
+          <p style={{ margin: 0, color: "#d2e1ff", opacity: 0.9, fontSize: "15px", marginTop: "8px" }}>SISTEMA INTEGRADO DA EDUCAÇÃO - OPERAÇÃO LEI SECA</p>
         </div>
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
           <div className="hero-search" style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", borderRadius: "10px", display: "flex", alignItems: "center", padding: "0 12px" }}>
@@ -631,6 +737,7 @@ export default function DashboardPage() {
               />
             ))}
           </div>
+          <ChiefFillingsMetrics data={dashboard?.chief_fillings || {}} />
 
           <div className="dashboard-layout" style={{ display: "grid", gap: "24px" }}>
             <div className="dashboard-main" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -671,7 +778,7 @@ export default function DashboardPage() {
                 <SatisfactionSurveyPanel surveys={dashboard?.surveys || {}} onApproveSurvey={handleApproveSurvey} />
               </div>
             </div>
-            <ActivityPanel activity={dashboard?.activity} advanced={dashboard?.advanced} />
+            <ActivityPanel activity={dashboard?.activity} advanced={dashboard?.advanced} materials={dashboard?.materials} />
           </div>
         </>
       )}
