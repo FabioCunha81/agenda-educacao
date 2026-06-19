@@ -81,7 +81,8 @@ class Command(BaseCommand):
     def _clear_operational_data(self):
         AuditLog.objects.all().delete()
         session_model = apps.get_model("sessions", "Session")
-        session_model.objects.all().delete()
+        if session_model._meta.db_table in connection.introspection.table_names():
+            session_model.objects.all().delete()
         schedule_models = list(apps.get_app_config("schedules").get_models())
         for model in reversed(schedule_models):
             model.objects.all().delete()
