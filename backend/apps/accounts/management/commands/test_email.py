@@ -1,8 +1,8 @@
 from django.conf import settings
-from django.core.mail import EmailMessage
 from django.core.management.base import BaseCommand, CommandError
 
 from config.email_delivery import send_email_message
+from config.email_signature import build_signed_email
 
 
 class Command(BaseCommand):
@@ -29,7 +29,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  DEFAULT_FROM_EMAIL: {settings.DEFAULT_FROM_EMAIL}")
         self.stdout.write(f"  AGENDA_REPLY_TO_EMAIL: {settings.AGENDA_REPLY_TO_EMAIL}")
 
-        message = EmailMessage(
+        message = build_signed_email(
             subject="Teste de e-mail - Agenda Educacao",
             body=(
                 "Este e um e-mail de teste do Agenda Educacao.\n\n"

@@ -2,7 +2,6 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import EmailMessage
 from django.db import transaction
 from django.db.models.deletion import ProtectedError
 from django.utils.encoding import force_str
@@ -16,6 +15,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from config.email_delivery import send_email_message
+from config.email_signature import build_signed_email
 
 from .audit import log_audit
 from .emails import send_password_setup_email
@@ -103,7 +103,7 @@ class PasswordResetRequestView(APIView):
         link = None
         if user:
             link = UserSerializer(user).data["password_setup_link"]
-            message = EmailMessage(
+            message = build_signed_email(
                 subject="Recuperação de senha - Agenda Educação",
                 body=(
                     "Recebemos uma solicitação para recuperar seu acesso ao Agenda Educação.\n\n"
@@ -115,7 +115,6 @@ class PasswordResetRequestView(APIView):
                 to=[user.email],
                 reply_to=[settings.AGENDA_REPLY_TO_EMAIL] if settings.AGENDA_REPLY_TO_EMAIL else None,
             )
-            message.encoding = "utf-8"
             sent, detail = send_email_message(message)
             if not sent:
                 logger.error("Nao foi possivel enviar e-mail de recuperacao de senha para %s: %s", user.email, detail)

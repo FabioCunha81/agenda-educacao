@@ -124,6 +124,10 @@ def shift_swap_visibility_filter(user):
     if getattr(user, "is_admin_role", False):
         return Q()
 
+    sector = getattr(user, "sector", None)
+    if getattr(user, "role", "") == "SUPERVISOR" and sector and sector.name:
+        return Q(schedule__team__name__iexact=sector.name)
+
     query = Q(requester=user)
     if user.full_name:
         query |= Q(from_member_name__iexact=user.full_name) | Q(to_member_name__iexact=user.full_name)
@@ -267,8 +271,11 @@ class ShiftSwapRequestSerializer(serializers.ModelSerializer):
         if user and user.is_authenticated:
             if user_role == "USER" and not _member_matches_user(from_member, user):
                 raise serializers.ValidationError("Agentes so podem solicitar troca para o proprio integrante.")
-            if user_role == "SUPERVISOR" and not _user_team_matches_schedule(user, schedule):
-                raise serializers.ValidationError("Chefes so podem solicitar troca para integrantes da propria equipe.")
+            if user_role == "SUPERVISOR":
+                if not _user_team_matches_schedule(user, schedule):
+                    raise serializers.ValidationError("Chefes so podem solicitar troca para integrantes da propria equipe.")
+                if member_type != ShiftSwapRequest.MemberType.CHIEF and not _same_text(getattr(from_member.team, "name", ""), user.sector.name if user.sector else ""):
+                    raise serializers.ValidationError("Chefes so podem solicitar troca para integrantes da propria equipe.")
 
         attrs["from_member_name"] = from_member.name
         attrs["to_member_name"] = to_member.name

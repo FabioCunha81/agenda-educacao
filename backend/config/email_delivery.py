@@ -2,6 +2,7 @@ import json
 import smtplib
 import urllib.error
 import urllib.request
+from base64 import b64encode
 
 from django.conf import settings
 
@@ -26,14 +27,25 @@ def send_resend_email(message):
     if not api_key:
         return False, "RESEND_API_KEY nao configurada."
 
+    html_body = ""
+    for content, mimetype in getattr(message, "alternatives", []):
+        if mimetype == "text/html":
+            html_body = content
+            break
+
     payload = {
         "from": message.from_email,
         "to": list(message.to or []),
         "subject": message.subject,
         "text": message.body or "",
     }
+    if html_body:
+        payload["html"] = html_body
     if getattr(message, "reply_to", None):
         payload["reply_to"] = list(message.reply_to)
+    attachments = resend_attachments(message)
+    if attachments:
+        payload["attachments"] = attachments
 
     data = json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
@@ -61,6 +73,39 @@ def send_resend_email(message):
         else:
             detail = exc.__class__.__name__
         return False, detail
+
+
+def resend_attachments(message):
+    attachments = []
+    for attachment in getattr(message, "attachments", []):
+        filename = None
+        content = None
+        content_type = None
+        content_id = None
+
+        if isinstance(attachment, tuple):
+            filename, content, content_type = attachment
+            if isinstance(content, str):
+                content = content.encode("utf-8")
+        else:
+            filename = attachment.get_filename()
+            content = attachment.get_payload(decode=True)
+            content_type = attachment.get_content_type()
+            content_id = attachment.get("Content-ID", "").strip("<>")
+
+        if not filename or content is None:
+            continue
+
+        item = {
+            "filename": filename,
+            "content": b64encode(content).decode("ascii"),
+        }
+        if content_type:
+            item["content_type"] = content_type
+        if content_id:
+            item["content_id"] = content_id
+        attachments.append(item)
+    return attachments
 
 
 def send_email_message(message):

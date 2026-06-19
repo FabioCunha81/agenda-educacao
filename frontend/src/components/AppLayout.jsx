@@ -36,10 +36,17 @@ export default function AppLayout() {
   const [darkMode, setDarkMode] = useState(false);
   const [pendingRequests, setPendingRequests] = useState(0);
   const [pendingTechnicalReports, setPendingTechnicalReports] = useState(0);
+  const [pendingShiftSwaps, setPendingShiftSwaps] = useState(0);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (user && canAccessRoute(user, ["ADMIN", "MANAGER", "SUPERVISOR", "USER", "CREATOR"])) {
+      api("/shift-swaps/?status=PENDING&page_size=1")
+        .then((data) => setPendingShiftSwaps(data.count || 0))
+        .catch(() => {});
+    }
+
     if (user && canAccessRoute(user, ["ADMIN", "MANAGER", "SUPERVISOR"])) {
       api("/agendas/?status=PENDING&source=requests&page_size=1")
         .then((data) => setPendingRequests(data.count || 0))
@@ -102,6 +109,11 @@ export default function AppLayout() {
                 {item.to === "/agendas" && pendingRequests > 0 && (
                   <span style={menuBadgeStyle}>
                     {pendingRequests}
+                  </span>
+                )}
+                {item.to === "/escala" && pendingShiftSwaps > 0 && (
+                  <span style={menuBadgeStyle}>
+                    {pendingShiftSwaps}
                   </span>
                 )}
                 {item.to === "/relatorio-tecnico" && pendingTechnicalReports > 0 && (

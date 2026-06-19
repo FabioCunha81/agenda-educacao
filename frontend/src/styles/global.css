@@ -3234,9 +3234,10 @@ button.stat-card.active {
 }
 
 .shift-team-pill {
-  background: #e8f1ff;
-  border: 1px solid #bfd8ff;
-  color: #0b3a80;
+  background: var(--shift-team-bg, #e8f1ff);
+  border: 1px solid var(--shift-team-border, #bfd8ff);
+  border-left: 5px solid var(--shift-team-border, #7aaeff);
+  color: var(--shift-team-text, #0b3a80);
   display: grid;
   gap: 2px;
   justify-content: flex-start;
@@ -3287,7 +3288,7 @@ button.stat-card.active {
 }
 
 .shift-team-pill small {
-  color: #365a88;
+  color: var(--shift-team-text, #365a88);
   font-size: 11px;
   font-weight: 800;
 }

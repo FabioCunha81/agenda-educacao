@@ -2,10 +2,10 @@ import logging
 
 from django.conf import settings
 from django.core import signing
-from django.core.mail import EmailMessage
 from django.utils import timezone
 
 from config.email_delivery import sanitize_email_error, send_email_message
+from config.email_signature import build_signed_email
 
 from .models import Agenda, SatisfactionSurvey
 
@@ -79,15 +79,13 @@ def survey_url(survey):
 
 
 def build_email(subject, body, recipients):
-    email = EmailMessage(
+    return build_signed_email(
         subject=subject,
         body=body,
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=recipients,
         reply_to=[settings.AGENDA_REPLY_TO_EMAIL] if settings.AGENDA_REPLY_TO_EMAIL else None,
     )
-    email.encoding = "utf-8"
-    return email
 
 
 def send_email_safely(email, context):

@@ -53,6 +53,27 @@ function emptyAbsenceForm() {
   };
 }
 
+const teamColorMap = {
+  ALFA: { bg: "#e7f8ee", border: "#39a66a", text: "#145232" },
+  BRAVO: { bg: "#eaf2ff", border: "#3b82f6", text: "#173f83" },
+  CHARLIE: { bg: "#fff1df", border: "#f59e0b", text: "#7a4100" },
+  DELTA: { bg: "#f1ecff", border: "#8b5cf6", text: "#4c1d95" },
+  ECHO: { bg: "#e8fbff", border: "#06b6d4", text: "#155e75" },
+  FOX: { bg: "#fff0f0", border: "#ef4444", text: "#8a1f1f" },
+  GOLF: { bg: "#effaf0", border: "#65a30d", text: "#365314" },
+  HOTEL: { bg: "#fff7d6", border: "#eab308", text: "#6f5200" },
+};
+
+function teamColorStyle(teamName) {
+  const palette = teamColorMap[String(teamName || "").trim().toUpperCase()];
+  if (!palette) return {};
+  return {
+    "--shift-team-bg": palette.bg,
+    "--shift-team-border": palette.border,
+    "--shift-team-text": palette.text,
+  };
+}
+
 export default function ShiftSchedulePage() {
   const { user } = useAuth();
   const [cursor, setCursor] = useState(new Date());
@@ -126,9 +147,15 @@ export default function ShiftSchedulePage() {
   const swapSchedule = schedules.find((item) => String(item.id) === String(swapForm.schedule));
   const swapRoster = swapSchedule?.members || { chiefs: [], agents: [], supports: [] };
   const targetRoster = rostersByTeam[String(swapForm.target_team)] || { chiefs: [], agents: [], supports: [] };
-  const fromMemberOptions = sameTypeMembers(swapForm.member_type, swapRoster).filter((member) => (
-    isAgentRole ? memberMatchesUser(member) : true
-  ));
+  const visibleTeams = isSupervisorRole
+    ? teams.filter((team) => teamMatchesUser(team.name))
+    : teams;
+  const selectableTargetTeams = teams.filter((team) => String(team.id) !== String(swapSchedule?.team));
+  const fromMemberOptions = sameTypeMembers(swapForm.member_type, swapRoster).filter((member) => {
+    if (isAgentRole) return memberMatchesUser(member);
+    if (isSupervisorRole) return teamMatchesUser(member.team_name || swapSchedule?.team_name);
+    return true;
+  });
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [reportTeam, setReportTeam] = useState("");
   const [reportMonth, setReportMonth] = useState(cursor.getMonth());
@@ -251,7 +278,7 @@ export default function ShiftSchedulePage() {
   };
 
   const openSwapModal = (scheduleId = "") => {
-    const allowedSchedules = swapSchedules.length ? swapSchedules : schedules;
+    const allowedSchedules = swapSchedules;
     const firstSchedule = scheduleId || allowedSchedules[0]?.id || "";
     if (!firstSchedule) {
       setMessage("Cadastre uma escala antes de solicitar troca.");
@@ -560,7 +587,7 @@ export default function ShiftSchedulePage() {
             </header>
 
             <div className="shift-team-picker">
-              {teams.map((team) => {
+              {visibleTeams.map((team) => {
                 const roster = rostersByTeam[String(team.id)] || {};
                 return (
                   <label key={team.id} className={selectedTeamIds.includes(String(team.id)) ? "selected" : ""}>
@@ -797,7 +824,7 @@ export default function ShiftSchedulePage() {
                   <span>Equipe substituta</span>
                   <select value={swapForm.target_team} onChange={(event) => setSwapForm((current) => ({ ...current, target_team: event.target.value, to_member_id: "" }))}>
                     <option value="">Selecione</option>
-                    {teams.filter((team) => String(team.id) !== String(swapSchedule?.team)).map((team) => (
+                    {selectableTargetTeams.map((team) => (
                       <option key={team.id} value={team.id}>{team.name}</option>
                     ))}
                   </select>
@@ -868,7 +895,7 @@ export default function ShiftSchedulePage() {
               <label style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
                 <span style={{ fontSize: "0.85rem", fontWeight: "600" }}>Equipe</span>
                 <select value={reportTeam} onChange={(e) => setReportTeam(e.target.value)} style={{ padding: "6px 10px", borderRadius: "4px", border: "1px solid #ccc" }}>
-                  {teams.map((team) => (
+                  {visibleTeams.map((team) => (
                     <option key={team.id} value={team.id}>{team.name}</option>
                   ))}
                 </select>
