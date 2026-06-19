@@ -16,6 +16,25 @@ from apps.schedules.models import (
 
 
 class UserDeleteTests(APITestCase):
+    def test_manager_can_access_users_endpoint(self):
+        manager = User.objects.create_user(
+            email="gestor@example.com",
+            password="password123",
+            full_name="Gestor",
+            role=User.Role.MANAGER,
+        )
+        User.objects.create_user(
+            email="agente@example.com",
+            password="password123",
+            full_name="Agente",
+            role=User.Role.USER,
+        )
+
+        self.client.force_authenticate(manager)
+        response = self.client.get(reverse("users-list"))
+
+        self.assertEqual(response.status_code, 200)
+
     def test_delete_user_removes_linked_operational_records(self):
         sector = Sector.objects.create(name="BRAVO")
         admin = User.objects.create_user(

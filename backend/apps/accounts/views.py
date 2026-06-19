@@ -31,7 +31,7 @@ def is_system_user(user):
 
 
 def can_manage_users(user):
-    return bool(user and user.is_authenticated and (user.is_superuser or user.role == User.Role.ADMIN))
+    return bool(user and user.is_authenticated and (user.is_superuser or user.is_admin_role))
 
 
 def delete_user_dependencies(user):

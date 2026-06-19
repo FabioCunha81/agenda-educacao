@@ -16,7 +16,7 @@ const items = [
   { to: "/estatisticas", label: "Estatísticas", icon: BarChart3, roles: ["ADMIN", "MANAGER", "SUPERVISOR"] },
   { to: "/metas", label: "Metas", icon: Target, roles: ["ADMIN", "MANAGER"] },
   { to: "/cadastros", label: "Cadastros", icon: ListPlus, roles: ["ADMIN", "MANAGER"] },
-  { to: "/usuarios", label: "Usuários", icon: Users, roles: ["ADMIN", "CREATOR"] },
+  { to: "/usuarios", label: "Usuários", icon: Users, roles: ["ADMIN", "MANAGER", "CREATOR"] },
   { to: "/auditoria", label: "Auditoria", icon: ShieldCheck, roles: ["CREATOR"] },
 ];
 

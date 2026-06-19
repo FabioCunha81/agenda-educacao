@@ -131,10 +131,9 @@ class TeamViewSet(LookupViewSet):
     serializer_class = TeamSerializer
 
     def get_queryset(self):
-        standard_names = ["ALFA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOX", "GOLF", "HOTEL"]
-        queryset = Team.objects.filter(name__in=standard_names, is_active=True)
+        queryset = Team.objects.filter(is_active=True)
         if self.request.query_params.get("include_inactive") == "true" and self.request.user.is_admin_role:
-            queryset = Team.objects.filter(name__in=standard_names)
+            queryset = Team.objects.all()
         return queryset.order_by("name")
 
 

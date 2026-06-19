@@ -1,4 +1,4 @@
-Ôªøimport { Save, Trash2 } from "lucide-react";
+import { Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
 
@@ -12,7 +12,6 @@ const lookupTypes = [
 ];
 
 const emptyForm = { name: "", cpf: "", phone: "", team: "", address: "", is_active: true };
-const militaryTeams = ["ALFA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOX", "GOLF", "HOTEL"];
 
 export default function LookupsPage() {
   const [activeKey, setActiveKey] = useState("teams");
@@ -113,7 +112,7 @@ export default function LookupsPage() {
     setMessage("");
     try {
       await api(`${activeType.endpoint}${row.id}/`, { method: "DELETE" });
-      setMessage("Cadastro exclu√≠do.");
+      setMessage("Cadastro excluÌdo.");
       loadRows();
     } catch (err) {
       setMessage(err.message);
@@ -126,7 +125,7 @@ export default function LookupsPage() {
         <div className="page-title">
           <div>
             <h1>Cadastros</h1>
-            <p>Gerencie listas usadas nos formul√°rios de novas agendas.</p>
+            <p>Gerencie listas usadas nos formul·rios de novas agendas.</p>
           </div>
         </div>
 
@@ -161,7 +160,7 @@ export default function LookupsPage() {
                 {activeType.hasCpf && <th>CPF</th>}
                 {activeType.hasPhone && <th>Telefone</th>}
                 {(activeType.key === "agents" || activeType.hasTeam) && <th>{activeType.teamLabel || "Equipe"}</th>}
-                {activeType.hasAddress && <th>Localiza√ß√£o</th>}
+                {activeType.hasAddress && <th>LocalizaÁ„o</th>}
                 <th>Status</th>
                 <th></th>
               </tr>
@@ -194,14 +193,12 @@ export default function LookupsPage() {
       <aside className="side-panel">
         <h2>{editing ? "Editar cadastro" : "Novo cadastro"}</h2>
         <form className="stack-form" onSubmit={submit}>
-          {activeType.key === "teams" ? (
-            <select value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required>
-              <option value="">Selecione {activeType.teamLabel?.toLowerCase() || "a equipe"}</option>
-              {militaryTeams.map((team) => <option key={team} value={team}>{team}</option>)}
-            </select>
-          ) : (
-            <input placeholder="Nome" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required />
-          )}
+          <input
+            placeholder={activeType.key === "teams" ? "Nome da equipe" : "Nome"}
+            value={form.name}
+            onChange={(event) => setForm({ ...form, name: event.target.value })}
+            required
+          />
           {activeType.hasCpf && (
             <input
               placeholder="CPF"
@@ -221,7 +218,7 @@ export default function LookupsPage() {
             </select>
           )}
           {activeType.hasAddress && (
-            <input placeholder="Localiza√ß√£o" value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} />
+            <input placeholder="LocalizaÁ„o" value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} />
           )}
           <label className="checkbox">
             <input type="checkbox" checked={form.is_active} onChange={(event) => setForm({ ...form, is_active: event.target.checked })} />

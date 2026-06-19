@@ -53,26 +53,14 @@ class VehicleSerializer(LookupSerializer):
 
 
 class TeamSerializer(LookupSerializer):
-    military_team_names = {
-        "ALFA",
-        "BRAVO",
-        "CHARLIE",
-        "DELTA",
-        "ECHO",
-        "FOX",
-        "GOLF",
-        "HOTEL",
-    }
-
     class Meta(LookupSerializer.Meta):
         model = Team
 
     def validate_name(self, value):
         normalized = value.strip().upper()
-        allowed = {name.casefold(): name for name in self.military_team_names}
-        if normalized.casefold() not in allowed:
-            raise serializers.ValidationError("Use uma equipe padronizada: ALFA, BRAVO, CHARLIE, DELTA, ECHO, FOX, GOLF ou HOTEL.")
-        return allowed[normalized.casefold()]
+        if not normalized:
+            raise serializers.ValidationError("Informe o nome da equipe.")
+        return normalized
 
 
 class SupportSerializer(LookupSerializer):
