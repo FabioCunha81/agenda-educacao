@@ -1,10 +1,74 @@
-﻿from datetime import date, time
+from datetime import date, time
 
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import User
-from apps.schedules.models import Agenda, Agent, Sector, ShiftSchedule, Team
+from apps.schedules.models import Agenda, Agent, EducationAction, EducationReport, Sector, ShiftSchedule, Team
+
+
+
+class TeamLookupTests(APITestCase):
+    def test_manager_can_create_and_list_custom_team(self):
+        manager = User.objects.create_user(
+            email="gestor-equipes@example.com",
+            password="password123",
+            full_name="Gestor Equipes",
+            role=User.Role.MANAGER,
+        )
+
+        self.client.force_authenticate(manager)
+        create_response = self.client.post(reverse("teams-list"), {"name": "Equipe Extra", "is_active": True})
+        list_response = self.client.get(reverse("teams-list"), {"page_size": 1000})
+
+        self.assertEqual(create_response.status_code, 201)
+        self.assertEqual(create_response.json()["name"], "EQUIPE EXTRA")
+        self.assertEqual(list_response.status_code, 200)
+        payload = list_response.json()
+        rows = payload["results"] if "results" in payload else payload
+        self.assertIn("EQUIPE EXTRA", [row["name"] for row in rows])
+
+class AgendaAccessTests(APITestCase):
+    def test_agent_user_can_list_agenda_where_they_are_scheduled(self):
+        sector = Sector.objects.create(name="ALFA")
+        manager = User.objects.create_user(
+            email="gestor@example.com",
+            password="password123",
+            full_name="Gestor OLS",
+            role=User.Role.MANAGER,
+            sector=sector,
+        )
+        agent_user = User.objects.create_user(
+            email="agente@example.com",
+            password="password123",
+            full_name="Agente Escalado",
+            cpf="12345678901",
+            role=User.Role.USER,
+        )
+        agent = Agent.objects.create(name="Agente Escalado", cpf="12345678901", is_active=True)
+        agenda = Agenda.objects.create(
+            title="Palestra educativa",
+            description="Atividade agendada",
+            date=date(2026, 6, 10),
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            location="Escola Municipal",
+            responsible=manager,
+            sector=sector,
+            created_by=manager,
+        )
+        agenda.agents_ref.add(agent)
+
+        self.client.force_authenticate(agent_user)
+        response = self.client.get(
+            reverse("agendas-list"),
+            {"date_from": "2026-06-01", "date_to": "2026-06-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        rows = payload["results"] if "results" in payload else payload
+        self.assertEqual([row["id"] for row in rows], [agenda.id])
 
 
 class ShiftSwapPermissionTests(APITestCase):
@@ -98,44 +162,50 @@ class ShiftSwapPermissionTests(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("propria equipe", str(response.json()))
 
-class AgendaAccessTests(APITestCase):
-    def test_agent_user_can_list_agenda_where_they_are_scheduled(self):
-        sector = Sector.objects.create(name="ALFA")
+class DashboardMetricsTests(APITestCase):
+    def test_average_approaches_per_team_uses_distinct_report_teams(self):
+        sector = Sector.objects.create(name="EDUCACAO")
         manager = User.objects.create_user(
-            email="gestor@example.com",
+            email="dashboard@example.com",
             password="password123",
-            full_name="Gestor OLS",
+            full_name="Gestor Dashboard",
             role=User.Role.MANAGER,
             sector=sector,
         )
-        agent_user = User.objects.create_user(
-            email="agente@example.com",
-            password="password123",
-            full_name="Agente Escalado",
-            cpf="12345678901",
-            role=User.Role.USER,
-        )
-        agent = Agent.objects.create(name="Agente Escalado", cpf="12345678901", is_active=True)
-        agenda = Agenda.objects.create(
-            title="Palestra educativa",
-            description="Atividade agendada",
-            date=date(2026, 6, 10),
-            start_time=time(9, 0),
-            end_time=time(10, 0),
-            location="Escola Municipal",
-            responsible=manager,
-            sector=sector,
-            created_by=manager,
-        )
-        agenda.agents_ref.add(agent)
 
-        self.client.force_authenticate(agent_user)
+        def create_report(day, team, approach):
+            agenda = Agenda.objects.create(
+                title=f"Acao {day}",
+                description="Atividade educativa",
+                date=date(2026, 6, day),
+                start_time=time(9, 0),
+                end_time=time(10, 0),
+                location="Escola Municipal",
+                responsible=manager,
+                sector=sector,
+                created_by=manager,
+                origin=Agenda.Origin.PUBLIC_FORM,
+            )
+            report = EducationReport.objects.create(
+                agenda=agenda,
+                operation_date=agenda.date,
+                team=team,
+                status=EducationReport.ReportStatus.SUBMITTED,
+                created_by=manager,
+            )
+            EducationAction.objects.create(report=report, agenda=agenda, approach=approach)
+
+        create_report(10, "Equipe Alfa", 10)
+        create_report(11, " equipe alfa ", 20)
+        create_report(12, "Equipe Beta", 30)
+
+        self.client.force_authenticate(manager)
         response = self.client.get(
-            reverse("agendas-list"),
+            reverse("agendas-dashboard"),
             {"date_from": "2026-06-01", "date_to": "2026-06-30"},
         )
 
         self.assertEqual(response.status_code, 200)
-        payload = response.json()
-        rows = payload["results"] if "results" in payload else payload
-        self.assertEqual([row["id"] for row in rows], [agenda.id])
+        metrics = response.json()["chief_fillings"]
+        self.assertEqual(metrics["teams_count"], 2)
+        self.assertEqual(metrics["average_approaches_per_team"], 30.0)

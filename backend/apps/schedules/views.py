@@ -1052,6 +1052,12 @@ class AgendaViewSet(viewsets.ModelViewSet):
         registered_actions = chief_totals["registered_actions"] or 0
         requested_actions = chief_request_totals["requested_actions"] or 0
         approaches = chief_totals["approaches"] or 0
+        chief_team_names = {
+            team.strip().casefold()
+            for team in chief_reports.values_list("team", flat=True)
+            if team and team.strip()
+        }
+        chief_teams_count = len(chief_team_names)
 
         def rate(value, base):
             return round((value / base) * 100, 1) if base else 0
@@ -1116,8 +1122,10 @@ class AgendaViewSet(viewsets.ModelViewSet):
                 "actions_execution_rate": rate(registered_actions, requested_actions),
                 "reports_count": chief_reports_count,
                 "requests_with_report": chief_reported_agendas.count(),
+                "teams_count": chief_teams_count,
                 "average_public_per_report": round(reported_public / chief_reports_count, 1) if chief_reports_count else 0,
                 "average_approaches_per_action": round(approaches / registered_actions, 1) if registered_actions else 0,
+                "average_approaches_per_team": round(approaches / chief_teams_count, 1) if chief_teams_count else 0,
             },
             "pending_moderation_count": pending_moderation_count,
             "activity": {

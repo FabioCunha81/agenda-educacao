@@ -1,12 +1,21 @@
+import logging
+
 from django.conf import settings
 from django.core import signing
 from django.core.mail import EmailMessage
 from django.utils import timezone
 
+from config.email_delivery import sanitize_email_error, send_email_message
+
 from .models import Agenda, SatisfactionSurvey
 
 
+logger = logging.getLogger(__name__)
 PUBLIC_REQUEST_SALT = "agenda-public-request-update"
+
+
+def sanitize_smtp_error(error):
+    return sanitize_email_error(error)
 
 
 def agenda_recipients(agenda):
@@ -79,6 +88,13 @@ def build_email(subject, body, recipients):
     )
     email.encoding = "utf-8"
     return email
+
+
+def send_email_safely(email, context):
+    sent, detail = send_email_message(email)
+    if not sent:
+        logger.error("Nao foi possivel enviar e-mail de %s: %s", context, detail)
+    return sent
 
 
 def get_or_create_survey(report):
@@ -168,8 +184,7 @@ def send_agenda_status_email(agenda, status=None):
         return False
 
     email = build_email(subject, body, recipients)
-    email.send(fail_silently=True)
-    return True
+    return send_email_safely(email, f"status da agenda #{agenda.id}")
 
 
 def send_agenda_available_dates_email(agenda, month, days, custom_message=""):
@@ -179,8 +194,7 @@ def send_agenda_available_dates_email(agenda, month, days, custom_message=""):
 
     subject, body = available_dates_message(agenda, month, days, custom_message=custom_message)
     email = build_email(subject, body, recipients)
-    email.send(fail_silently=True)
-    return True
+    return send_email_safely(email, f"datas disponiveis da agenda #{agenda.id}")
 
 
 def send_satisfaction_survey_email(report):
@@ -200,7 +214,9 @@ def send_satisfaction_survey_email(report):
         "Superintendência da Operação Lei Seca"
     )
     email = build_email(subject, body, recipients)
-    email.send(fail_silently=True)
+    sent = send_email_safely(email, f"pesquisa de satisfacao da agenda #{report.agenda_id}")
+    if not sent:
+        return False
     survey.sent_at = timezone.now()
     survey.save(update_fields=["sent_at", "updated_at"])
     return True

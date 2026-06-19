@@ -1,7 +1,11 @@
 from datetime import date, time
 
+from django.core import mail
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APITestCase
+
+from config.settings import normalize_email_host_password
 
 from apps.accounts.models import User
 from apps.schedules.models import (
@@ -83,3 +87,51 @@ class UserDeleteTests(APITestCase):
         self.assertFalse(EducationReport.objects.exists())
         self.assertFalse(EducationAction.objects.exists())
         self.assertFalse(SatisfactionSurvey.objects.exists())
+
+
+class UserPasswordLinkTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            email="admin@example.com",
+            password="password123",
+            full_name="Admin",
+            role=User.Role.ADMIN,
+        )
+        self.user = User.objects.create_user(
+            email="agente@example.com",
+            password="password123",
+            full_name="Agente",
+            role=User.Role.USER,
+        )
+        self.client.force_authenticate(self.admin)
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_send_password_link_uses_email_backend(self):
+        response = self.client.post(reverse("users-send-password-link", args=[self.user.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["password_setup_email_sent"])
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.user.email])
+        self.assertIn(response.data["password_setup_link"], mail.outbox[0].body)
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.console.EmailBackend")
+    def test_send_password_link_reports_console_backend_as_not_real_email(self):
+        response = self.client.post(reverse("users-send-password-link", args=[self.user.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["password_setup_email_sent"])
+        self.assertIn("modo console", response.data["password_setup_email_error"])
+        self.assertIn("password_setup_link", response.data)
+
+
+class EmailSettingsTests(APITestCase):
+    def test_gmail_app_password_spaces_are_removed(self):
+        password = normalize_email_host_password("smtp.gmail.com", "abcd efgh ijkl mnop")
+
+        self.assertEqual(password, "abcdefghijklmnop")
+
+    def test_non_gmail_password_keeps_internal_spaces(self):
+        password = normalize_email_host_password("smtp.example.com", " abcd efgh ")
+
+        self.assertEqual(password, "abcd efgh")

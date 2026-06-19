@@ -73,7 +73,6 @@ class Command(BaseCommand):
             created
             or not user.has_usable_password()
             or options["reset_password"]
-            or "DJANGO_SUPERUSER_PASSWORD" in os.environ
         )
         if should_reset_password:
             user.set_password(password)

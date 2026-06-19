@@ -15,6 +15,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from config.email_delivery import send_email_message
+
 from .audit import log_audit
 from .emails import send_password_setup_email
 from .models import AuditLog, User
@@ -114,10 +116,9 @@ class PasswordResetRequestView(APIView):
                 reply_to=[settings.AGENDA_REPLY_TO_EMAIL] if settings.AGENDA_REPLY_TO_EMAIL else None,
             )
             message.encoding = "utf-8"
-            try:
-                message.send(fail_silently=False)
-            except Exception:
-                logger.exception("Nao foi possivel enviar e-mail de recuperacao de senha para %s", user.email)
+            sent, detail = send_email_message(message)
+            if not sent:
+                logger.error("Nao foi possivel enviar e-mail de recuperacao de senha para %s: %s", user.email, detail)
             log_audit(
                 request,
                 AuditLog.Action.PASSWORD_RESET,

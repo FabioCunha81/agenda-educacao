@@ -105,12 +105,12 @@ const chiefComparisonConfig = [
     average: "average_approaches_per_action",
   },
   {
-    key: "reports",
-    label: "Relatórios",
-    icon: CheckCircle2,
-    reported: "reports_count",
-    note: "Solicitações com relatório",
-    average: "requests_with_report",
+    key: "team-average",
+    label: "Média de abordagens por equipe",
+    icon: Users,
+    reported: "average_approaches_per_team",
+    note: "Equipes consideradas",
+    average: "teams_count",
   },
 ];
 

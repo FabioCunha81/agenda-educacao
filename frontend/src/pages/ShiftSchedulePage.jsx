@@ -990,7 +990,10 @@ export default function ShiftSchedulePage() {
                       ];
                       
                       const presences = allMembers.filter(m => !m.is_absent).map(m => m.name);
-                      const absences = allMembers.filter(m => m.is_absent).map(m => m.name);
+                      const absences = allMembers.filter(m => m.is_absent).map((m) => ({
+                        name: m.name,
+                        reason: m.absence_reason || "Justificativa nao informada",
+                      }));
                       
                       const approvedSwaps = (sched.swap_requests || [])
                         .filter(sw => sw.status === "APPROVED")
@@ -1000,7 +1003,19 @@ export default function ShiftSchedulePage() {
                         <tr key={sched.id} style={{ borderBottom: "1px solid #eee" }}>
                           <td style={{ padding: "6px", whiteSpace: "nowrap", fontWeight: "bold", border: "1px solid #ddd" }}>{formatDateBR(sched.date)}</td>
                           <td style={{ padding: "6px", border: "1px solid #ddd" }}>{presences.length > 0 ? presences.join(", ") : "-"}</td>
-                          <td style={{ padding: "6px", color: absences.length > 0 ? "#b91c1c" : "inherit", border: "1px solid #ddd" }}>{absences.length > 0 ? absences.join(", ") : "Nenhuma"}</td>
+                          <td style={{ padding: "6px", color: absences.length > 0 ? "#b91c1c" : "inherit", border: "1px solid #ddd" }}>
+                            {absences.length > 0 ? (
+                              <div style={{ display: "grid", gap: "6px" }}>
+                                {absences.map((absence) => (
+                                  <div key={`${sched.id}-${absence.name}`}>
+                                    <strong>{absence.name}</strong>
+                                    <br />
+                                    <span style={{ color: "#374151", fontSize: "0.78rem" }}>Justificativa: {absence.reason}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : "Nenhuma"}
+                          </td>
                           <td style={{ padding: "6px", fontSize: "0.8rem", fontStyle: "italic", border: "1px solid #ddd" }}>{approvedSwaps.length > 0 ? approvedSwaps.join(" | ") : "Nenhuma"}</td>
                         </tr>
                       );

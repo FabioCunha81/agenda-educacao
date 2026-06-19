@@ -58,6 +58,29 @@ python manage.py runserver
 
 A API ficará em `http://localhost:8000/api/`.
 
+### Configurar e-mail
+
+Por padrão o backend local usa `django.core.mail.backends.console.EmailBackend`, então os e-mails aparecem no terminal do Django. Para disparo real, edite `backend/.env`:
+
+```env
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.seu-provedor.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=usuario@seu-dominio.com
+EMAIL_HOST_PASSWORD=sua-senha-ou-app-password
+EMAIL_USE_TLS=True
+EMAIL_USE_SSL=False
+DEFAULT_FROM_EMAIL=Agenda Educacao OLS <usuario@seu-dominio.com>
+AGENDA_REPLY_TO_EMAIL=usuario@seu-dominio.com
+```
+
+Depois valide com:
+
+```bash
+cd backend
+python manage.py test_email destino@exemplo.com
+```
+
 ### 3. Frontend
 
 ```bash
