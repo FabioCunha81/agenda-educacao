@@ -328,6 +328,7 @@ export default function ShiftSchedulePage() {
       }
       await api("/shift-swaps/", { method: "POST", body });
       await loadSchedules();
+      window.dispatchEvent(new Event("shift-swaps:changed"));
       setSwapForm(emptySwapForm(String(swapForm.schedule)));
       setSwapMessage("Solicitação de troca enviada para aprovação.");
     } catch (err) {
@@ -343,6 +344,7 @@ export default function ShiftSchedulePage() {
     try {
       await api(`/shift-swaps/${swapId}/${action}/`, { method: "POST", body: JSON.stringify({}) });
       await loadSchedules();
+      window.dispatchEvent(new Event("shift-swaps:changed"));
       setSwapMessage(action === "approve" ? "Troca aprovada." : "Troca rejeitada.");
     } catch (err) {
       setSwapMessage(err.message);

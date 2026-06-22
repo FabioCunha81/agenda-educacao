@@ -41,11 +41,18 @@ export default function AppLayout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user && canAccessRoute(user, ["ADMIN", "MANAGER", "SUPERVISOR", "USER", "SUPPORT", "CREATOR"])) {
+    const loadPendingShiftSwaps = () => {
+      if (!user || !canAccessRoute(user, ["ADMIN", "MANAGER", "SUPERVISOR", "USER", "SUPPORT", "CREATOR"])) {
+        setPendingShiftSwaps(0);
+        return;
+      }
       api("/shift-swaps/?status=PENDING&page_size=1")
         .then((data) => setPendingShiftSwaps(data.count || 0))
-        .catch(() => {});
-    }
+        .catch(() => setPendingShiftSwaps(0));
+    };
+
+    loadPendingShiftSwaps();
+    window.addEventListener("shift-swaps:changed", loadPendingShiftSwaps);
 
     if (user && canAccessRoute(user, ["ADMIN", "MANAGER", "SUPERVISOR"])) {
       api("/agendas/?status=PENDING&source=requests&page_size=1")
@@ -65,8 +72,9 @@ export default function AppLayout() {
         })
         .catch(() => {});
     }
-  }, [user]);
 
+    return () => window.removeEventListener("shift-swaps:changed", loadPendingShiftSwaps);
+  }, [user]);
   const doLogout = () => {
     logout();
     navigate("/login");
