@@ -7,10 +7,9 @@ import soprinhoMascot from "../assets/soprinho-transparent.png";
 const actionTypes = [
   "Palestra Empresa",
   "Palestra Escola",
-  "Ação educativa (Espaço interno)",
   "Palestra Virtual",
-  "Palestra Presencial",
-  "Campanha educativa/conscientização",
+  "Ação educativa (Espaço interno)",
+  "Palestra bilíngue (Inglês)",
 ];
 
 const entityTypes = [
@@ -35,6 +34,18 @@ const ageRangeOptions = [
   "09 até 13 anos",
   "14 até 17 anos",
   "acima de 18 anos",
+];
+
+const participantRangeOptions = [
+  { label: "30 a 50", quantity: 50 },
+  { label: "51 a 100", quantity: 100 },
+  { label: "100 a 200", quantity: 200 },
+];
+
+const accessibilityAccessOptions = [
+  "Sim",
+  "Não",
+  "Não se aplica, pois será realizado no térreo",
 ];
 
 const mediaEquipmentOptions = [
@@ -80,7 +91,9 @@ const empty = {
   requester_role: "",
   audience: "",
   quantity: "",
-  age_ranges: [],
+  participant_range: "",
+  age_ranges: "",
+  accessibility_access: "",
   has_ramps: "",
   has_elevators: "",
   has_accessible_bathrooms: "",
@@ -236,11 +249,11 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
       }
       return;
     }
-    if (!form.age_ranges.length) {
+    if (!form.age_ranges) {
       setMessage("Selecione pelo menos uma faixa etária do público.");
       return;
     }
-    if (!form.has_ramps || !form.has_elevators || !form.has_accessible_bathrooms) {
+    if (!form.accessibility_access || !form.has_accessible_bathrooms) {
       setMessage("Responda todas as perguntas sobre acessibilidade do local.");
       return;
     }
@@ -271,7 +284,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
         actions_count: form.actions_count === "" ? null : Number(form.actions_count),
         time_2: null,
         time_3: null,
-        age_ranges: form.age_ranges.join(", "),
+        age_ranges: form.age_ranges,
         media_equipment: form.media_equipment.join(", "),
       };
       delete payload.requester_entity_other;
@@ -322,7 +335,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
               <h3>Nova data solicitada</h3>
               <div className="split">
                 <label className="field-label" style={{ flex: 1 }}>
-                  <span>Data</span>
+                  <span>Data pretendida <b>*</b></span>
                   <input type="date" value={form.date} onChange={(event) => update("date", event.target.value)} required style={{ borderColor: dateMessage ? "var(--red)" : "" }} />
                   {dateMessage && <small style={{ color: "var(--red)", marginTop: "4px", display: "block", fontSize: "11px", fontWeight: "600" }}>{dateMessage}</small>}
                 </label>
@@ -435,8 +448,8 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
           <div className="form-section">
             <h3>Dados da ação</h3>
             <div className="field-card selection-card">
-              <strong>Tipo de ação <b>*</b></strong>
-              <div className="choice-grid selection-grid" role="radiogroup" aria-label="Tipo de ação">
+              <strong>MODALIDADE PRETENDIDA <b>*</b></strong>
+              <div className="radio-list" role="radiogroup" aria-label="Modalidade pretendida">
                 {actionTypes.map((option) => (
                   <label className="radio-option option-tile" key={option}>
                     <input
@@ -453,12 +466,12 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
             </div>
             <div className="split">
               <label className="field-label" style={{ flex: 1 }}>
-                <span>Data</span>
+                <span>DATA PRETENDIDA <b>*</b></span>
                 <input type="date" value={form.date} onChange={(event) => update("date", event.target.value)} required style={{ borderColor: dateMessage ? "var(--red)" : "" }} />
                 {dateMessage && <small style={{ color: "var(--red)", marginTop: "4px", display: "block", fontSize: "11px", fontWeight: "600" }}>{dateMessage}</small>}
               </label>
               <label className="field-label" style={{ flex: 1 }}>
-                <span>Horário pretendido de início <b>*</b></span>
+                <span>HORÁRIO PRETENDIDO / Informar horário pretendido de início <b>*</b></span>
                 <input type="time" value={form.start_time} onChange={(event) => update("start_time", event.target.value)} required />
               </label>
             </div>
@@ -467,19 +480,19 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
           <div className="form-section">
             <h3>Sobre a ação pretendida</h3>
             <div className="notice-card compact-notice">
-              <strong>Período total de até 4 horas.</strong>
+              <strong>Período não superior a 4 (quatro) horas</strong>
             </div>
             <div className="field-card">
-              <strong>Quantidade de ações pretendidas <b>*</b></strong>
-              <p><b>Exemplo:</b> Realização de 3 palestras para públicos distintos.</p>
-              <div className="radio-list" role="radiogroup" aria-label="Quantidade de ações pretendidas">
-                {["1", "2", "3"].map((option) => (
+              <strong>Faixa etária do público <b>*</b></strong>
+              <p>(em caso de mais de uma faixa etária, preencher outro formulário)</p>
+              <div className="radio-list" role="radiogroup" aria-label="Faixa etária do público">
+                {ageRangeOptions.map((option) => (
                   <label className="radio-option compact-radio option-tile" key={option}>
                     <input
                       type="radio"
-                      name="actions_count"
-                      checked={form.actions_count === option}
-                      onChange={() => updateActionsCount(option)}
+                      name="age_ranges"
+                      checked={form.age_ranges === option}
+                      onChange={() => update("age_ranges", option)}
                       required
                     />
                     <span>{option}</span>
@@ -487,18 +500,23 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
                 ))}
               </div>
             </div>
-            <label className="field-label">
-              <span>Número aproximado de participantes <b>*</b></span>
-              <small>Em caso de mais de uma ação, indicar a média por ação.</small>
-              <input type="number" min="1" value={form.quantity} onChange={(event) => update("quantity", event.target.value)} required />
-            </label>
             <div className="field-card">
-              <strong>Faixa etária do público <b>*</b></strong>
-              <div className="choice-grid">
-                {ageRangeOptions.map((option) => (
-                  <label className="checkbox option-tile" key={option}>
-                    <input type="checkbox" checked={form.age_ranges.includes(option)} onChange={() => toggleList("age_ranges", option)} />
-                    {option}
+              <strong>Número aproximado de participantes <b>*</b></strong>
+              <div className="radio-list" role="radiogroup" aria-label="Número aproximado de participantes">
+                {participantRangeOptions.map((option) => (
+                  <label className="radio-option compact-radio option-tile" key={option.label}>
+                    <input
+                      type="radio"
+                      name="participant_range"
+                      checked={form.participant_range === option.label}
+                      onChange={() => setForm((current) => ({
+                        ...current,
+                        participant_range: option.label,
+                        quantity: String(option.quantity),
+                      }))}
+                      required
+                    />
+                    <span>{option.label}</span>
                   </label>
                 ))}
               </div>
@@ -555,7 +573,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
           </div>
 
           <div className="form-section">
-            <h3>Público e acessibilidade</h3>
+            <h3>Sobre o local</h3>
             <div className="notice-card">
               <strong>SOBRE O LOCAL</strong>
               <p>Por contar com agentes cadeirantes, necessitamos que o local esteja apto a recebê-los.</p>
@@ -566,18 +584,17 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
               </p>
             </div>
             <div className="field-card selection-card">
-              <strong>Condições de acessibilidade <b>*</b></strong>
-              <div className="accessibility-grid">
+              <div className="accessibility-question-list">
                 <div className="selection-group">
-                  <span>Possui rampa?</span>
-                  <div className="segmented-options" role="radiogroup" aria-label="Possui rampa?">
-                    {["Sim", "Não"].map((option) => (
+                  <span>Possui rampas ou elevador de acesso ao local da apresentação da palestra? <b>*</b></span>
+                  <div className="radio-list" role="radiogroup" aria-label="Acesso por rampas ou elevador">
+                    {accessibilityAccessOptions.map((option) => (
                       <label className="radio-option option-tile" key={option}>
                         <input
                           type="radio"
-                          name="has_ramps"
-                          checked={form.has_ramps === option}
-                          onChange={() => update("has_ramps", option)}
+                          name="accessibility_access"
+                          checked={form.accessibility_access === option}
+                          onChange={() => update("accessibility_access", option)}
                           required
                         />
                         <span>{option}</span>
@@ -586,25 +603,11 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
                   </div>
                 </div>
                 <div className="selection-group">
-                  <span>Possui elevador?</span>
-                  <div className="segmented-options" role="radiogroup" aria-label="Possui elevador?">
-                    {["Sim", "Não"].map((option) => (
-                      <label className="radio-option option-tile" key={option}>
-                        <input
-                          type="radio"
-                          name="has_elevators"
-                          checked={form.has_elevators === option}
-                          onChange={() => update("has_elevators", option)}
-                          required
-                        />
-                        <span>{option}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div className="selection-group">
-                  <span>Banheiro adaptado?</span>
-                  <div className="segmented-options" role="radiogroup" aria-label="Banheiro adaptado?">
+                  <span>
+                    Possui banheiro adaptado para cadeirante? <b>*</b><br />
+                    <small>(Norma Técnica ABNT NBR 9050 - assento para cadeirante, barra de apoio, portas com vão superior a 80 cm, espaço para manobra da cadeira e diâmetro de pelo menos 1,5m)</small>
+                  </span>
+                  <div className="radio-list" role="radiogroup" aria-label="Banheiro adaptado para cadeirante?">
                     {["Sim", "Não"].map((option) => (
                       <label className="radio-option option-tile" key={option}>
                         <input

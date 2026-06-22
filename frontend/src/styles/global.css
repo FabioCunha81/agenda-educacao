@@ -2817,6 +2817,23 @@ button.stat-card.active {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.accessibility-question-list {
+  display: grid;
+  gap: 20px;
+}
+
+.accessibility-question-list .selection-group + .selection-group {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+
+.accessibility-question-list small {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
 .selection-group {
   display: grid;
   gap: 8px;

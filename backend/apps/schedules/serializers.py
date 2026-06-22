@@ -496,6 +496,7 @@ class AgendaSerializer(serializers.ModelSerializer):
             "action_type_ref_name",
             "institution_location",
             "quantity",
+            "participant_range",
             "actions_count",
             "schedule_text",
             "time_2",
@@ -517,6 +518,7 @@ class AgendaSerializer(serializers.ModelSerializer):
             "audience",
             "requester_entity_type",
             "age_ranges",
+            "accessibility_access",
             "has_ramps",
             "has_elevators",
             "has_accessible_bathrooms",
@@ -987,10 +989,9 @@ class PublicAgendaRequestSerializer(serializers.Serializer):
         choices=[
             "Palestra Empresa",
             "Palestra Escola",
-            "Ação educativa (Espaço interno)",
             "Palestra Virtual",
-            "Palestra Presencial",
-            "Campanha educativa/conscientização",
+            "Ação educativa (Espaço interno)",
+            "Palestra bilíngue (Inglês)",
         ]
     )
     institution_location = serializers.CharField(max_length=220)
@@ -1007,7 +1008,15 @@ class PublicAgendaRequestSerializer(serializers.Serializer):
     requester_role = serializers.CharField(max_length=160, required=False, allow_blank=True)
     requester_entity_type = serializers.CharField(max_length=160)
     audience = serializers.CharField(max_length=160, required=False, allow_blank=True)
-    age_ranges = serializers.CharField(max_length=220, required=False, allow_blank=True)
+    participant_range = serializers.ChoiceField(
+        choices=["30 a 50", "51 a 100", "100 a 200"]
+    )
+    age_ranges = serializers.ChoiceField(
+        choices=["04 até 8 anos", "09 até 13 anos", "14 até 17 anos", "acima de 18 anos"]
+    )
+    accessibility_access = serializers.ChoiceField(
+        choices=["Sim", "Não", "Não se aplica, pois será realizado no térreo"]
+    )
     has_ramps = serializers.ChoiceField(choices=["Sim", "Não"], required=False, allow_blank=True)
     has_elevators = serializers.ChoiceField(choices=["Sim", "Não"], required=False, allow_blank=True)
     has_accessible_bathrooms = serializers.ChoiceField(choices=["Sim", "Não"], required=False, allow_blank=True)

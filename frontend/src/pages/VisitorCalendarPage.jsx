@@ -152,12 +152,13 @@ export default function VisitorCalendarPage() {
               <dt>Tipo de solicitante</dt><dd>{selected.requester_entity_type || "-"}</dd>
               <dt>Funcao/cargo</dt><dd>{selected.requester_role || "-"}</dd>
               <dt>Publico</dt><dd>{selected.audience || "-"}</dd>
-              <dt>Faixa etaria</dt><dd>{selected.age_ranges || "-"}</dd>
+              <dt>Faixa etária</dt><dd>{selected.age_ranges || "-"}</dd>
+              <dt>Participantes</dt><dd>{selected.participant_range || selected.quantity || "-"}</dd>
               <dt>Tipo de atividade</dt><dd>{selected.activity_type || selected.action_type || selected.action_type_ref_name || "-"}</dd>
               <dt>Local</dt><dd>{requestLocation(selected)}</dd>
               <dt>Endereco</dt><dd><MapPin size={15} /> {fullAddress(selected) || "-"}</dd>
               <dt>Municipio</dt><dd>{selected.city || selected.municipality_ref_name || "-"}</dd>
-              <dt>Acessibilidade</dt><dd>Rampas: {selected.has_ramps || "-"} | Elevadores: {selected.has_elevators || "-"} | Banheiros: {selected.has_accessible_bathrooms || "-"}</dd>
+              <dt>Acessibilidade</dt><dd>{selected.accessibility_access ? "Acesso: " + selected.accessibility_access : "Rampas: " + (selected.has_ramps || "-") + " | Elevadores: " + (selected.has_elevators || "-")} | Banheiros: {selected.has_accessible_bathrooms || "-"}</dd>
               <dt>Equipamentos de midia</dt><dd>{selected.media_equipment || "-"}</dd>
               <dt>Autorizacao de imagem</dt><dd>{selected.image_authorization || "-"}</dd>
             </dl>

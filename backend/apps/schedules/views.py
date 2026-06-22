@@ -96,7 +96,9 @@ def snapshot_for(agenda):
         "city": agenda.city,
         "state": agenda.state,
         "requester_entity_type": agenda.requester_entity_type,
+        "participant_range": agenda.participant_range,
         "age_ranges": agenda.age_ranges,
+        "accessibility_access": agenda.accessibility_access,
     }
 
 
@@ -2107,7 +2109,9 @@ class PublicAgendaRequestView(APIView):
             requester_role=data.get("requester_role", ""),
             requester_entity_type=data["requester_entity_type"],
             audience=data.get("audience", ""),
+            participant_range=data.get("participant_range", ""),
             age_ranges=data.get("age_ranges", ""),
+            accessibility_access=data.get("accessibility_access", ""),
             has_ramps=data.get("has_ramps", ""),
             has_elevators=data.get("has_elevators", ""),
             has_accessible_bathrooms=data.get("has_accessible_bathrooms", ""),
@@ -2270,7 +2274,9 @@ class InternalAgendaRequestView(APIView):
             requester_role=data.get("requester_role", ""),
             requester_entity_type=data["requester_entity_type"],
             audience=data.get("audience", ""),
+            participant_range=data.get("participant_range", ""),
             age_ranges=data.get("age_ranges", ""),
+            accessibility_access=data.get("accessibility_access", ""),
             has_ramps=data.get("has_ramps", ""),
             has_elevators=data.get("has_elevators", ""),
             has_accessible_bathrooms=data.get("has_accessible_bathrooms", ""),

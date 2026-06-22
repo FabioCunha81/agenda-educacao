@@ -33,6 +33,7 @@ const emptyForm = {
   action_type_ref: "",
   institution_location: "",
   quantity: "",
+  participant_range: "",
   actions_count: "",
   schedule_text: "",
   time_2: "",
@@ -52,6 +53,7 @@ const emptyForm = {
   requester_entity_type: "",
   audience: "",
   age_ranges: "",
+  accessibility_access: "",
   has_ramps: "",
   has_elevators: "",
   has_accessible_bathrooms: "",
@@ -884,10 +886,10 @@ export default function AgendaPage() {
               <span><b>Modalidade</b>{form.action_type || "-"}</span>
               <span><b>Data e horário</b>{form.date ? formatDateBR(form.date) : "-"} às {form.start_time || "-"}</span>
               <span><b>Ações</b>{form.actions_count || "-"}</span>
-              <span><b>Participantes</b>{form.quantity || "-"}</span>
+              <span><b>Participantes</b>{form.participant_range || form.quantity || "-"}</span>
               <span><b>Faixa etária</b>{form.age_ranges || "-"}</span>
               <span><b>Endereço</b>{[form.address, form.neighborhood, form.city, form.state].filter(Boolean).join(", ") || "-"}</span>
-              <span><b>Acessibilidade</b>Rampa: {form.has_ramps || "-"} · Elevador: {form.has_elevators || "-"} · Banheiro: {form.has_accessible_bathrooms || "-"}</span>
+              <span><b>Acessibilidade</b>{form.accessibility_access ? "Acesso: " + form.accessibility_access : "Rampa: " + (form.has_ramps || "-") + " · Elevador: " + (form.has_elevators || "-")} · Banheiro: {form.has_accessible_bathrooms || "-"}</span>
               <span><b>Recursos</b>{form.media_equipment || "-"}</span>
               <span className="full"><b>Autorização de imagem</b>{form.image_authorization || "-"}</span>
               {form.notes && <span className="full"><b>Observações</b>{form.notes}</span>}
@@ -1244,6 +1246,8 @@ export default function AgendaPage() {
             </div>
             <input placeholder="Público" value={form.audience} onChange={(e) => update("audience", e.target.value)} />
             <input placeholder="Faixa etária" value={form.age_ranges} onChange={(e) => update("age_ranges", e.target.value)} />
+            <input placeholder="Faixa de participantes" value={form.participant_range} onChange={(e) => update("participant_range", e.target.value)} />
+            <input placeholder="Acesso por rampa/elevador" value={form.accessibility_access} onChange={(e) => update("accessibility_access", e.target.value)} />
             <div className="compact-grid three-cols">
               <input placeholder="Rampa" value={form.has_ramps} onChange={(e) => update("has_ramps", e.target.value)} />
               <input placeholder="Elevador" value={form.has_elevators} onChange={(e) => update("has_elevators", e.target.value)} />

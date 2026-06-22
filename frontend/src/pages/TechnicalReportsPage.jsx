@@ -277,7 +277,9 @@ function protocolDetails(agenda) {
       agenda.audience ? `Público: ${agenda.audience}` : "",
       agenda.requester_entity_type ? `Tipo de entidade: ${agenda.requester_entity_type}` : "",
       agenda.age_ranges ? `Faixa etária: ${agenda.age_ranges}` : "",
-      agenda.quantity ? `Quantidade prevista: ${agenda.quantity}` : "",
+      agenda.participant_range
+        ? `Quantidade prevista: ${agenda.participant_range}`
+        : agenda.quantity ? `Quantidade prevista: ${agenda.quantity}` : "",
       agenda.external_responsible ? `Responsável no local: ${agenda.external_responsible}` : "",
       agenda.external_responsible_phone ? `Telefone: ${agenda.external_responsible_phone}` : "",
       agenda.external_email ? `E-mail: ${agenda.external_email}` : "",
@@ -378,8 +380,10 @@ export default function TechnicalReportsPage() {
       cars: current.cars || joinValues([agenda.vehicle, agenda.vehicle_name]),
       changes_general: current.changes_general || joinValues([
         agenda.image_authorization ? `Autorização de imagem: ${agenda.image_authorization}` : "",
-        agenda.has_ramps || agenda.has_elevators || agenda.has_accessible_bathrooms
-          ? `Acessibilidade: rampas ${agenda.has_ramps || "-"}, elevadores ${agenda.has_elevators || "-"}, banheiros adaptados ${agenda.has_accessible_bathrooms || "-"}`
+        agenda.accessibility_access || agenda.has_ramps || agenda.has_elevators || agenda.has_accessible_bathrooms
+          ? agenda.accessibility_access
+            ? `Acessibilidade: acesso ${agenda.accessibility_access}, banheiros adaptados ${agenda.has_accessible_bathrooms || "-"}`
+            : `Acessibilidade: rampas ${agenda.has_ramps || "-"}, elevadores ${agenda.has_elevators || "-"}, banheiros adaptados ${agenda.has_accessible_bathrooms || "-"}`
           : "",
       ]),
       contact_received: current.contact_received || joinContactValues([

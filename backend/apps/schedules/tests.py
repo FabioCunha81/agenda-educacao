@@ -1,12 +1,13 @@
 from datetime import date, time
 
-from django.test import SimpleTestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import User
 from apps.schedules.emails import approval_message, available_dates_message, rejection_message
 from apps.schedules.models import Agenda, Agent, EducationAction, EducationReport, Sector, ShiftSchedule, Team
+from apps.schedules.serializers import PublicAgendaRequestSerializer
 
 
 
@@ -36,6 +37,45 @@ class AgendaEmailMessageTests(SimpleTestCase):
         _, body = approval_message(self.agenda)
 
         self.assertTrue(body.startswith("Prezado(a) João Souza,"))
+
+
+class PublicAgendaRequestSerializerTests(TestCase):
+    def valid_data(self):
+        return {
+            "title": "Palestra bilíngue - Escola",
+            "description": "Solicitação pública",
+            "date": "2026-07-20",
+            "start_time": "10:00",
+            "end_time": "11:00",
+            "action_type": "Palestra bilíngue (Inglês)",
+            "institution_location": "Escola Modelo",
+            "address": "Rua Exemplo, 10",
+            "city": "Rio de Janeiro",
+            "external_responsible": "Maria da Silva",
+            "external_responsible_phone": "21999999999",
+            "external_email": "maria@example.com",
+            "requester_entity_type": "Escola Municipal",
+            "participant_range": "51 a 100",
+            "age_ranges": "09 até 13 anos",
+            "accessibility_access": "Não se aplica, pois será realizado no térreo",
+            "has_accessible_bathrooms": "Sim",
+            "quantity": 100,
+        }
+
+    def test_accepts_options_from_updated_public_form(self):
+        serializer = PublicAgendaRequestSerializer(data=self.valid_data())
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def test_rejects_multiple_age_ranges(self):
+        data = self.valid_data()
+        data["age_ranges"] = "04 até 8 anos, 09 até 13 anos"
+
+        serializer = PublicAgendaRequestSerializer(data=data)
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("age_ranges", serializer.errors)
+
 
 class TeamLookupTests(APITestCase):
     def test_manager_can_create_and_list_custom_team(self):
