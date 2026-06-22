@@ -496,7 +496,7 @@ class EducationReport(models.Model):
     equipment_materials_distributed = models.TextField(blank=True)
     distribution_materials_removed = models.TextField(blank=True)
     distribution_materials_distributed = models.TextField(blank=True)
-    breathalyzers = models.CharField(max_length=220, blank=True)
+    breathalyzers = models.TextField(blank=True)
     cars = models.CharField(max_length=220, blank=True)
     changes_general = models.TextField(blank=True)
     contact_received = models.CharField(max_length=220, blank=True)

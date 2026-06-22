@@ -7,7 +7,7 @@ from rest_framework.test import APITestCase
 from apps.accounts.models import User
 from apps.schedules.emails import approval_message, available_dates_message, rejection_message
 from apps.schedules.models import Agenda, Agent, EducationAction, EducationReport, Sector, ShiftSchedule, Team
-from apps.schedules.serializers import PublicAgendaRequestSerializer
+from apps.schedules.serializers import EducationReportSerializer, PublicAgendaRequestSerializer
 
 
 
@@ -76,6 +76,37 @@ class PublicAgendaRequestSerializerTests(TestCase):
         self.assertFalse(serializer.is_valid())
         self.assertIn("age_ranges", serializer.errors)
 
+
+class EducationReportSerializerTests(TestCase):
+    def test_accepts_long_resources_summary(self):
+        sector = Sector.objects.create(name="EDUCACAO")
+        manager = User.objects.create_user(
+            email="report@example.com",
+            password="password123",
+            full_name="Gestor Relatorio",
+            role=User.Role.MANAGER,
+            sector=sector,
+        )
+        agenda = Agenda.objects.create(
+            title="Acao educativa",
+            description="Atividade educativa",
+            date=date(2026, 6, 22),
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            location="Escola Municipal",
+            responsible=manager,
+            sector=sector,
+            created_by=manager,
+        )
+        serializer = EducationReportSerializer(data={
+            "agenda": agenda.id,
+            "operation_date": "2026-06-22",
+            "team": "Equipe Educacao",
+            "breathalyzers": "Recursos, kits e materiais\n" + ("Kit educativo completo\n" * 20),
+            "status": EducationReport.ReportStatus.DRAFT,
+        })
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
 
 class TeamLookupTests(APITestCase):
     def test_manager_can_create_and_list_custom_team(self):
