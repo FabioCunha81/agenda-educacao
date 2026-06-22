@@ -2,7 +2,7 @@ import re
 from collections import Counter, defaultdict
 from datetime import date, timedelta
 
-from django.db import DatabaseError, transaction
+from django.db import transaction
 from django.db.models import Avg, Case, Count, F, IntegerField, Q, Sum, Value, When
 from django.db.models.functions import ExtractMonth, ExtractYear
 from django.core import signing
@@ -1247,12 +1247,12 @@ class EducationReportViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         try:
             return super().list(request, *args, **kwargs)
-        except DatabaseError as error:
+        except Exception as error:
             if request.user.is_admin_role:
                 return response.Response(
                     {
                         "detail": "A tabela de relatórios está temporariamente indisponível.",
-                        "diagnostic": str(error),
+                        "diagnostic": f"{type(error).__name__}: {error}",
                     },
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
