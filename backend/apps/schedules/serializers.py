@@ -958,12 +958,15 @@ def normalize_block_value(value):
 
 def find_accessibility_block(attrs):
     institution = normalize_block_value(attrs.get("institution_location"))
+    address = normalize_block_value(attrs.get("address"))
     responsible = normalize_block_value(attrs.get("external_responsible"))
     phone = normalize_block_value(attrs.get("external_responsible_phone"))
     email = normalize_block_value(attrs.get("external_email"))
     cpf = normalize_block_value(attrs.get("requester_cpf"))
 
     for block in AccessibilityBlocklist.objects.filter(is_active=True):
+        if block.address and normalize_block_value(block.address) == address:
+            return block
         if block.institution_location and normalize_block_value(block.institution_location) == institution:
             return block
         if block.external_email and normalize_block_value(block.external_email) == email:

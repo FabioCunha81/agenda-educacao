@@ -528,6 +528,7 @@ class EducationReport(models.Model):
 
 class AccessibilityBlocklist(models.Model):
     institution_location = models.CharField(max_length=220, blank=True)
+    address = models.CharField(max_length=220, blank=True)
     external_responsible = models.CharField(max_length=160, blank=True)
     external_responsible_phone = models.CharField(max_length=160, blank=True)
     external_email = models.EmailField(blank=True)
@@ -542,6 +543,7 @@ class AccessibilityBlocklist(models.Model):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["is_active", "institution_location"]),
+            models.Index(fields=["is_active", "address"]),
             models.Index(fields=["is_active", "external_email"]),
             models.Index(fields=["is_active", "requester_cpf"]),
         ]

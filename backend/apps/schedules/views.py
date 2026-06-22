@@ -1328,6 +1328,7 @@ class EducationReportViewSet(viewsets.ModelViewSet):
             source_report=report,
             defaults={
                 "institution_location": agenda.institution_location or agenda.location or "",
+                "address": agenda.address or "",
                 "external_responsible": agenda.external_responsible or "",
                 "external_responsible_phone": agenda.external_responsible_phone or "",
                 "external_email": agenda.external_email or agenda.contact_email or "",
@@ -2061,7 +2062,16 @@ class PublicAgendaRequestView(APIView):
 
     def post(self, request):
         serializer = PublicAgendaRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            from rest_framework.exceptions import ValidationError
+            if isinstance(e, ValidationError):
+                from apps.schedules.serializers import find_accessibility_block
+                from apps.schedules.emails import send_accessibility_rejection_email
+                if find_accessibility_block(serializer.initial_data):
+                    send_accessibility_rejection_email(serializer.initial_data)
+            raise e
         data = serializer.validated_data
         public_sector, _ = Sector.objects.get_or_create(
             name="Solicitações externas",
@@ -2244,7 +2254,16 @@ class InternalAgendaRequestView(APIView):
         if not (request.user.is_admin_role or request.user.role == User.Role.SUPERVISOR):
             raise PermissionDenied("Apenas Chefes, Gestores e Administração podem criar solicitações internas.")
         serializer = PublicAgendaRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            from rest_framework.exceptions import ValidationError
+            if isinstance(e, ValidationError):
+                from apps.schedules.serializers import find_accessibility_block
+                from apps.schedules.emails import send_accessibility_rejection_email
+                if find_accessibility_block(serializer.initial_data):
+                    send_accessibility_rejection_email(serializer.initial_data)
+            raise e
         data = serializer.validated_data
         internal_sector, _ = Sector.objects.get_or_create(
             name="Solicitações internas",

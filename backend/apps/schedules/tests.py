@@ -94,6 +94,23 @@ class PublicAgendaRequestSerializerTests(TestCase):
         self.assertFalse(serializer.is_valid())
         self.assertIn("age_ranges", serializer.errors)
 
+    def test_rejects_blocked_address(self):
+        from apps.schedules.models import AccessibilityBlocklist
+
+        # Create an active accessibility block on the address
+        AccessibilityBlocklist.objects.create(
+            address="Rua Exemplo, 10",
+            is_active=True,
+            reason="Não acessível"
+        )
+
+        data = self.valid_data()
+        serializer = PublicAgendaRequestSerializer(data=data)
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("non_field_errors", serializer.errors)
+        self.assertIn("Solicitação recusada automaticamente", str(serializer.errors["non_field_errors"]))
+
 
 class EducationReportSerializerTests(APITestCase):
     def test_accepts_long_resources_summary(self):
@@ -360,3 +377,51 @@ class DashboardMetricsTests(APITestCase):
         metrics = response.json()["chief_fillings"]
         self.assertEqual(metrics["teams_count"], 2)
         self.assertEqual(metrics["average_approaches_per_team"], 30.0)
+
+
+class PublicAgendaRequestRejectionEmailTests(APITestCase):
+    def test_sends_email_on_blocked_address_rejection(self):
+        from django.core import mail
+        from apps.schedules.models import AccessibilityBlocklist
+
+        # Create active block on the address
+        AccessibilityBlocklist.objects.create(
+            address="Rua Exemplo, 10",
+            is_active=True,
+            reason="Não acessível"
+        )
+
+        data = {
+            "title": "Palestra bilíngue - Escola",
+            "description": "Solicitação pública",
+            "date": "2026-07-20",
+            "start_time": "10:00",
+            "end_time": "11:00",
+            "action_type": "Palestra bilíngue (Inglês)",
+            "institution_location": "Escola Modelo",
+            "address": "Rua Exemplo, 10",
+            "city": "Rio de Janeiro",
+            "external_responsible": "Maria da Silva",
+            "external_responsible_phone": "21999999999",
+            "external_email": "maria@example.com",
+            "requester_entity_type": "Escola Municipal",
+            "participant_range": "51 a 100",
+            "age_ranges": "09 até 13 anos",
+            "accessibility_access": "Não se aplica, pois será realizado no térreo",
+            "has_accessible_bathrooms": "Sim",
+            "quantity": 100,
+        }
+
+        # Submit request
+        response = self.client.post(reverse("public_agenda_request"), data)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Solicitação recusada automaticamente", str(response.json()))
+
+        # Check outbox
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.subject, "Recusa de solicitação - Operação Lei Seca")
+        self.assertIn("maria@example.com", email.to)
+        self.assertIn("Agradecemos o seu interesse em contar com a Operação Lei Seca", email.body)
+        self.assertIn("Motivo: A instituição ou o solicitante possui uma restrição ativa por não atender às condições de acessibilidade para cadeirantes", email.body)

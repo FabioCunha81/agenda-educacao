@@ -230,10 +230,11 @@ def send_satisfaction_survey_email(report):
     survey = get_or_create_survey(report)
     subject = f"Pesquisa de satisfação - Protocolo #{report.agenda_id}"
     body = (
-        "Prezados,\n\n"
-        "Solicitamos que avaliem a nossa palestra para que possamos aprimorar as ações futuras.\n\n"
-        f"Acesse a pesquisa pelo link abaixo:\n{survey_url(survey)}\n\n"
-        f"Protocolo: #{report.agenda_id}\n\n"
+        "Prezado(a),\n\n"
+        "Sabia que a opinião é muito importante para nós? Ela contribui diretamente para o aprimoramento das próximas ações e atividades que desenvolvemos. Por isso, gostaríamos de te convidar a compartilhar sua experiência por meio da nossa Pesquisa de Satisfação.\n\n"
+        "Sua participação é rápida, voluntária, segura e essencial para identificar oportunidades de melhoria.\n\n"
+        f"Para responder, acesse o link abaixo:\n{survey_url(survey)}\n\n"
+        "Agradecemos, desde já, pelo seu tempo e pela valiosa contribuição.\n\n"
         "Atenciosamente,\n"
         "Superintendência da Operação Lei Seca"
     )
@@ -244,3 +245,28 @@ def send_satisfaction_survey_email(report):
     survey.sent_at = timezone.now()
     survey.save(update_fields=["sent_at", "updated_at"])
     return True
+
+
+def send_accessibility_rejection_email(data):
+    recipients = []
+    for email in [data.get("external_email"), data.get("contact_email")]:
+        if email and email.strip():
+            recipients.append(email.strip())
+    if not recipients:
+        return False
+
+    institution = data.get("institution_location") or data.get("location") or "instituição"
+    responsible = data.get("external_responsible") or "solicitante"
+
+    subject = "Recusa de solicitação - Operação Lei Seca"
+    body = (
+        f"Prezado(a) {responsible},\n\n"
+        "Esperamos que esteja bem.\n\n"
+        f"Agradecemos o seu interesse em contar com a Operação Lei Seca. No entanto, informamos que a sua solicitação para a instituição {institution} não pôde ser aceita no momento.\n\n"
+        "Motivo: A instituição ou o solicitante possui uma restrição ativa por não atender às condições de acessibilidade para cadeirantes em atividades anteriores. A Operação Lei Seca preza pela inclusão e acessibilidade de todos os participantes.\n\n"
+        "Caso as adequações de acessibilidade tenham sido realizadas ou para obter mais esclarecimentos, por favor, entre em contato conosco.\n\n"
+        "Atenciosamente,\n\n"
+        "Superintendência da Operação Lei Seca"
+    )
+    email = build_email(subject, body, recipients)
+    return send_email_safely(email, f"recusa de acessibilidade para {institution}")
