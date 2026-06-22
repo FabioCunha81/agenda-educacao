@@ -794,11 +794,11 @@ export default function TechnicalReportsPage() {
                   applyAgenda(agenda);
                   fillCoordinatesFromAgenda(agenda);
                 }}
-                style={{ textAlign: "left", padding: "12px", borderRadius: "8px", border: "1px solid var(--line)", background: "var(--surface-2)", cursor: "pointer", transition: "all 0.2s" }}
+                style={{ textAlign: "left", padding: "12px", borderRadius: "8px", border: "1px solid var(--line)", background: "var(--surface-2)", cursor: "pointer", transition: "all 0.2s", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "4px", width: "100%", wordBreak: "break-word" }}
               >
-                <strong style={{ display: "block", fontSize: "13px", color: "var(--primary)", marginBottom: "4px" }}>{agendaReferenceLabel(agenda)} - {agenda.title}</strong>
-                <span style={{ display: "block", fontSize: "11.5px", color: "var(--text-soft)" }}>{formatDateBR(agenda.date)} · {agenda.location || agenda.institution_location || "Local não informado"}</span>
-                {agenda.chief_name && <span style={{ display: "block", fontSize: "11px", color: "var(--text-soft)", marginTop: "4px", fontWeight: "600" }}>Chefe: {agenda.chief_name}</span>}
+                <strong style={{ display: "block", fontSize: "13px", color: "var(--primary)", marginBottom: "0", lineHeight: "1.3" }}>{agendaReferenceLabel(agenda)} - {agenda.title}</strong>
+                <span style={{ display: "block", fontSize: "11.5px", color: "var(--text-soft)", lineHeight: "1.3" }}>{formatDateBR(agenda.date)} · {agenda.location || agenda.institution_location || "Local não informado"}</span>
+                {agenda.chief_name && <span style={{ display: "block", fontSize: "11px", color: "var(--text-soft)", marginTop: "2px", fontWeight: "600", lineHeight: "1.3" }}>Chefe: {agenda.chief_name}</span>}
               </button>
             ))}
           </div>
@@ -813,15 +813,15 @@ export default function TechnicalReportsPage() {
                 key={report.id}
                 type="button"
                 onClick={() => edit(report)}
-                style={{ textAlign: "left", padding: "12px", borderRadius: "8px", border: "1px solid var(--line)", background: "var(--surface-2)", cursor: "pointer", transition: "all 0.2s" }}
+                style={{ textAlign: "left", padding: "12px", borderRadius: "8px", border: "1px solid var(--line)", background: "var(--surface-2)", cursor: "pointer", transition: "all 0.2s", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "4px", width: "100%", wordBreak: "break-word" }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                  <strong style={{ fontSize: "13px", color: "var(--primary)" }}>{agendaReferenceLabel(agendas.find((agenda) => String(agenda.id) === String(report.agenda))) || `Protocolo #${report.agenda}`}</strong>
-                  <span style={{ fontSize: "10px", fontWeight: "700", padding: "2px 6px", borderRadius: "10px", background: report.status === "DRAFT" ? "rgba(246, 189, 22, 0.2)" : "rgba(16, 185, 129, 0.2)", color: report.status === "DRAFT" ? "#d97706" : "#059669" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%", gap: "8px" }}>
+                  <strong style={{ fontSize: "13px", color: "var(--primary)", lineHeight: "1.3", flex: 1 }}>{agendaReferenceLabel(agendas.find((agenda) => String(agenda.id) === String(report.agenda))) || `Protocolo #${report.agenda}`}</strong>
+                  <span style={{ fontSize: "10px", fontWeight: "700", padding: "2px 6px", borderRadius: "10px", background: report.status === "DRAFT" ? "rgba(246, 189, 22, 0.2)" : "rgba(16, 185, 129, 0.2)", color: report.status === "DRAFT" ? "#d97706" : "#059669", whiteSpace: "nowrap" }}>
                     {report.status === "DRAFT" ? "Rascunho" : "Enviado"}
                   </span>
                 </div>
-                <span style={{ display: "block", fontSize: "11.5px", color: "var(--text-soft)" }}>{formatDateBR(report.operation_date)} · Equipe {report.team}</span>
+                <span style={{ display: "block", fontSize: "11.5px", color: "var(--text-soft)", lineHeight: "1.3" }}>{formatDateBR(report.operation_date)} · Equipe {report.team}</span>
               </button>
             ))}
           </div>
