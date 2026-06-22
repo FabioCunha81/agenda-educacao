@@ -178,9 +178,17 @@ def message_for_status(agenda, status):
         return (
             f"Solicitação recebida - Protocolo #{agenda.id}",
             (
-                "Recebemos sua solicitação e ela será avaliada pela equipe responsável.\n\n"
+                "Prezado(a) solicitante,\n\n"
+                "Agradecemos o seu interesse em contar com a Operação Lei Seca e pela oportunidade de construirmos, "
+                "juntos, ações que promovam a conscientização e a preservação de vidas no trânsito.\n\n"
+                "Recebemos a sua solicitação com satisfação e informamos que ela será analisada por nossa equipe.\n\n"
+                "Confira abaixo os dados do seu protocolo:\n\n"
                 f"{agenda_details(agenda)}\n\n"
-                "Você receberá uma nova mensagem quando houver atualização do protocolo."
+                "Enquanto aguarda o nosso retorno, lhe convidamos a acompanhar as ações, campanhas e novidades da "
+                "Operação Lei Seca por meio de nossas redes sociais, especialmente em nosso Instagram: "
+                f"{INSTAGRAM_URL}.\n\n"
+                "Atenciosamente,\n"
+                "Superintendência da Operação Lei Seca."
             ),
         )
     if status == Agenda.Status.APPROVED:

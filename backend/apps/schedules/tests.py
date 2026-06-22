@@ -5,7 +5,7 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import User
-from apps.schedules.emails import approval_message, available_dates_message, rejection_message
+from apps.schedules.emails import approval_message, available_dates_message, message_for_status, rejection_message
 from apps.schedules.models import Agenda, Agent, EducationAction, EducationReport, Sector, ShiftSchedule, Team
 from apps.schedules.serializers import EducationReportSerializer, PublicAgendaRequestSerializer
 
@@ -38,6 +38,24 @@ class AgendaEmailMessageTests(SimpleTestCase):
 
         self.assertTrue(body.startswith("Prezado(a) João Souza,"))
 
+
+    def test_pending_message_uses_requested_confirmation_text(self):
+        self.agenda.title = "Palestra Presencial - FACHA"
+        self.agenda.date = date(2026, 6, 30)
+        self.agenda.start_time = time(22, 28)
+        self.agenda.end_time = time(23, 28)
+        self.agenda.institution_location = "FACHA"
+        self.agenda.address = "Rua Muniz Barreto, nº 51"
+        self.agenda.city = "Rio de Janeiro"
+
+        subject, body = message_for_status(self.agenda, Agenda.Status.PENDING)
+
+        self.assertEqual(subject, "Solicitação recebida - Protocolo #123")
+        self.assertTrue(body.startswith("Prezado(a) solicitante,\n\nAgradecemos o seu interesse"))
+        self.assertIn("Confira abaixo os dados do seu protocolo:\n\nProtocolo: #123", body)
+        self.assertIn("Horário: 22:28 às 23:28", body)
+        self.assertIn("https://www.instagram.com/leisecarj/", body)
+        self.assertTrue(body.endswith("Atenciosamente,\nSuperintendência da Operação Lei Seca."))
 
 class PublicAgendaRequestSerializerTests(TestCase):
     def valid_data(self):
