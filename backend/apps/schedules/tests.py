@@ -95,7 +95,7 @@ class PublicAgendaRequestSerializerTests(TestCase):
         self.assertIn("age_ranges", serializer.errors)
 
 
-class EducationReportSerializerTests(TestCase):
+class EducationReportSerializerTests(APITestCase):
     def test_accepts_long_resources_summary(self):
         sector = Sector.objects.create(name="EDUCACAO")
         manager = User.objects.create_user(
@@ -125,6 +125,39 @@ class EducationReportSerializerTests(TestCase):
         })
 
         self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def test_admin_can_list_saved_reports(self):
+        sector = Sector.objects.create(name="EDUCACAO RELATORIOS")
+        admin = User.objects.create_user(
+            email="admin-report@example.com",
+            password="password123",
+            full_name="Admin Relatorio",
+            role=User.Role.ADMIN,
+            sector=sector,
+        )
+        agenda = Agenda.objects.create(
+            title="Acao educativa",
+            description="Atividade educativa",
+            date=date(2026, 6, 22),
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            location="Escola Municipal",
+            responsible=admin,
+            sector=sector,
+            created_by=admin,
+        )
+        EducationReport.objects.create(
+            agenda=agenda,
+            operation_date=agenda.date,
+            team="Equipe Educacao",
+            created_by=admin,
+        )
+        self.client.force_authenticate(admin)
+
+        response = self.client.get(reverse("education-reports-list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
 
 class TeamLookupTests(APITestCase):
     def test_manager_can_create_and_list_custom_team(self):

@@ -1244,19 +1244,6 @@ class EducationReportViewSet(viewsets.ModelViewSet):
         ("publicity_materials", "Materiais de divulgação"),
     ]
 
-    def list(self, request, *args, **kwargs):
-        try:
-            return super().list(request, *args, **kwargs)
-        except Exception as error:
-            if request.user.is_admin_role:
-                return response.Response(
-                    {
-                        "detail": "A tabela de relatórios está temporariamente indisponível.",
-                        "diagnostic": f"{type(error).__name__}: {error}",
-                    },
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
-            raise
     def get_queryset(self):
         user = self.request.user
         queryset = EducationReport.objects.select_related("agenda", "created_by").prefetch_related(

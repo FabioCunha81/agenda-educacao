@@ -331,6 +331,7 @@ export default function TechnicalReportsPage() {
   const [form, setForm] = useState(empty);
   const [editing, setEditing] = useState(null);
   const [message, setMessage] = useState("");
+  const [loadError, setLoadError] = useState("");
   const [locationMessage, setLocationMessage] = useState("");
   const [isGeocoding, setIsGeocoding] = useState(false);
   const { user } = useAuth();
@@ -346,16 +347,30 @@ export default function TechnicalReportsPage() {
   const completedAgendaIds = useMemo(() => new Set(reports.map(r => String(r.agenda))), [reports]);
   const pendingAgendas = useMemo(() => agendas.filter(a => !completedAgendaIds.has(String(a.id))), [agendas, completedAgendaIds]);
 
-  const load = () => {
-    Promise.all([
+  const load = async () => {
+    setLoadError("");
+    const [agendasResult, reportsResult] = await Promise.allSettled([
       api("/agendas/?page_size=1000&reportable=true"),
-      api("/education-reports/?page_size=1000")
-    ]).then(([agendasData, reportsData]) => {
-      setAgendas(agendasData.results || agendasData);
-      setReports(reportsData.results || reportsData);
-    });
-  };
+      api("/education-reports/?page_size=1000"),
+    ]);
 
+    if (agendasResult.status === "fulfilled") {
+      const data = agendasResult.value;
+      setAgendas(data.results || data);
+    }
+    if (reportsResult.status === "fulfilled") {
+      const data = reportsResult.value;
+      setReports(data.results || data);
+    }
+
+    const failures = [agendasResult, reportsResult]
+      .filter((result) => result.status === "rejected")
+      .map((result) => result.reason?.message)
+      .filter(Boolean);
+    if (failures.length) {
+      setLoadError(failures.join(" "));
+    }
+  };
   useEffect(load, []);
 
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
@@ -580,6 +595,8 @@ export default function TechnicalReportsPage() {
           </div>
           <button type="button" className="secondary" onClick={reset}><Plus size={18} /> Novo</button>
         </div>
+
+        {loadError && <div className="alert">{loadError}</div>}
 
         <form className="table-wrap report-form" onSubmit={submit}>
           <h2>{reportName(form)}</h2>
