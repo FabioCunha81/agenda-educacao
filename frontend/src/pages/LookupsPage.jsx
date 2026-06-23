@@ -8,7 +8,8 @@ const lookupTypes = [
   { key: "agents", label: "Agentes", endpoint: "/agents/", hasCpf: true, hasAddress: true, teamLabel: "Equipe" },
   { key: "supports", label: "Apoios", endpoint: "/supports/", hasCpf: true, hasAddress: true, hasTeam: true, teamLabel: "Ala" },
   { key: "vehicles", label: "Viaturas", endpoint: "/vehicles/" },
-  { key: "kits", label: "Kits", endpoint: "/kits/" },
+  { key: "kits", label: "Material de distribuição", endpoint: "/kits/" },
+  { key: "dynamics", label: "Dinâmicas", endpoint: "/dynamics/" },
   { key: "accessibility-blocklist", label: "Bloqueios de Acessibilidade", endpoint: "/accessibility-blocklist/", isBlocklist: true },
 ];
 

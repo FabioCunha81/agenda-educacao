@@ -32,6 +32,7 @@ from .models import (
     AccessibilityBlocklist,
     Chief,
     Kit,
+    Dynamic,
     Material,
     Municipality,
     Neighborhood,
@@ -63,6 +64,7 @@ from .serializers import (
     EventReportSerializer,
     ChiefSerializer,
     KitSerializer,
+    DynamicSerializer,
     MaterialSerializer,
     MunicipalitySerializer,
     NeighborhoodSerializer,
@@ -366,8 +368,13 @@ class NeighborhoodViewSet(LookupViewSet):
 
 
 class KitViewSet(LookupViewSet):
-    serializer_class = KitSerializer
     queryset = Kit.objects.all()
+    serializer_class = KitSerializer
+
+
+class DynamicViewSet(LookupViewSet):
+    queryset = Dynamic.objects.all()
+    serializer_class = DynamicSerializer
 
 
 class MaterialViewSet(LookupViewSet):

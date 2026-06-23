@@ -64,7 +64,15 @@ class Neighborhood(NamedLookup):
 
 
 class Kit(NamedLookup):
-    pass
+    class Meta(NamedLookup.Meta):
+        verbose_name = "Kit"
+        verbose_name_plural = "Kits"
+
+
+class Dynamic(NamedLookup):
+    class Meta(NamedLookup.Meta):
+        verbose_name = "Dinâmica"
+        verbose_name_plural = "Dinâmicas"
 
 
 class Material(NamedLookup):

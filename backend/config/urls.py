@@ -18,6 +18,7 @@ from apps.schedules.views import (
     EventReportViewSet,
     InternalAgendaRequestView,
     KitViewSet,
+    DynamicViewSet,
     MaterialViewSet,
     MunicipalityViewSet,
     NeighborhoodViewSet,
@@ -48,6 +49,7 @@ router.register("action-types", ActionTypeViewSet, basename="action-types")
 router.register("municipalities", MunicipalityViewSet, basename="municipalities")
 router.register("neighborhoods", NeighborhoodViewSet, basename="neighborhoods")
 router.register("kits", KitViewSet, basename="kits")
+router.register("dynamics", DynamicViewSet, basename="dynamics")
 router.register("materials", MaterialViewSet, basename="materials")
 router.register("agendas", AgendaViewSet, basename="agendas")
 router.register("event-reports", EventReportViewSet, basename="event-reports")

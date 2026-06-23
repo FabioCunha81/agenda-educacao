@@ -14,6 +14,7 @@ from .models import (
     EventReport,
     Chief,
     Kit,
+    Dynamic,
     Material,
     Municipality,
     Neighborhood,
@@ -125,6 +126,14 @@ class NeighborhoodSerializer(LookupSerializer):
 class KitSerializer(LookupSerializer):
     class Meta(LookupSerializer.Meta):
         model = Kit
+
+    def validate_name(self, value):
+        return value.strip().upper()
+
+
+class DynamicSerializer(LookupSerializer):
+    class Meta(LookupSerializer.Meta):
+        model = Dynamic
 
     def validate_name(self, value):
         return value.strip().upper()
