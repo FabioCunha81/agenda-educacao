@@ -511,6 +511,7 @@ class EducationReport(models.Model):
     changes_general = models.TextField(blank=True)
     contact_received = models.CharField(max_length=220, blank=True)
     occurrence_observation = models.TextField(blank=True)
+    general_observations = models.TextField(blank=True)
     lat = models.DecimalField(max_digits=12, decimal_places=8, null=True, blank=True)
     lng = models.DecimalField(max_digits=12, decimal_places=8, null=True, blank=True)
     status = models.CharField(max_length=20, choices=ReportStatus.choices, default=ReportStatus.DRAFT)

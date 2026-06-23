@@ -32,7 +32,7 @@ export function buildPreview(report) {
         `   Local: ${action.place_action || "não informado"}\n` +
         `   Público: ${action.type_audience || "não informado"}\n` +
         `   Horário: ${action.start_time || "--"} às ${action.final_hour || "--"}\n` +
-        `   Abordagens: ${action.approach || 0}\n` +
+        `   Público alcançado (Ação/Palestra): ${action.approach || 0}\n` +
         `   Material/equipamento retirado: ${action.equipment_materials_removed ? action.equipment_materials_removed.replace(/\\n/g, ", ") : "-"}\n` +
         `   Material/equipamento distribuído: ${action.equipment_materials_distributed ? action.equipment_materials_distributed.replace(/\\n/g, ", ") : "-"}\n` +
         `   Material distribuição retirado: ${action.distribution_materials_removed ? action.distribution_materials_removed.replace(/\\n/g, ", ") : "-"}\n` +
@@ -57,9 +57,10 @@ export function buildPreview(report) {
     `Alterações gerais: ${report.changes_general || "não informado"}\n\n` +
     `AÇÕES\n${actionLines}\n\n` +
     `TOTAIS\n` +
-    `Abordagens: ${totals.approach}\n\n` +
+    `Público alcançado (Ação/Palestra): ${totals.approach}\n\n` +
     `CONTATO/OCORRÊNCIAS\n` +
     `Contato recebido: ${report.contact_received || "não informado"}\n` +
+    `Dados e Observações: ${report.general_observations || "não informado"}\n` +
     `Observação de ocorrência: ${report.occurrence_observation || "não informado"}\n` +
     `Coordenadas: ${report.lat || "-"}, ${report.lng || "-"}`
   );

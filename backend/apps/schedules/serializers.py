@@ -869,6 +869,7 @@ class EducationReportSerializer(serializers.ModelSerializer):
             "changes_general",
             "contact_received",
             "occurrence_observation",
+            "general_observations",
             "lat",
             "lng",
             "status",

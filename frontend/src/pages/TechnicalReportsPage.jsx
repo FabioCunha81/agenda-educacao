@@ -48,6 +48,7 @@ const empty = {
   lat: "",
   lng: "",
   status: "DRAFT",
+  general_observations: "",
   actions: [{ ...emptyAction }],
 };
 
@@ -56,7 +57,7 @@ const numberFields = [
 ];
 
 const fieldLabels = {
-  approach: "Abordagens",
+  approach: "Público alcançado (Ação/Palestra)",
 };
 
 function nullable(value) {
@@ -314,6 +315,7 @@ function normalizePayload(form) {
     approximate_public: nullable(form.approximate_public),
     lat: nullable(form.lat),
     lng: nullable(form.lng),
+    general_observations: form.general_observations || "",
     actions: form.actions.map((action) => ({
       ...action,
       agenda: nullable(action.agenda || form.agenda),
@@ -407,6 +409,7 @@ export default function TechnicalReportsPage() {
         agenda.external_email,
       ], current.contact_received),
       occurrence_observation: current.occurrence_observation || agenda.notes || agenda.description || "",
+      general_observations: current.general_observations || "",
       actions: current.actions.map((action) => ({
         ...action,
         agenda: agenda.id,
@@ -694,16 +697,6 @@ export default function TechnicalReportsPage() {
                       </label>
                     ))}
                     <label className="field-label">
-                      <span>Número aproximado de público</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={form.approximate_public || ""}
-                        onChange={(event) => update("approximate_public", event.target.value)}
-                        required
-                      />
-                    </label>
-                    <label className="field-label">
                       <span>O local atendeu às condições de acessibilidade para cadeirantes?</span>
                       <select
                         value={form.accessibility_conditions_met || ""}
@@ -742,6 +735,7 @@ export default function TechnicalReportsPage() {
               onBlur={(event) => update("contact_received", formatContactValue(event.target.value))}
               readOnly={requestFieldsReadOnly}
             />
+            <textarea placeholder="Dados e Observações" value={form.general_observations || ""} onChange={(event) => update("general_observations", event.target.value)} />
             <textarea placeholder="Observação de ocorrência" value={form.occurrence_observation || ""} onChange={(event) => update("occurrence_observation", event.target.value)} />
             <div className="location-tools">
               <input type="number" step="0.00000001" placeholder="Latitude" value={form.lat || ""} onChange={(event) => update("lat", event.target.value)} />

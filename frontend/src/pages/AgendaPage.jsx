@@ -361,7 +361,35 @@ export default function AgendaPage() {
 
   const filteredKits = lookups.kits.filter((kit) => {
     const upper = (kit.name || "").toUpperCase();
-    return Object.keys(kitDetailsMap).some((key) => upper.includes(key));
+    if (!Object.keys(kitDetailsMap).some((key) => upper.includes(key))) {
+      return false;
+    }
+
+    let ranges = [];
+    if (Array.isArray(form.age_ranges)) {
+      ranges = form.age_ranges;
+    } else if (typeof form.age_ranges === "string" && form.age_ranges) {
+      ranges = form.age_ranges.split(",").map((r) => r.trim());
+    }
+
+    const isKids = ranges.includes("04 até 8 anos") || ranges.includes("09 até 13 anos");
+    const isTeens = ranges.includes("14 até 17 anos");
+    const isAdults = ranges.includes("acima de 18 anos");
+    const is14Plus = isTeens || isAdults;
+
+    const isInfantilKit = upper.includes("CIRCUITO INFANTIL") || upper.includes("PALESTRA INFANTIL");
+    const isJovensAdultosKit = upper.includes("PALESTRA JOVENS E ADULTOS") || upper.includes("CIRCUITO ÓCULOS");
+    const isEmpresaKit = upper.includes("PALESTRA EMPRESA");
+
+    if (ranges.length > 0) {
+      if (isInfantilKit && !isKids) return false;
+      if (isJovensAdultosKit && !is14Plus) return false;
+      if (isEmpresaKit && !isAdults) return false;
+    } else {
+      if (isEmpresaKit && form.action_type !== "Palestra Empresa") return false;
+    }
+
+    return true;
   });
 
   const allowedMaterials = [
@@ -802,7 +830,7 @@ export default function AgendaPage() {
                 </span>
               )}
             </div>
-            <p style={{ margin: 0 }}>Avalie solicitações recebidas pelo formulário público e faça a escala operacional.</p>
+            <p style={{ margin: 0 }}>Avalie solicitações recebidas pelo formulário público e faça a ordem de serviço.</p>
           </div>
           {canUseRequestShortcuts && <div className="page-actions">
             <a className="secondary action-link" href="/solicitacao-interna">
@@ -1025,7 +1053,7 @@ export default function AgendaPage() {
                 className="stack-form approval-form"
               >
                 <div className="form-section">
-                  <h3>Escala operacional</h3>
+                  <h3>Ordem de serviço</h3>
                   <div className="compact-grid">
                     <label className="field-label">
                       <span>Data</span>
