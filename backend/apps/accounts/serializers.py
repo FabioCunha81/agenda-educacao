@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 
-from apps.schedules.models import Agent, Chief, Sector, Support
+from apps.schedules.models import Agent, Chief, Sector, Support, Team
 
 
 def only_digits(value):
@@ -25,7 +25,7 @@ def sector_for_team(team):
         if sector:
             return sector
     return Sector.objects.create(
-        name=team.name.title(),
+        name=team.name,
         description="Equipe para vinculo de usuarios",
         is_active=True,
     )
@@ -78,7 +78,23 @@ def upsert_user_lookup(model, user, role_label, extra_defaults=None):
     return lookup
 
 
-def sync_user_lookup(user):
+def lookup_for_user(user):
+    model = {
+        User.Role.SUPERVISOR: Chief,
+        User.Role.USER: Agent,
+        User.Role.SUPPORT: Support,
+    }.get(user.role)
+    if not model:
+        return None
+    return model.objects.filter(source_id=user_lookup_source_id(user)).first() or find_lookup(model, user)
+
+
+def team_for_user(user):
+    lookup = lookup_for_user(user)
+    return lookup.team if lookup and lookup.team_id else None
+
+
+def sync_user_lookup(user, team=None):
     if not user.full_name:
         deactivate_other_user_lookups(user)
         return
@@ -86,11 +102,12 @@ def sync_user_lookup(user):
     if user.role == User.Role.SUPERVISOR:
         existing = Chief.objects.filter(source_id=user_lookup_source_id(user)).first() or find_lookup(Chief, user)
         phone = user.phone or (existing.phone if existing else "")
+        selected_team = team or (existing.team if existing and existing.team_id else None)
         lookup = upsert_user_lookup(
             Chief,
             user,
             "CHEFE",
-            {"phone": phone},
+            {"phone": phone, "team": selected_team},
         )
         deactivate_other_user_lookups(user, Chief)
         sector = sector_for_team(lookup.team)
@@ -106,7 +123,9 @@ def sync_user_lookup(user):
         return
 
     if user.role == User.Role.USER:
-        lookup = upsert_user_lookup(Agent, user, "AGENTE")
+        existing = Agent.objects.filter(source_id=user_lookup_source_id(user)).first() or find_lookup(Agent, user)
+        selected_team = team or (existing.team if existing and existing.team_id else None)
+        lookup = upsert_user_lookup(Agent, user, "AGENTE", {"team": selected_team})
         deactivate_other_user_lookups(user, Agent)
         sector = sector_for_team(lookup.team)
         if sector and user.sector_id != sector.id:
@@ -115,7 +134,9 @@ def sync_user_lookup(user):
         return
 
     if user.role == User.Role.SUPPORT:
-        lookup = upsert_user_lookup(Support, user, "APOIO")
+        existing = Support.objects.filter(source_id=user_lookup_source_id(user)).first() or find_lookup(Support, user)
+        selected_team = team or (existing.team if existing and existing.team_id else None)
+        lookup = upsert_user_lookup(Support, user, "APOIO", {"team": selected_team})
         deactivate_other_user_lookups(user, Support)
         sector = sector_for_team(lookup.team)
         if sector and user.sector_id != sector.id:
@@ -145,6 +166,9 @@ class LoginSerializer(TokenObtainPairSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False, min_length=8)
+    team = serializers.PrimaryKeyRelatedField(queryset=Team.objects.all(), required=False, allow_null=True, write_only=True)
+    team_id = serializers.SerializerMethodField()
+    team_name = serializers.SerializerMethodField()
     sector_name = serializers.CharField(source="sector.name", read_only=True)
     occupation = serializers.CharField(source="role", read_only=True)
     password_setup_link = serializers.SerializerMethodField()
@@ -159,6 +183,9 @@ class UserSerializer(serializers.ModelSerializer):
             "phone",
             "role",
             "occupation",
+            "team",
+            "team_id",
+            "team_name",
             "sector",
             "sector_name",
             "is_active",
@@ -176,6 +203,14 @@ class UserSerializer(serializers.ModelSerializer):
         uid = urlsafe_base64_encode(force_bytes(obj.pk))
         token = default_token_generator.make_token(obj)
         return f"{settings.FRONTEND_URL}/definir-senha?uid={uid}&token={token}"
+
+    def get_team_id(self, obj):
+        team = team_for_user(obj)
+        return team.id if team else None
+
+    def get_team_name(self, obj):
+        team = team_for_user(obj)
+        return team.name if team else ""
 
     def validate_email(self, value):
         email = (value or "").strip().lower()
@@ -201,8 +236,19 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Informe um CPF valido com 11 digitos.")
         return digits
 
+    def validate(self, attrs):
+        role = attrs.get("role", getattr(self.instance, "role", User.Role.USER))
+        if role in {User.Role.USER, User.Role.SUPPORT, User.Role.SUPERVISOR}:
+            team = attrs.get("team") if "team" in attrs else team_for_user(self.instance) if self.instance else None
+            if not team:
+                raise serializers.ValidationError({"team": "Informe a equipe do usuario operacional."})
+            if not team.is_active:
+                raise serializers.ValidationError({"team": "Selecione uma equipe ativa."})
+        return attrs
+
     def create(self, validated_data):
         password = validated_data.pop("password", None)
+        team = validated_data.pop("team", None)
         if validated_data.get("role") == User.Role.VISITOR and not validated_data.get("full_name"):
             sector = validated_data.get("sector")
             label = sector.name if sector else validated_data.get("email", "")
@@ -214,18 +260,19 @@ class UserSerializer(serializers.ModelSerializer):
         else:
             user.set_unusable_password()
         user.save()
-        sync_user_lookup(user)
+        sync_user_lookup(user, team=team)
         return user
 
     def update(self, instance, validated_data):
         password = validated_data.pop("password", None)
+        team = validated_data.pop("team", None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         if password:
             instance.set_password(password)
         instance.username = instance.email
         instance.save()
-        sync_user_lookup(instance)
+        sync_user_lookup(instance, team=team)
         return instance
 
 

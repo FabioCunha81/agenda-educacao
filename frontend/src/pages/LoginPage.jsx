@@ -3,12 +3,15 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client.js";
 import cardImage from "../assets/Captura de tela 2026-06-17 124452.jpg";
+import eventsBarsImage from "../assets/acoes-eventos-bares.png";
+import companyLectureImage from "../assets/palestra-empresa.jpeg";
 import leiSecaLogo from "../assets/operacao-lei-seca-logo.png";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const showcaseCards = [
   {
     title: "Palestra Empresa",
+    image: companyLectureImage,
     imagePosition: "center",
     variant: "left",
   },
@@ -18,8 +21,9 @@ const showcaseCards = [
     variant: "active",
   },
   {
-    title: "Palestras com cadeirantes",
-    imagePosition: "right center",
+    title: "Ações em eventos e bares",
+    image: eventsBarsImage,
+    imagePosition: "center",
     variant: "right",
   },
 ];
@@ -75,7 +79,7 @@ export default function LoginPage() {
           <div className="login-card-stack" aria-label="Ações educativas">
             {showcaseCards.map((card) => (
               <article className={`login-action-card ${card.variant}`} key={card.title}>
-                <img src={cardImage} alt="" style={{ objectPosition: card.imagePosition }} />
+                <img src={card.image || cardImage} alt="" style={{ objectPosition: card.imagePosition }} />
                 <h2>{card.title}</h2>
               </article>
             ))}

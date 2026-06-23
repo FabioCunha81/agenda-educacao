@@ -511,19 +511,19 @@ function ActivityPanel({ activity, advanced, materials }) {
       <div className="chart-card materials-dashboard-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px" }}>
         <div className="section-heading" style={{ marginBottom: "14px" }}>
           <div>
-            <h2 style={{ fontSize: "15px", fontWeight: "800" }}>Materiais distribuídos</h2>
-            <p style={{ color: "var(--text-soft)", fontSize: "12px", margin: "3px 0 0" }}>Total consolidado dos relatórios enviados.</p>
+            <h2 style={{ fontSize: "15px", fontWeight: "800", textTransform: "uppercase" }}>Materiais distribuídos</h2>
+            <p style={{ color: "var(--text-soft)", fontSize: "12px", fontWeight: "700", margin: "3px 0 0", textTransform: "uppercase" }}>Total consolidado dos relatórios enviados.</p>
           </div>
           <strong style={{ background: "#edf4ff", borderRadius: "10px", color: "#0048d7", fontSize: "20px", padding: "8px 12px" }}>{distributedMaterials.total}</strong>
         </div>
         <div className="advanced-list" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {distributedMaterials.items?.length ? distributedMaterials.items.map((item) => (
-            <span key={item.label} style={{ alignItems: "center", display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "13px" }}>
-              <span style={{ color: "var(--text)", fontWeight: "700", overflowWrap: "anywhere" }}>{item.label}</span>
-              <strong style={{ color: "var(--primary)" }}>{item.value}</strong>
+            <span key={item.label} style={{ alignItems: "flex-start", display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "13px", fontWeight: "800", lineHeight: 1.25, textTransform: "uppercase" }}>
+              <span style={{ color: "var(--text)", flex: "1 1 auto", fontSize: "13px", fontWeight: "800", lineHeight: 1.25, overflowWrap: "anywhere", textTransform: "uppercase" }}>{item.label}</span>
+              <strong style={{ color: "var(--primary)", flex: "0 0 auto", fontSize: "13px", fontWeight: "800", lineHeight: 1.25, textAlign: "right" }}>{item.value}</strong>
             </span>
           )) : (
-            <p style={{ color: "var(--text-soft)", fontSize: "13px", margin: 0 }}>Nenhum material distribuído registrado.</p>
+            <p style={{ color: "var(--text-soft)", fontSize: "13px", fontWeight: "800", margin: 0, textTransform: "uppercase" }}>Nenhum material distribuído registrado.</p>
           )}
         </div>
       </div>

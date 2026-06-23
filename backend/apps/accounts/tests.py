@@ -15,7 +15,9 @@ from apps.schedules.models import (
     EducationReport,
     EventReport,
     SatisfactionSurvey,
+    Agent,
     Sector,
+    Team,
 )
 
 
@@ -87,6 +89,50 @@ class UserDeleteTests(APITestCase):
         self.assertFalse(EducationReport.objects.exists())
         self.assertFalse(EducationAction.objects.exists())
         self.assertFalse(SatisfactionSurvey.objects.exists())
+
+
+class UserOperationalTeamTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            email="admin@example.com",
+            password="password123",
+            full_name="Admin",
+            role=User.Role.ADMIN,
+        )
+        self.team, _ = Team.objects.get_or_create(name="ALFA")
+        self.client.force_authenticate(self.admin)
+
+    def test_create_agent_links_user_to_lookup_team(self):
+        response = self.client.post(reverse("users-list"), {
+            "email": "agente@example.com",
+            "full_name": "Agente Novo",
+            "cpf": "12345678901",
+            "phone": "21999999999",
+            "role": User.Role.USER,
+            "team": self.team.id,
+            "is_active": True,
+        }, format="json")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["team_id"], self.team.id)
+        self.assertEqual(response.data["team_name"], "ALFA")
+
+        agent = Agent.objects.get(source_id=f"user:{response.data['id']}")
+        self.assertEqual(agent.team, self.team)
+        user = User.objects.get(id=response.data["id"])
+        self.assertEqual(user.sector.name.upper(), "ALFA")
+
+    def test_operational_user_requires_team(self):
+        response = self.client.post(reverse("users-list"), {
+            "email": "sem-equipe@example.com",
+            "full_name": "Sem Equipe",
+            "cpf": "12345678902",
+            "role": User.Role.USER,
+            "is_active": True,
+        }, format="json")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("team", response.data)
 
 
 class UserPasswordLinkTests(APITestCase):

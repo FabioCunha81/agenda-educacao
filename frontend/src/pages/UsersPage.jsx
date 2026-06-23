@@ -4,11 +4,11 @@ import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { roleLabel } from "../utils/permissions.js";
 
-const empty = { full_name: "", cpf: "", email: "", phone: "", role: "USER", sector: "", sector_name: "", is_active: true };
+const empty = { full_name: "", cpf: "", email: "", phone: "", role: "USER", team: "", sector: "", sector_name: "", is_active: true };
 
 const adminRoles = new Set(["ADMIN", "MANAGER"]);
 const visitorRoles = new Set(["VISITOR"]);
-const teamNames = ["ALFA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOX", "GOLF", "HOTEL"];
+const operationalRoles = new Set(["USER", "SUPPORT", "SUPERVISOR"]);
 
 function formatPhone(value) {
   const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
@@ -34,6 +34,7 @@ export default function UsersPage() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [sectors, setSectors] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [form, setForm] = useState(empty);
   const [editing, setEditing] = useState(null);
   const [message, setMessage] = useState("");
@@ -48,6 +49,7 @@ export default function UsersPage() {
   useEffect(() => {
     load().catch((err) => setMessage(err.message));
     api("/sectors/").then((data) => setSectors(data.results || data)).catch((err) => setMessage(err.message));
+    api("/teams/?page_size=1000").then((data) => setTeams(data.results || data)).catch((err) => setMessage(err.message));
   }, []);
 
   const resolveSector = async (name) => {
@@ -79,21 +81,31 @@ export default function UsersPage() {
       setMessage("Informe o nome do setor do visitante.");
       return;
     }
+    if (operationalRoles.has(form.role) && !form.team) {
+      setMessage("Informe a equipe do usuário operacional.");
+      return;
+    }
     if (!isValidEmail(form.email)) {
       setMessage("Informe um e-mail válido.");
       return;
     }
     const isEditing = Boolean(editing);
     try {
-      const sectorId = await resolveSector(sectorName);
+      const sectorId = form.role === "VISITOR" ? await resolveSector(sectorName) : "";
       const payload = {
-        ...form,
-        sector: sectorId,
+        full_name: form.role === "VISITOR" ? (form.full_name || `Visitante - ${sectorName || form.email}`) : form.full_name,
+        cpf: form.role === "VISITOR" ? "" : form.cpf,
         email: form.email.trim().toLowerCase(),
         phone: form.role === "VISITOR" ? "" : phoneDigits,
-        cpf: form.role === "VISITOR" ? "" : form.cpf,
-        full_name: form.role === "VISITOR" ? (form.full_name || `Visitante - ${sectorName || form.email}`) : form.full_name,
+        role: form.role,
+        is_active: form.is_active,
       };
+      if (form.role === "VISITOR") {
+        payload.sector = sectorId;
+      }
+      if (operationalRoles.has(form.role)) {
+        payload.team = form.team;
+      }
       const saved = isEditing
         ? await api(`/users/${editing}/`, { method: "PUT", body: JSON.stringify(payload) })
         : await api("/users/", { method: "POST", body: JSON.stringify(payload) });
@@ -110,7 +122,7 @@ export default function UsersPage() {
   const edit = (user) => {
     setEditing(user.id);
     setPasswordLink(user.password_setup_link || "");
-    setForm({ ...user, cpf: user.cpf || "", sector: user.sector || "", sector_name: user.sector_name || "", is_active: user.is_active });
+    setForm({ ...user, cpf: user.cpf || "", team: user.team_id || "", sector: user.sector || "", sector_name: user.sector_name || "", is_active: user.is_active });
   };
 
   const remove = async (user) => {
@@ -149,7 +161,7 @@ export default function UsersPage() {
   const renderUsersTable = (items, emptyMessage) => (
     <table>
       <thead>
-        <tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th>Ocupação</th><th>Setor</th><th className="actions-heading">Ações</th></tr>
+        <tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th>Ocupação</th><th>Equipe/Setor</th><th className="actions-heading">Ações</th></tr>
       </thead>
       <tbody>
         {items.map((item) => (
@@ -159,7 +171,7 @@ export default function UsersPage() {
             <td>{item.phone || "-"}</td>
             <td>{item.email}</td>
             <td>{roleLabel[item.role] || item.role}</td>
-            <td>{item.sector_name || "-"}</td>
+            <td>{item.role === "VISITOR" ? (item.sector_name || "-") : (item.team_name || item.sector_name || "-")}</td>
             <td>
               <div className="row-actions">
                 <button className="secondary" onClick={() => edit(item)}>Editar</button>
@@ -207,7 +219,7 @@ export default function UsersPage() {
         <form className="stack-form" onSubmit={submit}>
           <label>
             Perfil
-            <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+            <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value, team: "", sector: "", sector_name: "" })}>
               <option value="USER">Agente</option>
               <option value="SUPPORT">Apoio</option>
               <option value="SUPERVISOR">Chefe</option>
@@ -255,7 +267,7 @@ export default function UsersPage() {
               required
             />
           </label>
-          {form.role === "VISITOR" ? (
+          {form.role === "VISITOR" && (
             <label>
               Nome do setor
               <input
@@ -265,19 +277,17 @@ export default function UsersPage() {
                 required
               />
             </label>
-          ) : (
+          )}
+          {operationalRoles.has(form.role) && (
             <label>
-              Nome da equipe
+              Equipe
               <select
-                value={form.sector_name || ""}
-                onChange={(e) => {
-                  const selectedName = e.target.value;
-                  const selectedSector = sectors.find((sector) => sector.name?.trim().toLowerCase() === selectedName.toLowerCase());
-                  setForm({ ...form, sector: selectedSector?.id || "", sector_name: selectedName });
-                }}
+                value={form.team || ""}
+                onChange={(e) => setForm({ ...form, team: e.target.value })}
+                required
               >
-                <option value="">Sem equipe</option>
-                {teamNames.map((name) => <option key={name} value={name}>{name}</option>)}
+                <option value="">Selecione a equipe</option>
+                {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
               </select>
             </label>
           )}
