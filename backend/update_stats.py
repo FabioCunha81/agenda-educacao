@@ -1,4 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import os
+
+file_path = r"d:\agenda_eventos_ols\frontend\src\pages\StatisticsPage.jsx"
+
+content = """import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
 
 function formatNumber(value) {
@@ -168,3 +172,8 @@ export default function StatisticsPage() {
     </section>
   );
 }
+"""
+
+with open(file_path, "w", encoding="utf-8") as f:
+    f.write(content)
+print("Updated StatisticsPage.jsx")
