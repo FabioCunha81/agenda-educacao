@@ -1,7 +1,7 @@
 import { TrendingUp, TrendingDown, Minus, BarChart3, CalendarDays, Activity, Filter, PieChart } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
-import { GroupedBarChart, DonutChart, HorizontalBarChart, VariationChart } from "../components/Charts.jsx";
+import { DonutChart, HorizontalBarChart } from "../components/Charts.jsx";
 
 function formatNumber(value) {
   return Number(value || 0).toLocaleString("pt-BR");
@@ -209,6 +209,11 @@ export default function StatisticsPage() {
 
   const monthlyTotals = extractTotals(monthlyData);
 
+  /* Chart data from API breakdown fields */
+  const entityTypeData = annualData?.current?.by_entity_type || [];
+  const modalityData = annualData?.current?.by_modality || [];
+  const ageRangeData = annualData?.current?.by_age_range || [];
+
   const currentMonthName = refDateTo.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   const prevMonthName = new Date(prevMonthRange.from + "T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
@@ -317,120 +322,7 @@ export default function StatisticsPage() {
             ))}
           </div>
 
-          {/* ═══════════ CHARTS SECTION ═══════════ */}
-
-          {/* Row 1: Grouped Bar Chart (Annual) + Donut (Current Year Composition) */}
-          <div className="stats-charts-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
-            <ChartSection
-              icon={BarChart3}
-              title={`Comparativo Visual — ${currentYear} vs ${prevYear}`}
-              subtitle={`Barras lado a lado para cada indicador no período selecionado`}
-            >
-              <GroupedBarChart
-                labels={table1Data.map(r => r.label.replace("Total de ", "").replace("Abordados em ", ""))}
-                series1={table1Data.map(r => r.previous)}
-                series2={table1Data.map(r => r.current)}
-                series1Name={String(prevYear)}
-                series2Name={String(currentYear)}
-                color1="#94a3b8"
-                color2="#0048d7"
-                height={300}
-              />
-            </ChartSection>
-
-            <ChartSection
-              icon={PieChart}
-              title={`Composição — ${currentYear}`}
-              subtitle="Distribuição percentual dos indicadores no período atual"
-              gradient="linear-gradient(135deg, #7c3aed, #5b21b6)"
-            >
-              <DonutChart
-                data={table1Data.map(r => ({
-                  label: r.label,
-                  value: r.current,
-                  color: r.color,
-                }))}
-                size={200}
-                thickness={26}
-              />
-            </ChartSection>
-          </div>
-
-          {/* Row 2: Horizontal Bar Ranking + Variation Chart */}
-          <div className="stats-charts-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
-            <ChartSection
-              icon={Activity}
-              title="Ranking de Indicadores"
-              subtitle={`Valores absolutos no período atual (${currentYear})`}
-              gradient="linear-gradient(135deg, #047857, #059669)"
-            >
-              <HorizontalBarChart
-                data={[...table1Data]
-                  .sort((a, b) => b.current - a.current)
-                  .map(r => ({
-                    label: r.label,
-                    value: r.current,
-                    color: r.color,
-                  }))}
-                height={32}
-              />
-            </ChartSection>
-
-            <ChartSection
-              icon={TrendingUp}
-              title="Variação Ano a Ano"
-              subtitle={`Percentual de crescimento: ${currentYear} em relação a ${prevYear}`}
-              gradient="linear-gradient(135deg, #dc6b16, #ea580c)"
-            >
-              <VariationChart
-                data={table1Data.map(r => ({
-                  label: r.label,
-                  percentage: r.percentage,
-                  color: r.color,
-                }))}
-              />
-            </ChartSection>
-          </div>
-
-          {/* Row 3: Monthly Bar Chart + Monthly Donut */}
-          <div className="stats-charts-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
-            <ChartSection
-              icon={CalendarDays}
-              title={`Comparativo Mensal Visual`}
-              subtitle={`${currentMonthName} vs ${prevMonthName}`}
-              gradient="linear-gradient(135deg, #047857, #059669)"
-            >
-              <GroupedBarChart
-                labels={table2Data.map(r => r.label.replace("Total de ", "").replace("Abordados em ", ""))}
-                series1={table2Data.map(r => r.previous)}
-                series2={table2Data.map(r => r.current)}
-                series1Name={prevMonthName.split(" ")[0]}
-                series2Name={currentMonthName.split(" ")[0]}
-                color1="#94a3b8"
-                color2="#047857"
-                height={300}
-              />
-            </ChartSection>
-
-            <ChartSection
-              icon={PieChart}
-              title={`Composição Mensal`}
-              subtitle={`Distribuição no mês de ${currentMonthName}`}
-              gradient="linear-gradient(135deg, #0891b2, #0e7490)"
-            >
-              <DonutChart
-                data={table2Data.map(r => ({
-                  label: r.label,
-                  value: r.current,
-                  color: r.color,
-                }))}
-                size={200}
-                thickness={26}
-              />
-            </ChartSection>
-          </div>
-
-          {/* ═══════════ TABLES SECTION ═══════════ */}
+          {/* ═══════════ TABLES SECTION (no topo) ═══════════ */}
 
           {/* Tabela 1: Comparativo Anual */}
           <div style={{
@@ -508,7 +400,7 @@ export default function StatisticsPage() {
             background: "var(--surface)", borderRadius: 16,
             border: "1px solid var(--line)",
             boxShadow: "0 4px 24px rgba(0,0,0,0.04)",
-            overflow: "hidden"
+            overflow: "hidden", marginBottom: 32
           }}>
             <div style={{ padding: "24px 28px 16px", borderBottom: "1px solid var(--line)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
@@ -563,6 +455,121 @@ export default function StatisticsPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* ═══════════ CHARTS SECTION ═══════════ */}
+
+          {/* Row 1: Empresa/Órgão vs Escola (Donut) + Público vs Privado (Donut) */}
+          <div className="stats-charts-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
+            <ChartSection
+              icon={PieChart}
+              title="Empresa/Órgão ou Escola"
+              subtitle="Distribuição dos relatórios por tipo de entidade solicitante"
+              gradient="linear-gradient(135deg, #0048d7, #003299)"
+            >
+              <DonutChart
+                data={entityTypeData.map(d => {
+                  const isEscola = d.label.toLowerCase().includes("escola");
+                  const isEmpresa = d.label.toLowerCase().includes("empresa") || d.label.toLowerCase().includes("órgão");
+                  return {
+                    label: isEscola ? "Escola" : isEmpresa ? "Empresa/Órgão" : d.label,
+                    value: d.value,
+                    color: isEscola ? "#7c3aed" : isEmpresa ? "#0048d7" : "#64748b",
+                  };
+                })}
+                size={200}
+                thickness={26}
+              />
+            </ChartSection>
+
+            <ChartSection
+              icon={PieChart}
+              title="Público ou Privado"
+              subtitle="Distribuição dos relatórios por natureza da entidade"
+              gradient="linear-gradient(135deg, #047857, #059669)"
+            >
+              <DonutChart
+                data={entityTypeData.map(d => {
+                  const isPublico = d.label.toLowerCase().includes("público");
+                  const isPrivado = d.label.toLowerCase().includes("privado");
+                  return {
+                    label: d.label,
+                    value: d.value,
+                    color: isPublico ? "#047857" : isPrivado ? "#dc6b16" : "#64748b",
+                  };
+                })}
+                size={200}
+                thickness={26}
+              />
+            </ChartSection>
+          </div>
+
+          {/* Row 2: Modalidade Pretendida (Horizontal Bars) + Faixa Etária (Horizontal Bars) */}
+          <div className="stats-charts-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
+            <ChartSection
+              icon={BarChart3}
+              title="Modalidade Pretendida"
+              subtitle="Quantidade de relatórios por modalidade de ação"
+              gradient="linear-gradient(135deg, #7c3aed, #5b21b6)"
+            >
+              <HorizontalBarChart
+                data={modalityData.map((d, i) => {
+                  const colors = ["#0048d7", "#7c3aed", "#047857", "#dc6b16", "#0891b2"];
+                  return { label: d.label, value: d.value, color: colors[i % colors.length] };
+                })}
+                height={32}
+              />
+            </ChartSection>
+
+            <ChartSection
+              icon={Activity}
+              title="Faixa Etária do Público"
+              subtitle="Distribuição dos relatórios por faixa etária atendida"
+              gradient="linear-gradient(135deg, #dc6b16, #ea580c)"
+            >
+              <HorizontalBarChart
+                data={ageRangeData.map((d, i) => {
+                  const colors = ["#0891b2", "#0048d7", "#7c3aed", "#047857", "#dc6b16"];
+                  return { label: d.label, value: d.value, color: colors[i % colors.length] };
+                })}
+                height={32}
+              />
+            </ChartSection>
+          </div>
+
+          {/* Row 3: Modalidade (Donut) + Faixa Etária (Donut) */}
+          <div className="stats-charts-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
+            <ChartSection
+              icon={PieChart}
+              title="Composição por Modalidade"
+              subtitle="Proporção percentual de cada modalidade pretendida"
+              gradient="linear-gradient(135deg, #0891b2, #0e7490)"
+            >
+              <DonutChart
+                data={modalityData.map((d, i) => {
+                  const colors = ["#0048d7", "#7c3aed", "#047857", "#dc6b16", "#0891b2"];
+                  return { label: d.label, value: d.value, color: colors[i % colors.length] };
+                })}
+                size={200}
+                thickness={26}
+              />
+            </ChartSection>
+
+            <ChartSection
+              icon={PieChart}
+              title="Composição por Faixa Etária"
+              subtitle="Proporção percentual de cada faixa etária atendida"
+              gradient="linear-gradient(135deg, #6366f1, #4f46e5)"
+            >
+              <DonutChart
+                data={ageRangeData.map((d, i) => {
+                  const colors = ["#0891b2", "#0048d7", "#7c3aed", "#047857", "#dc6b16"];
+                  return { label: d.label, value: d.value, color: colors[i % colors.length] };
+                })}
+                size={200}
+                thickness={26}
+              />
+            </ChartSection>
           </div>
         </>
       )}

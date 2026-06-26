@@ -1575,6 +1575,35 @@ class EducationReportViewSet(viewsets.ModelViewSet):
                 "ref_year":   ref_year,
             })
 
+        by_entity_type = [
+            {"label": row["agenda__requester_entity_type"], "value": row["total"]}
+            for row in (
+                reports.exclude(agenda__requester_entity_type="")
+                .values("agenda__requester_entity_type")
+                .annotate(total=Count("id"))
+                .order_by("-total")
+            )
+        ]
+
+        by_modality = [
+            {"label": row["agenda__action_type"], "value": row["total"]}
+            for row in (
+                reports.exclude(agenda__action_type="")
+                .values("agenda__action_type")
+                .annotate(total=Count("id"))
+                .order_by("-total")
+            )
+        ]
+
+        by_age_range = [
+            {"label": row["agenda__age_ranges"], "value": row["total"]}
+            for row in (
+                reports.exclude(agenda__age_ranges="")
+                .values("agenda__age_ranges")
+                .annotate(total=Count("id"))
+                .order_by("-total")
+            )
+        ]
 
         return response.Response(
             {
@@ -1588,6 +1617,9 @@ class EducationReportViewSet(viewsets.ModelViewSet):
                 "by_status": by_status,
                 "by_month_year": by_month_year,
                 "comparison": comparison_list,
+                "by_entity_type": by_entity_type,
+                "by_modality": by_modality,
+                "by_age_range": by_age_range,
             }
         )
 
