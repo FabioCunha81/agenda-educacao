@@ -1,6 +1,7 @@
-import { TrendingUp, TrendingDown, Minus, BarChart3, CalendarDays, Activity, Filter } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, BarChart3, CalendarDays, Activity, Filter, PieChart } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
+import { GroupedBarChart, DonutChart, HorizontalBarChart, VariationChart } from "../components/Charts.jsx";
 
 function formatNumber(value) {
   return Number(value || 0).toLocaleString("pt-BR");
@@ -56,6 +57,35 @@ function KpiCard({ icon: Icon, label, value, subtitle, color = "var(--primary)" 
       </div>
       <strong style={{ fontSize: 32, fontWeight: 800, color: "var(--text)", lineHeight: 1.1 }}>{value}</strong>
       {subtitle && <span style={{ fontSize: 12, color: "var(--text-soft)" }}>{subtitle}</span>}
+    </div>
+  );
+}
+
+/* Section wrapper for charts */
+function ChartSection({ icon: Icon, title, subtitle, gradient = "linear-gradient(135deg, #0048d7, #003299)", children }) {
+  return (
+    <div style={{
+      background: "var(--surface)", borderRadius: 16,
+      border: "1px solid var(--line)",
+      boxShadow: "0 4px 24px rgba(0,0,0,0.04)",
+      overflow: "hidden", marginBottom: 32
+    }}>
+      <div style={{ padding: "24px 28px 16px", borderBottom: "1px solid var(--line)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 8, display: "flex",
+            alignItems: "center", justifyContent: "center",
+            background: gradient, color: "#fff"
+          }}>
+            <Icon size={16} />
+          </div>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--text)" }}>{title}</h2>
+        </div>
+        {subtitle && <p style={{ margin: 0, fontSize: 13, color: "var(--text-soft)" }}>{subtitle}</p>}
+      </div>
+      <div style={{ padding: "28px" }}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -286,6 +316,121 @@ export default function StatisticsPage() {
               />
             ))}
           </div>
+
+          {/* ═══════════ CHARTS SECTION ═══════════ */}
+
+          {/* Row 1: Grouped Bar Chart (Annual) + Donut (Current Year Composition) */}
+          <div className="stats-charts-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
+            <ChartSection
+              icon={BarChart3}
+              title={`Comparativo Visual — ${currentYear} vs ${prevYear}`}
+              subtitle={`Barras lado a lado para cada indicador no período selecionado`}
+            >
+              <GroupedBarChart
+                labels={table1Data.map(r => r.label.replace("Total de ", "").replace("Abordados em ", ""))}
+                series1={table1Data.map(r => r.previous)}
+                series2={table1Data.map(r => r.current)}
+                series1Name={String(prevYear)}
+                series2Name={String(currentYear)}
+                color1="#94a3b8"
+                color2="#0048d7"
+                height={300}
+              />
+            </ChartSection>
+
+            <ChartSection
+              icon={PieChart}
+              title={`Composição — ${currentYear}`}
+              subtitle="Distribuição percentual dos indicadores no período atual"
+              gradient="linear-gradient(135deg, #7c3aed, #5b21b6)"
+            >
+              <DonutChart
+                data={table1Data.map(r => ({
+                  label: r.label,
+                  value: r.current,
+                  color: r.color,
+                }))}
+                size={200}
+                thickness={26}
+              />
+            </ChartSection>
+          </div>
+
+          {/* Row 2: Horizontal Bar Ranking + Variation Chart */}
+          <div className="stats-charts-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
+            <ChartSection
+              icon={Activity}
+              title="Ranking de Indicadores"
+              subtitle={`Valores absolutos no período atual (${currentYear})`}
+              gradient="linear-gradient(135deg, #047857, #059669)"
+            >
+              <HorizontalBarChart
+                data={[...table1Data]
+                  .sort((a, b) => b.current - a.current)
+                  .map(r => ({
+                    label: r.label,
+                    value: r.current,
+                    color: r.color,
+                  }))}
+                height={32}
+              />
+            </ChartSection>
+
+            <ChartSection
+              icon={TrendingUp}
+              title="Variação Ano a Ano"
+              subtitle={`Percentual de crescimento: ${currentYear} em relação a ${prevYear}`}
+              gradient="linear-gradient(135deg, #dc6b16, #ea580c)"
+            >
+              <VariationChart
+                data={table1Data.map(r => ({
+                  label: r.label,
+                  percentage: r.percentage,
+                  color: r.color,
+                }))}
+              />
+            </ChartSection>
+          </div>
+
+          {/* Row 3: Monthly Bar Chart + Monthly Donut */}
+          <div className="stats-charts-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
+            <ChartSection
+              icon={CalendarDays}
+              title={`Comparativo Mensal Visual`}
+              subtitle={`${currentMonthName} vs ${prevMonthName}`}
+              gradient="linear-gradient(135deg, #047857, #059669)"
+            >
+              <GroupedBarChart
+                labels={table2Data.map(r => r.label.replace("Total de ", "").replace("Abordados em ", ""))}
+                series1={table2Data.map(r => r.previous)}
+                series2={table2Data.map(r => r.current)}
+                series1Name={prevMonthName.split(" ")[0]}
+                series2Name={currentMonthName.split(" ")[0]}
+                color1="#94a3b8"
+                color2="#047857"
+                height={300}
+              />
+            </ChartSection>
+
+            <ChartSection
+              icon={PieChart}
+              title={`Composição Mensal`}
+              subtitle={`Distribuição no mês de ${currentMonthName}`}
+              gradient="linear-gradient(135deg, #0891b2, #0e7490)"
+            >
+              <DonutChart
+                data={table2Data.map(r => ({
+                  label: r.label,
+                  value: r.current,
+                  color: r.color,
+                }))}
+                size={200}
+                thickness={26}
+              />
+            </ChartSection>
+          </div>
+
+          {/* ═══════════ TABLES SECTION ═══════════ */}
 
           {/* Tabela 1: Comparativo Anual */}
           <div style={{
