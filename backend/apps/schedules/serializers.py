@@ -915,6 +915,8 @@ class EducationReportSerializer(serializers.ModelSerializer):
 
     def get_satisfaction_survey(self, obj):
         survey = obj.satisfaction_surveys.first()
+        if not survey and obj.agenda_id:
+            survey = SatisfactionSurvey.objects.filter(agenda_id=obj.agenda_id).first()
         if survey and survey.answered_at:
             return SatisfactionSurveySerializer(survey).data
         return None
