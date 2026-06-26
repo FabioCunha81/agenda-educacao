@@ -72,4 +72,4 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://sied-api.onrender.com/api
+        value: https://sied-api-iyye.onrender.com/api
