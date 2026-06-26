@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Minus, BarChart3, CalendarDays, Activity } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, BarChart3, CalendarDays, Activity, Filter } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
 
@@ -60,36 +60,84 @@ function KpiCard({ icon: Icon, label, value, subtitle, color = "var(--primary)" 
   );
 }
 
+function getDefaultFilters() {
+  const today = new Date();
+  const year = today.getFullYear();
+  return {
+    date_from: `${year}-01-01`,
+    date_to: today.toISOString().slice(0, 10),
+  };
+}
+
+function getMonthRange(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  const y = d.getFullYear();
+  const m = d.getMonth();
+  const first = new Date(y, m, 1);
+  const last = new Date(y, m + 1, 0);
+  return {
+    from: first.toISOString().slice(0, 10),
+    to: last.toISOString().slice(0, 10),
+  };
+}
+
+function shiftYear(dateStr, delta) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setFullYear(d.getFullYear() + delta);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function StatisticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [annualData, setAnnualData] = useState(null);
   const [monthlyData, setMonthlyData] = useState(null);
+  const [monthlyPrevData, setMonthlyPrevData] = useState(null);
+  const [filters, setFilters] = useState(getDefaultFilters);
+  const [pendingFilters, setPendingFilters] = useState(getDefaultFilters);
 
-  const today = new Date();
-  const currentYear = today.getFullYear();
+  const refDateTo = new Date(filters.date_to + "T00:00:00");
+  const currentYear = refDateTo.getFullYear();
   const prevYear = currentYear - 1;
-  const elapsedMonths = Math.max(today.getMonth() + 1, 1);
+
+  const prevDateFrom = shiftYear(filters.date_from, -1);
+  const prevDateTo = shiftYear(filters.date_to, -1);
+
+  const monthRange = getMonthRange(filters.date_to);
+  const prevMonthRange = {
+    from: shiftYear(monthRange.from, -1),
+    to: shiftYear(monthRange.to, -1),
+  };
+
+  const elapsedMonths = useMemo(() => {
+    const from = new Date(filters.date_from + "T00:00:00");
+    const to = new Date(filters.date_to + "T00:00:00");
+    return Math.max(Math.round((to - from) / (1000 * 60 * 60 * 24 * 30.44)), 1);
+  }, [filters]);
 
   useEffect(() => {
     setLoading(true);
     setError("");
 
-    const ytdFilter = `date_from=${currentYear}-01-01&date_to=${today.toISOString().slice(0, 10)}`;
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
-    const mtdFilter = `date_from=${firstDayOfMonth}&date_to=${today.toISOString().slice(0, 10)}`;
+    const curFilter = `date_from=${filters.date_from}&date_to=${filters.date_to}`;
+    const prevFilter = `date_from=${prevDateFrom}&date_to=${prevDateTo}`;
+    const mtdCurFilter = `date_from=${monthRange.from}&date_to=${monthRange.to}`;
+    const mtdPrevFilter = `date_from=${prevMonthRange.from}&date_to=${prevMonthRange.to}`;
 
     Promise.all([
-      api(`/education-reports/statistics/?${ytdFilter}`),
-      api(`/education-reports/statistics/?${mtdFilter}`)
+      api(`/education-reports/statistics/?${curFilter}`),
+      api(`/education-reports/statistics/?${prevFilter}`),
+      api(`/education-reports/statistics/?${mtdCurFilter}`),
+      api(`/education-reports/statistics/?${mtdPrevFilter}`),
     ])
-      .then(([ytdStats, mtdStats]) => {
-        setAnnualData(ytdStats);
-        setMonthlyData(mtdStats);
+      .then(([curStats, prevStats, mtdCur, mtdPrev]) => {
+        setAnnualData({ current: curStats, previous: prevStats });
+        setMonthlyData(mtdCur);
+        setMonthlyPrevData(mtdPrev);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [currentYear]);
+  }, [filters]);
 
   const comparisonFields = [
     { key: "approach", label: "Total de abordagens", icon: Activity, color: "#0048d7" },
@@ -97,14 +145,18 @@ export default function StatisticsPage() {
     { key: "approached_actions", label: "Abordados em ações", icon: TrendingUp, color: "#047857" },
   ];
 
+  function extractTotals(stats) {
+    if (!stats?.totals) return {};
+    return Object.fromEntries(stats.totals.map(item => [item.key, Number(item.value || 0)]));
+  }
+
   const table1Data = useMemo(() => {
-    if (!annualData?.comparison) return [];
-    const comparisonMap = Object.fromEntries(annualData.comparison.map(item => [item.key, item]));
+    const curTotals = extractTotals(annualData?.current);
+    const prevTotals = extractTotals(annualData?.previous);
 
     return comparisonFields.map(field => {
-      const cmp = comparisonMap[field.key] || { current: 0, previous: 0 };
-      const current = cmp.current;
-      const previous = cmp.previous;
+      const current = curTotals[field.key] || 0;
+      const previous = prevTotals[field.key] || 0;
       const difference = current - previous;
       const pct = previous > 0 ? (difference / previous) * 100 : (current > 0 ? 100 : 0);
       const projection = Math.round((current / elapsedMonths) * 12);
@@ -113,17 +165,29 @@ export default function StatisticsPage() {
   }, [annualData, elapsedMonths]);
 
   const table2Data = useMemo(() => {
-    if (!monthlyData?.totals) return [];
-    const totalsMap = Object.fromEntries(monthlyData.totals.map(item => [item.key, Number(item.value || 0)]));
-    return comparisonFields.map(field => ({ ...field, total: totalsMap[field.key] || 0 }));
-  }, [monthlyData]);
+    const curTotals = extractTotals(monthlyData);
+    const prevTotals = extractTotals(monthlyPrevData);
 
-  const monthlyTotals = useMemo(() => {
-    if (!monthlyData?.totals) return {};
-    return Object.fromEntries(monthlyData.totals.map(item => [item.key, Number(item.value || 0)]));
-  }, [monthlyData]);
+    return comparisonFields.map(field => {
+      const current = curTotals[field.key] || 0;
+      const previous = prevTotals[field.key] || 0;
+      const difference = current - previous;
+      const pct = previous > 0 ? (difference / previous) * 100 : (current > 0 ? 100 : 0);
+      return { ...field, current, previous, difference, percentage: pct };
+    });
+  }, [monthlyData, monthlyPrevData]);
 
-  const currentMonthName = today.toLocaleDateString("pt-BR", { month: "long" });
+  const monthlyTotals = extractTotals(monthlyData);
+
+  const currentMonthName = refDateTo.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const prevMonthName = new Date(prevMonthRange.from + "T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+
+  const applyFilters = () => setFilters({ ...pendingFilters });
+  const clearFilters = () => {
+    const defaults = getDefaultFilters();
+    setPendingFilters(defaults);
+    setFilters(defaults);
+  };
 
   const tableHeaderStyle = {
     padding: "14px 18px", fontWeight: 700, fontSize: 12, textTransform: "uppercase",
@@ -138,6 +202,12 @@ export default function StatisticsPage() {
 
   const cellNumStyle = {
     ...cellStyle, fontWeight: 700, fontFamily: "Inter, monospace", textAlign: "right"
+  };
+
+  const formatPeriod = (from, to) => {
+    const f = new Date(from + "T00:00:00");
+    const t = new Date(to + "T00:00:00");
+    return `${f.toLocaleDateString("pt-BR")} a ${t.toLocaleDateString("pt-BR")}`;
   };
 
   return (
@@ -165,6 +235,34 @@ export default function StatisticsPage() {
         </p>
       </div>
 
+      {/* Filtros */}
+      <div style={{
+        background: "var(--surface)", borderRadius: 16, padding: "20px 28px",
+        border: "1px solid var(--line)", boxShadow: "0 4px 24px rgba(0,0,0,0.04)",
+        marginBottom: 28, display: "flex", gap: 16, alignItems: "flex-end", flexWrap: "wrap"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 8 }}>
+          <Filter size={16} style={{ color: "var(--primary)" }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Período</span>
+        </div>
+        <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, fontWeight: 600, color: "var(--text-soft)" }}>
+          Data inicial
+          <input type="date" value={pendingFilters.date_from} onChange={e => setPendingFilters(f => ({ ...f, date_from: e.target.value }))}
+            style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13 }} />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, fontWeight: 600, color: "var(--text-soft)" }}>
+          Data final
+          <input type="date" value={pendingFilters.date_to} onChange={e => setPendingFilters(f => ({ ...f, date_to: e.target.value }))}
+            style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13 }} />
+        </label>
+        <button onClick={applyFilters} style={{ height: 38, padding: "0 20px", fontSize: 13, fontWeight: 700, borderRadius: 8 }}>
+          Aplicar
+        </button>
+        <button onClick={clearFilters} className="secondary" style={{ height: 38, padding: "0 16px", fontSize: 13 }}>
+          Limpar
+        </button>
+      </div>
+
       {loading ? (
         <div style={{ display: "flex", gap: 16 }}>
           {[1, 2, 3].map(i => (
@@ -175,7 +273,7 @@ export default function StatisticsPage() {
         <div className="alert">Não foi possível carregar as estatísticas: {error}</div>
       ) : (
         <>
-          {/* KPI Cards - Mês Vigente */}
+          {/* KPI Cards */}
           <div style={{ display: "flex", gap: 16, marginBottom: 32, flexWrap: "wrap" }}>
             {comparisonFields.map(field => (
               <KpiCard
@@ -183,7 +281,7 @@ export default function StatisticsPage() {
                 icon={field.icon}
                 label={field.label}
                 value={formatNumber(monthlyTotals[field.key] || 0)}
-                subtitle={`Mês de ${currentMonthName}`}
+                subtitle={currentMonthName}
                 color={field.color}
               />
             ))}
@@ -210,16 +308,16 @@ export default function StatisticsPage() {
                 </h2>
               </div>
               <p style={{ margin: 0, fontSize: 13, color: "var(--text-soft)" }}>
-                Análise de abordagens no período com projeção para o encerramento de {currentYear}.
+                Período: <strong>{formatPeriod(filters.date_from, filters.date_to)}</strong> comparado com <strong>{formatPeriod(prevDateFrom, prevDateTo)}</strong>
               </p>
             </div>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
-                    <th style={{ ...tableHeaderStyle, borderRadius: "0" }}>Indicador</th>
-                    <th style={{ ...tableHeaderStyle, textAlign: "right" }}>{prevYear} (Total)</th>
-                    <th style={{ ...tableHeaderStyle, textAlign: "right" }}>{currentYear} (Acumulado)</th>
+                    <th style={tableHeaderStyle}>Indicador</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: "right" }}>{prevYear} (Período)</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: "right" }}>{currentYear} (Período)</th>
                     <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Diferença</th>
                     <th style={{ ...tableHeaderStyle, textAlign: "center" }}>Variação</th>
                     <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Projeção {currentYear}</th>
@@ -260,7 +358,7 @@ export default function StatisticsPage() {
             </div>
           </div>
 
-          {/* Tabela 2: Resultados do Mês */}
+          {/* Tabela 2: Comparativo Mensal */}
           <div style={{
             background: "var(--surface)", borderRadius: 16,
             border: "1px solid var(--line)",
@@ -277,11 +375,11 @@ export default function StatisticsPage() {
                   <CalendarDays size={16} />
                 </div>
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--text)", textTransform: "capitalize" }}>
-                  Resultados de {currentMonthName}
+                  Comparativo Mensal — {currentMonthName} vs {prevMonthName}
                 </h2>
               </div>
               <p style={{ margin: 0, fontSize: 13, color: "var(--text-soft)" }}>
-                Indicadores registrados exclusivamente no mês vigente.
+                Mês vigente comparado com o mesmo mês do ano anterior.
               </p>
             </div>
             <div style={{ overflowX: "auto" }}>
@@ -289,7 +387,10 @@ export default function StatisticsPage() {
                 <thead>
                   <tr>
                     <th style={{ ...tableHeaderStyle, background: "linear-gradient(135deg, #022c22 0%, #047857 100%)" }}>Indicador</th>
-                    <th style={{ ...tableHeaderStyle, textAlign: "right", background: "linear-gradient(135deg, #022c22 0%, #047857 100%)" }}>Total no Mês</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: "right", background: "linear-gradient(135deg, #022c22 0%, #047857 100%)" }}>{prevMonthName}</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: "right", background: "linear-gradient(135deg, #022c22 0%, #047857 100%)" }}>{currentMonthName}</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: "right", background: "linear-gradient(135deg, #022c22 0%, #047857 100%)" }}>Diferença</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: "center", background: "linear-gradient(135deg, #022c22 0%, #047857 100%)" }}>Variação</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -304,8 +405,13 @@ export default function StatisticsPage() {
                           {row.label}
                         </div>
                       </td>
-                      <td style={{ ...cellNumStyle, fontSize: 18, color: "#047857" }}>
-                        {formatNumber(row.total)}
+                      <td style={cellNumStyle}>{formatNumber(row.previous)}</td>
+                      <td style={{ ...cellNumStyle, color: "#047857" }}>{formatNumber(row.current)}</td>
+                      <td style={{ ...cellNumStyle, color: row.difference >= 0 ? "#047857" : "#dc2626" }}>
+                        {row.difference >= 0 ? "+" : ""}{formatNumber(row.difference)}
+                      </td>
+                      <td style={{ ...cellStyle, textAlign: "center" }}>
+                        <VariationBadge value={row.percentage} />
                       </td>
                     </tr>
                   ))}
