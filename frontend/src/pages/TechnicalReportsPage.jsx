@@ -339,6 +339,7 @@ export default function TechnicalReportsPage() {
   const [loadError, setLoadError] = useState("");
   const [locationMessage, setLocationMessage] = useState("");
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [pendingDateFilter, setPendingDateFilter] = useState("");
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN" || user?.role === "MANAGER";
   const requestFieldsReadOnly = Boolean(form.agenda);
@@ -351,6 +352,14 @@ export default function TechnicalReportsPage() {
 
   const completedAgendaIds = useMemo(() => new Set(reports.map(r => String(r.agenda))), [reports]);
   const pendingAgendas = useMemo(() => agendas.filter(a => !completedAgendaIds.has(String(a.id))), [agendas, completedAgendaIds]);
+
+  const filteredPendingAgendas = useMemo(() => {
+    let list = pendingAgendas;
+    if (pendingDateFilter) {
+      list = list.filter(a => a.date === pendingDateFilter);
+    }
+    return list;
+  }, [pendingAgendas, pendingDateFilter]);
 
   const load = async () => {
     setLoadError("");
@@ -877,9 +886,30 @@ export default function TechnicalReportsPage() {
 
         {activeTab === "pending" && (
           <div className="report-list-content" style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "calc(100vh - 180px)", overflowY: "auto", paddingRight: "4px" }}>
-            {pendingAgendas.length === 0 ? (
-              <p style={{ fontSize: "13px", color: "var(--text-soft)" }}>Nenhum relatório pendente para preencher.</p>
-            ) : pendingAgendas.map(agenda => (
+            <div style={{ marginBottom: "12px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "8px", padding: "10px", display: "flex", flexDirection: "column", gap: "6px" }}>
+              <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-soft)" }}>FILTRAR POR DATA</span>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input 
+                  type="date" 
+                  value={pendingDateFilter} 
+                  onChange={(e) => setPendingDateFilter(e.target.value)} 
+                  style={{ minHeight: "32px", fontSize: "12.5px", padding: "4px 8px", flex: 1 }}
+                />
+                {pendingDateFilter && (
+                  <button 
+                    type="button" 
+                    className="secondary" 
+                    onClick={() => setPendingDateFilter("")}
+                    style={{ minHeight: "32px", padding: "0 10px", fontSize: "12px" }}
+                  >
+                    Limpar
+                  </button>
+                )}
+              </div>
+            </div>
+            {filteredPendingAgendas.length === 0 ? (
+              <p style={{ fontSize: "13px", color: "var(--text-soft)" }}>Nenhum relatório pendente para esta data.</p>
+            ) : filteredPendingAgendas.map(agenda => (
               <button
                 key={agenda.id}
                 type="button"

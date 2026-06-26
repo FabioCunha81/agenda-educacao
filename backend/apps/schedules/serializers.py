@@ -848,6 +848,7 @@ class EducationReportSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source="created_by.full_name", read_only=True)
     actions = EducationActionSerializer(many=True, required=False)
     actions_count = serializers.SerializerMethodField()
+    satisfaction_survey = serializers.SerializerMethodField()
 
     class Meta:
         model = EducationReport
@@ -891,6 +892,7 @@ class EducationReportSerializer(serializers.ModelSerializer):
             "updated_at",
             "actions_count",
             "actions",
+            "satisfaction_survey",
         ]
         read_only_fields = [
             "agenda_title",
@@ -901,6 +903,7 @@ class EducationReportSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "actions_count",
+            "satisfaction_survey",
         ]
 
     def validate_source_id(self, value):
@@ -908,6 +911,12 @@ class EducationReportSerializer(serializers.ModelSerializer):
 
     def get_actions_count(self, obj):
         return obj.actions.count()
+
+    def get_satisfaction_survey(self, obj):
+        survey = obj.satisfaction_surveys.first()
+        if survey and survey.answered_at:
+            return SatisfactionSurveySerializer(survey).data
+        return None
 
     def validate(self, attrs):
         instance = self.instance

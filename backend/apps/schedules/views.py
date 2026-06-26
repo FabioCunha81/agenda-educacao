@@ -1302,6 +1302,7 @@ class EducationReportViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             self._validate_agenda_access(serializer.validated_data["agenda"])
             report = serializer.save(created_by=self.request.user)
+            SatisfactionSurvey.objects.filter(agenda=report.agenda, report__isnull=True).update(report=report)
             if report.status == EducationReport.ReportStatus.SUBMITTED:
                 self._register_accessibility_block(report)
                 transaction.on_commit(lambda: send_satisfaction_survey_email(report))
@@ -1312,6 +1313,7 @@ class EducationReportViewSet(viewsets.ModelViewSet):
             agenda = serializer.validated_data.get("agenda", serializer.instance.agenda)
             self._validate_agenda_access(agenda)
             report = serializer.save()
+            SatisfactionSurvey.objects.filter(agenda=report.agenda, report__isnull=True).update(report=report)
             if previous_status != EducationReport.ReportStatus.SUBMITTED and report.status == EducationReport.ReportStatus.SUBMITTED:
                 self._register_accessibility_block(report)
                 transaction.on_commit(lambda: send_satisfaction_survey_email(report))

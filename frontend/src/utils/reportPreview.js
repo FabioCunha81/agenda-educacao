@@ -62,6 +62,19 @@ export function buildPreview(report) {
     `Contato recebido: ${report.contact_received || "não informado"}\n` +
     `Dados e Observações: ${report.general_observations || "não informado"}\n` +
     `Observação de ocorrência: ${report.occurrence_observation || "não informado"}\n` +
-    `Coordenadas: ${report.lat || "-"}, ${report.lng || "-"}`
+    `Coordenadas: ${report.lat || "-"}, ${report.lng || "-"}` +
+    (report.satisfaction_survey ? (
+      `\n\n========================================\n` +
+      `PESQUISA DE SATISFAÇÃO (Respondida em: ${report.satisfaction_survey.answered_at ? formatDateBR(report.satisfaction_survey.answered_at.split("T")[0]) : "-"} ${report.satisfaction_survey.answered_at ? report.satisfaction_survey.answered_at.split("T")[1].slice(0, 5) : ""})\n` +
+      `========================================\n` +
+      `Avaliação geral: ${report.satisfaction_survey.overall_rating ? `${report.satisfaction_survey.overall_rating}/5` : "Não avaliado"}\n` +
+      `Pontualidade da equipe: ${report.satisfaction_survey.punctuality ? `${report.satisfaction_survey.punctuality}/5` : "Não avaliado"}\n` +
+      `Entusiasmo e dinamismo: ${report.satisfaction_survey.team_enthusiasm ? `${report.satisfaction_survey.team_enthusiasm}/5` : "Não avaliado"}\n` +
+      `Domínio do palestrante: ${report.satisfaction_survey.speaker_knowledge ? `${report.satisfaction_survey.speaker_knowledge}/5` : "Não avaliado"}\n` +
+      `Oficinas / Dinâmicas: ${report.satisfaction_survey.workshops ? `${report.satisfaction_survey.workshops}/5` : "Não avaliado"}\n` +
+      `Recursos audiovisuais: ${report.satisfaction_survey.audiovisual_resources ? `${report.satisfaction_survey.audiovisual_resources}/5` : "Não avaliado"}\n` +
+      `Material de apoio: ${report.satisfaction_survey.support_material ? `${report.satisfaction_survey.support_material}/5` : "Não avaliado"}\n` +
+      `Sugestões / Comentários:\n"${report.satisfaction_survey.suggestion || "Nenhum comentário enviado."}"`
+    ) : "")
   );
 }
