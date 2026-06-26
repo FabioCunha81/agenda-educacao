@@ -64,6 +64,22 @@ const teamColorMap = {
   HOTEL: { bg: "#fff7d6", border: "#eab308", text: "#6f5200" },
 };
 
+function formatTeamName(value) {
+  return String(value || "").trim().toUpperCase();
+}
+
+function uniqueUppercaseTeams(rows) {
+  const seen = new Set();
+  return rows
+    .map((team) => ({ ...team, name: formatTeamName(team.name) }))
+    .filter((team) => {
+      if (!team.name || seen.has(team.name)) return false;
+      seen.add(team.name);
+      return true;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+}
+
 function teamColorStyle(teamName) {
   const palette = teamColorMap[String(teamName || "").trim().toUpperCase()];
   if (!palette) return {};
@@ -207,10 +223,11 @@ export default function ShiftSchedulePage() {
       loadAll("/agents/"),
       loadAll("/supports/"),
     ]).then(([teamRows, chiefRows, agentRows, supportRows]) => {
-      setTeams(teamRows);
-      setChiefs(chiefRows);
-      setAgents(agentRows);
-      setSupports(supportRows);
+      const fromUsers = (row) => String(row.source_id || "").startsWith("user:");
+      setTeams(uniqueUppercaseTeams(teamRows));
+      setChiefs(chiefRows.filter(fromUsers));
+      setAgents(agentRows.filter(fromUsers));
+      setSupports(supportRows.filter(fromUsers));
     });
   }, []);
 
@@ -514,7 +531,7 @@ export default function ShiftSchedulePage() {
 
   const deleteSchedule = async () => {
     if (!canApprove || !detailSchedule) return;
-    if (!window.confirm(`Excluir a escala da equipe ${detailSchedule.team_name} em ${formatDateBR(detailSchedule.date)}?`)) {
+    if (!window.confirm(`Excluir a escala da equipe ${formatTeamName(detailSchedule.team_name)} em ${formatDateBR(detailSchedule.date)}?`)) {
       return;
     }
     setLoading(true);
@@ -570,7 +587,7 @@ export default function ShiftSchedulePage() {
               {daySchedules.map((schedule) => (
                 <button key={schedule.id} className="shift-team-pill" type="button" onClick={(event) => { event.stopPropagation(); openTeamDetail(schedule); }}>
                   <span>
-                    <strong>{schedule.team_name}</strong>
+                    <strong>{formatTeamName(schedule.team_name)}</strong>
                     {(schedule.swap_requests || []).some((swap) => swap.status === "PENDING") && (
                       <b><AlertTriangle size={12} /> Troca</b>
                     )}
@@ -626,7 +643,7 @@ export default function ShiftSchedulePage() {
           <article className="modal shift-modal" onClick={(event) => event.stopPropagation()}>
             <header className="modal-header">
               <div>
-                <h2>{detailSchedule.team_name}</h2>
+                <h2>{formatTeamName(detailSchedule.team_name)}</h2>
                 <p>Serviço de {formatDateBR(detailSchedule.date)}</p>
               </div>
               <div className="modal-header-actions">
@@ -646,7 +663,7 @@ export default function ShiftSchedulePage() {
                   <article key={swap.id} className="swap-card pending">
                     <div>
                       <strong>{swap.from_member_name} por {swap.to_member_name}</strong>
-                      <span>{swap.member_type === "CHIEF" ? "Chefe" : swap.member_type === "SUPPORT" ? "Apoio" : "Agente"} | {swap.schedule_team_name} para {swap.target_team_name}</span>
+                      <span>{swap.member_type === "CHIEF" ? "Chefe" : swap.member_type === "SUPPORT" ? "Apoio" : "Agente"} | {formatTeamName(swap.schedule_team_name)} para {formatTeamName(swap.target_team_name)}</span>
                       {swap.reason && <small>{swap.reason}</small>}
                       {swap.attachment_url && <a href={swap.attachment_url} target="_blank" rel="noreferrer"><Paperclip size={13} /> Anexo</a>}
                     </div>
@@ -754,7 +771,7 @@ export default function ShiftSchedulePage() {
           <article className="modal shift-modal absence-modal" onClick={(event) => event.stopPropagation()}>
             <header className="modal-header">
               <div>
-                <h2>Lançar falta</h2>
+                <h2>Lançar falta ou férias</h2>
                 <p>{absenceTarget.member.name} - {absenceTarget.memberType === "CHIEF" ? "Chefe" : absenceTarget.memberType === "SUPPORT" ? "Apoio" : "Agente"}</p>
               </div>
               <button className="icon-button" type="button" onClick={() => setAbsenceTarget(null)} aria-label="Fechar"><X size={18} /></button>
@@ -771,6 +788,13 @@ export default function ShiftSchedulePage() {
                   autoFocus
                 />
               </label>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setAbsenceForm((current) => ({ ...current, reason: "Férias" }))}
+              >
+                Marcar como férias
+              </button>
               <label>
                 <span>Documento comprobatório</span>
                 <input
@@ -806,7 +830,7 @@ export default function ShiftSchedulePage() {
                   <select value={swapForm.schedule} onChange={(event) => changeSwapSchedule(event.target.value)}>
                     {swapSchedules.map((schedule) => (
                       <option key={schedule.id} value={schedule.id}>
-                        {formatDateBR(schedule.date)} - {schedule.team_name}
+                        {formatDateBR(schedule.date)} - {formatTeamName(schedule.team_name)}
                       </option>
                     ))}
                   </select>
@@ -865,7 +889,7 @@ export default function ShiftSchedulePage() {
                   <article key={swap.id} className={`swap-card ${swap.status.toLowerCase()}`}>
                     <div>
                       <strong>{swap.from_member_name} por {swap.to_member_name}</strong>
-                      <span>{swap.member_type === "CHIEF" ? "Chefe" : swap.member_type === "SUPPORT" ? "Apoio" : "Agente"} | {swap.schedule_team_name} para {swap.target_team_name}</span>
+                      <span>{swap.member_type === "CHIEF" ? "Chefe" : swap.member_type === "SUPPORT" ? "Apoio" : "Agente"} | {formatTeamName(swap.schedule_team_name)} para {formatTeamName(swap.target_team_name)}</span>
                       {swap.reason && <small>{swap.reason}</small>}
                       {swap.attachment_url && <a href={swap.attachment_url} target="_blank" rel="noreferrer"><Paperclip size={13} /> Anexo</a>}
                     </div>
@@ -996,7 +1020,7 @@ export default function ShiftSchedulePage() {
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px", fontSize: "0.9rem", borderBottom: "1px solid #ccc", paddingBottom: "10px" }}>
-                <div><strong>Equipe:</strong> {teams.find(t => String(t.id) === String(reportTeam))?.name || "-"}</div>
+                <div><strong>Equipe:</strong> {formatTeamName(teams.find(t => String(t.id) === String(reportTeam))?.name || "-")}</div>
                 <div><strong>Competência:</strong> {["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"][Number(reportMonth)]} / {reportYear}</div>
                 <div><strong>Chefe de Equipe:</strong> {reportChiefName}</div>
                 <div><strong>Total de Plantões:</strong> {reportSchedules.length}</div>

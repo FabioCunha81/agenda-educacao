@@ -3,10 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
 
 const lookupTypes = [
-  { key: "teams", label: "Equipes", endpoint: "/teams/" },
-  { key: "chiefs", label: "Chefes", endpoint: "/chiefs/", hasCpf: true, hasAddress: true, hasTeam: true, teamLabel: "Equipe" },
-  { key: "agents", label: "Agentes", endpoint: "/agents/", hasCpf: true, hasAddress: true, teamLabel: "Equipe" },
-  { key: "supports", label: "Apoios", endpoint: "/supports/", hasCpf: true, hasAddress: true, hasTeam: true, teamLabel: "Ala" },
   { key: "vehicles", label: "Viaturas", endpoint: "/vehicles/" },
   { key: "kits", label: "Material de distribuição", endpoint: "/kits/" },
   { key: "dynamics", label: "Dinâmicas", endpoint: "/dynamics/" },
@@ -29,7 +25,7 @@ const emptyForm = {
 };
 
 export default function LookupsPage() {
-  const [activeKey, setActiveKey] = useState("teams");
+  const [activeKey, setActiveKey] = useState("vehicles");
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editing, setEditing] = useState(null);
@@ -177,7 +173,7 @@ export default function LookupsPage() {
         <div className="page-title">
           <div>
             <h1>Cadastros</h1>
-            <p>Gerencie listas usadas nos formulários de novas agendas.</p>
+            <p>Gerencie equipes, viaturas e listas auxiliares. Chefes, agentes e apoios são cadastrados em Usuários.</p>
           </div>
         </div>
 
@@ -321,7 +317,7 @@ export default function LookupsPage() {
               <input
                 placeholder={activeType.key === "teams" ? "Nome da equipe" : "Nome"}
                 value={form.name}
-                onChange={(event) => setForm({ ...form, name: event.target.value })}
+                onChange={(event) => setForm({ ...form, name: activeType.key === "teams" ? event.target.value.toUpperCase() : event.target.value })}
                 required
               />
               {activeType.hasCpf && (

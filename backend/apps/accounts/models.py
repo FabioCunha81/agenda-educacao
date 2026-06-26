@@ -46,6 +46,7 @@ class User(AbstractUser):
         related_name="users",
     )
     last_activity = models.DateTimeField(null=True, blank=True)
+    is_on_vacation = models.BooleanField(default=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["full_name"]

@@ -6,8 +6,8 @@ from .models import AuditLog, User
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ("email", "full_name", "role", "sector", "is_active", "is_staff")
-    list_filter = ("role", "sector", "is_active")
+    list_display = ("email", "full_name", "role", "sector", "is_active", "is_on_vacation", "is_staff")
+    list_filter = ("role", "sector", "is_active", "is_on_vacation")
     search_fields = ("email", "full_name")
     ordering = ("full_name",)
     fieldsets = BaseUserAdmin.fieldsets + (

@@ -4,7 +4,7 @@ import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { roleLabel } from "../utils/permissions.js";
 
-const empty = { full_name: "", cpf: "", email: "", phone: "", role: "USER", team: "", sector: "", sector_name: "", is_active: true };
+const empty = { full_name: "", cpf: "", email: "", phone: "", role: "USER", team: "", sector: "", sector_name: "", is_active: true, is_on_vacation: false };
 
 const adminRoles = new Set(["ADMIN", "MANAGER"]);
 const visitorRoles = new Set(["VISITOR"]);
@@ -29,6 +29,17 @@ function isValidEmail(value) {
 function normalizeSectorName(value) {
   return String(value || "").trim().replace(/\s+/g, " ");
 }
+function uniqueUppercaseTeams(rows) {
+  const seen = new Set();
+  return rows
+    .map((team) => ({ ...team, name: String(team.name || "").trim().toUpperCase() }))
+    .filter((team) => {
+      if (!team.name || seen.has(team.name)) return false;
+      seen.add(team.name);
+      return true;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+}
 
 export default function UsersPage() {
   const { user: currentUser } = useAuth();
@@ -49,7 +60,7 @@ export default function UsersPage() {
   useEffect(() => {
     load().catch((err) => setMessage(err.message));
     api("/sectors/").then((data) => setSectors(data.results || data)).catch((err) => setMessage(err.message));
-    api("/teams/?page_size=1000").then((data) => setTeams(data.results || data)).catch((err) => setMessage(err.message));
+    api("/teams/?page_size=1000").then((data) => setTeams(uniqueUppercaseTeams(data.results || data))).catch((err) => setMessage(err.message));
   }, []);
 
   const resolveSector = async (name) => {
@@ -99,6 +110,7 @@ export default function UsersPage() {
         phone: form.role === "VISITOR" ? "" : phoneDigits,
         role: form.role,
         is_active: form.is_active,
+        is_on_vacation: operationalRoles.has(form.role) ? form.is_on_vacation : false,
       };
       if (form.role === "VISITOR") {
         payload.sector = sectorId;
@@ -122,7 +134,7 @@ export default function UsersPage() {
   const edit = (user) => {
     setEditing(user.id);
     setPasswordLink(user.password_setup_link || "");
-    setForm({ ...user, cpf: user.cpf || "", team: user.team_id || "", sector: user.sector || "", sector_name: user.sector_name || "", is_active: user.is_active });
+    setForm({ ...user, cpf: user.cpf || "", team: user.team_id || "", sector: user.sector || "", sector_name: user.sector_name || "", is_active: user.is_active, is_on_vacation: user.is_on_vacation || false });
   };
 
   const remove = async (user) => {
@@ -158,10 +170,35 @@ export default function UsersPage() {
     }
   };
 
+  const toggleVacation = async (user) => {
+    try {
+      const payload = {
+        full_name: user.full_name,
+        cpf: user.cpf || "",
+        email: user.email,
+        phone: user.phone ? String(user.phone).replace(/\D/g, "") : "",
+        role: user.role,
+        is_active: user.is_active,
+        is_on_vacation: !user.is_on_vacation,
+      };
+      if (user.team_id) {
+        payload.team = user.team_id;
+      }
+      await api(`/users/${user.id}/`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+      setMessage(`Férias de ${user.full_name || user.email} atualizadas.`);
+      load();
+    } catch (err) {
+      setMessage(err.message);
+    }
+  };
+
   const renderUsersTable = (items, emptyMessage) => (
     <table>
       <thead>
-        <tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th>Ocupação</th><th>Equipe/Setor</th><th className="actions-heading">Ações</th></tr>
+        <tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th>Ocupação</th><th>Equipe/Setor</th><th>Status</th><th className="actions-heading">Ações</th></tr>
       </thead>
       <tbody>
         {items.map((item) => (
@@ -171,10 +208,16 @@ export default function UsersPage() {
             <td>{item.phone || "-"}</td>
             <td>{item.email}</td>
             <td>{roleLabel[item.role] || item.role}</td>
-            <td>{item.role === "VISITOR" ? (item.sector_name || "-") : (item.team_name || item.sector_name || "-")}</td>
+            <td>{item.role === "VISITOR" ? (item.sector_name || "-") : String(item.team_name || item.sector_name || "-").toUpperCase()}</td>
+            <td>{item.is_on_vacation ? <span className="badge warning">Férias</span> : <span className={`badge ${item.is_active ? "success" : "neutral"}`}>{item.is_active ? "Ativo" : "Inativo"}</span>}</td>
             <td>
               <div className="row-actions">
                 <button className="secondary" onClick={() => edit(item)}>Editar</button>
+                {operationalRoles.has(item.role) && (
+                  <button className="secondary" onClick={() => toggleVacation(item)}>
+                    {item.is_on_vacation ? "Retirar Férias" : "Férias"}
+                  </button>
+                )}
                 <button className="icon-button" onClick={() => sendPasswordLink(item)} aria-label={`Enviar link para ${item.full_name || item.email}`} title="Enviar link de senha">
                   <Mail size={18} />
                 </button>
@@ -186,7 +229,7 @@ export default function UsersPage() {
           </tr>
         ))}
         {!items.length && (
-          <tr><td colSpan="7" className="empty-cell">{emptyMessage}</td></tr>
+          <tr><td colSpan="8" className="empty-cell">{emptyMessage}</td></tr>
         )}
       </tbody>
     </table>
@@ -295,6 +338,12 @@ export default function UsersPage() {
             <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
             Usuário ativo
           </label>
+          {operationalRoles.has(form.role) && (
+            <label className="checkbox">
+              <input type="checkbox" checked={form.is_on_vacation} onChange={(e) => setForm({ ...form, is_on_vacation: e.target.checked })} />
+              Marcar como férias
+            </label>
+          )}
           {message && <div className="alert">{message}</div>}
           {passwordLink && (
             <div className="copy-box">

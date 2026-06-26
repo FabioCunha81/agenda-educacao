@@ -390,21 +390,21 @@ class ShiftScheduleSerializer(serializers.ModelSerializer):
         removed_agent_ids = set(obj.removed_agents.values_list("id", flat=True))
         removed_support_ids = set(obj.removed_supports.values_list("id", flat=True))
 
-        chief_objs = Chief.objects.filter(team=obj.team, is_active=True).exclude(id__in=removed_chief_ids).order_by("name")
-        agent_objs = Agent.objects.filter(team=obj.team, is_active=True).exclude(id__in=removed_agent_ids).order_by("name")
-        support_objs = Support.objects.filter(team=obj.team, is_active=True).exclude(id__in=removed_support_ids).order_by("name")
+        chief_objs = Chief.objects.filter(team=obj.team, is_active=True, source_id__startswith="user:").exclude(id__in=removed_chief_ids).order_by("name")
+        agent_objs = Agent.objects.filter(team=obj.team, is_active=True, source_id__startswith="user:").exclude(id__in=removed_agent_ids).order_by("name")
+        support_objs = Support.objects.filter(team=obj.team, is_active=True, source_id__startswith="user:").exclude(id__in=removed_support_ids).order_by("name")
 
         chiefs = [row(item, is_absent=item.id in absent_chief_ids) for item in chief_objs]
         agents = [row(item, is_absent=item.id in absent_agent_ids) for item in agent_objs]
         supports = [row(item, is_absent=item.id in absent_support_ids) for item in support_objs]
 
-        for item in obj.extra_chiefs.filter(is_active=True):
+        for item in obj.extra_chiefs.filter(is_active=True, source_id__startswith="user:"):
             if not any(m["id"] == item.id for m in chiefs):
                 chiefs.append(row(item, is_extra=True, is_absent=item.id in absent_chief_ids))
-        for item in obj.extra_agents.filter(is_active=True):
+        for item in obj.extra_agents.filter(is_active=True, source_id__startswith="user:"):
             if not any(m["id"] == item.id for m in agents):
                 agents.append(row(item, is_extra=True, is_absent=item.id in absent_agent_ids))
-        for item in obj.extra_supports.filter(is_active=True):
+        for item in obj.extra_supports.filter(is_active=True, source_id__startswith="user:"):
             if not any(m["id"] == item.id for m in supports):
                 supports.append(row(item, is_extra=True, is_absent=item.id in absent_support_ids))
 
