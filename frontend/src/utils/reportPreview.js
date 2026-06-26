@@ -2,6 +2,7 @@ import { formatDateBR } from "./date.js";
 
 const numberFields = [
   "approach",
+  "approached_actions",
 ];
 
 export function reportName(report) {
@@ -33,6 +34,7 @@ export function buildPreview(report) {
         `   Público: ${action.type_audience || "não informado"}\n` +
         `   Horário: ${action.start_time || "--"} às ${action.final_hour || "--"}\n` +
         `   Público alcançado (Ação/Palestra): ${action.approach || 0}\n` +
+        `   Número de abordagens: ${action.approached_actions || 0}\n` +
         `   Dinâmica retirada: ${action.equipment_materials_removed ? action.equipment_materials_removed.replace(/\\n/g, ", ") : "-"}\n` +
         `   Dinâmica distribuída: ${action.equipment_materials_distributed ? action.equipment_materials_distributed.replace(/\\n/g, ", ") : "-"}\n` +
         `   Material distribuição retirado: ${action.distribution_materials_removed ? action.distribution_materials_removed.replace(/\\n/g, ", ") : "-"}\n` +
@@ -57,7 +59,8 @@ export function buildPreview(report) {
     `Alterações gerais: ${report.changes_general || "não informado"}\n\n` +
     `AÇÕES\n${actionLines}\n\n` +
     `TOTAIS\n` +
-    `Público alcançado (Ação/Palestra): ${totals.approach}\n\n` +
+    `Público alcançado (Ação/Palestra): ${totals.approach}\n` +
+    `Número de abordagens: ${totals.approached_actions}\n\n` +
     `CONTATO/OCORRÊNCIAS\n` +
     `Contato recebido: ${report.contact_received || "não informado"}\n` +
     `Dados e Observações: ${report.general_observations || "não informado"}\n` +

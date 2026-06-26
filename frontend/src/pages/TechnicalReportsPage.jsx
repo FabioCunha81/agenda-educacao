@@ -16,6 +16,7 @@ const emptyAction = {
   start_time: "",
   final_hour: "",
   approach: "",
+  approached_actions: "",
   equipment_materials_removed: "",
   equipment_materials_distributed: "",
   distribution_materials_removed: "",
@@ -54,10 +55,12 @@ const empty = {
 
 const numberFields = [
   "approach",
+  "approached_actions",
 ];
 
 const fieldLabels = {
   approach: "Público alcançado (Ação/Palestra)",
+  approached_actions: "Número de abordagens",
 };
 
 function nullable(value) {
@@ -615,7 +618,6 @@ export default function TechnicalReportsPage() {
             </div>
             <p style={{ margin: 0 }}>Busque a OS da agenda realizada, vincule o relatório e registre a execução da equipe.</p>
           </div>
-          <button type="button" className="secondary" onClick={reset}><Plus size={18} /> Novo</button>
         </div>
 
         {loadError && <div className="alert">{loadError}</div>}
