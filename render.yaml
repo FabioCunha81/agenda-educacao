@@ -29,6 +29,10 @@ services:
         value: https://sied.onrender.com
       - key: FRONTEND_URL
         value: https://sied.onrender.com
+      - key: EMAIL_PROVIDER
+        value: smtp
+      - key: RESEND_API_KEY
+        sync: false
       - key: DJANGO_SUPERUSER_EMAIL
         value: admin@agenda.local
       - key: DJANGO_SUPERUSER_PASSWORD
