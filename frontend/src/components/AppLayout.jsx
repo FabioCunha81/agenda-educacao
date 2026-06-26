@@ -1,6 +1,6 @@
 import { Activity, BarChart3, Bell, CalendarDays, LayoutDashboard, ListPlus, LogOut, Menu, Search, ShieldCheck, Target, Users, X } from "lucide-react";
 import { useState, useEffect } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import logoOperacaoLeiSeca from "../assets/operacao-lei-seca-logo.png";
 import { useAuth } from "../context/AuthContext.jsx";
 import { canAccessRoute, roleLabel } from "../utils/permissions.js";
@@ -39,6 +39,7 @@ export default function AppLayout() {
   const [showOnlinePanel, setShowOnlinePanel] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (!user) return;
@@ -61,13 +62,31 @@ export default function AppLayout() {
         .catch(() => setPendingShiftSwaps(0));
     };
 
+    const loadPendingRequests = () => {
+      if (!user || !canAccessRoute(user, ["ADMIN", "MANAGER", "SUPERVISOR"])) {
+        setPendingRequests(0);
+        return;
+      }
+      api("/agendas/?status=PENDING&source=requests&page_size=1")
+        .then((data) => setPendingRequests(data.count || 0))
+        .catch(() => setPendingRequests(0));
+    };
+
+    const syncPendingRequests = (event) => {
+      if (typeof event.detail?.count === "number") {
+        setPendingRequests(event.detail.count);
+      } else {
+        loadPendingRequests();
+      }
+    };
+
     loadPendingShiftSwaps();
+    loadPendingRequests();
+    window.addEventListener("focus", loadPendingRequests);
+    window.addEventListener("agenda-requests:changed", syncPendingRequests);
     window.addEventListener("shift-swaps:changed", loadPendingShiftSwaps);
 
     if (user && canAccessRoute(user, ["ADMIN", "MANAGER", "SUPERVISOR"])) {
-      api("/agendas/?status=PENDING&source=requests&page_size=1")
-        .then((data) => setPendingRequests(data.count || 0))
-        .catch(() => {});
       Promise.all([
         api("/agendas/?page_size=1000&reportable=true"),
         api("/education-reports/?page_size=1000"),
@@ -83,8 +102,12 @@ export default function AppLayout() {
         .catch(() => {});
     }
 
-    return () => window.removeEventListener("shift-swaps:changed", loadPendingShiftSwaps);
-  }, [user]);
+    return () => {
+      window.removeEventListener("focus", loadPendingRequests);
+      window.removeEventListener("agenda-requests:changed", syncPendingRequests);
+      window.removeEventListener("shift-swaps:changed", loadPendingShiftSwaps);
+    };
+  }, [user, location.pathname]);
   const fetchOnlineUsers = () => {
     api("/users/online/")
       .then(data => setOnlineUsers(data))

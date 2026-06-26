@@ -237,7 +237,11 @@ export default function AgendaPage() {
   const fetchPendingCount = () => {
     if (canManageRequests) {
       api("/agendas/?status=PENDING&source=requests&page_size=1")
-        .then((data) => setPendingCount(data.count || 0))
+        .then((data) => {
+          const count = data.count || 0;
+          setPendingCount(count);
+          window.dispatchEvent(new CustomEvent("agenda-requests:changed", { detail: { count } }));
+        })
         .catch(() => {});
     }
   };
