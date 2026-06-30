@@ -137,16 +137,19 @@ export default function ShiftSchedulePage() {
   const rostersByTeam = useMemo(() => {
     const base = {};
     teams.forEach((team) => {
-      base[String(team.id)] = { chiefs: [], agents: [], supports: [] };
+      base[team.name] = { chiefs: [], agents: [], supports: [] };
     });
     chiefs.forEach((item) => {
-      if (item.team) base[String(item.team)]?.chiefs.push(item);
+      const tName = String(item.team_name || "").trim().toUpperCase();
+      if (tName && base[tName]) base[tName].chiefs.push(item);
     });
     agents.forEach((item) => {
-      if (item.team) base[String(item.team)]?.agents.push(item);
+      const tName = String(item.team_name || "").trim().toUpperCase();
+      if (tName && base[tName]) base[tName].agents.push(item);
     });
     supports.forEach((item) => {
-      if (item.team) base[String(item.team)]?.supports.push(item);
+      const tName = String(item.team_name || "").trim().toUpperCase();
+      if (tName && base[tName]) base[tName].supports.push(item);
     });
     return base;
   }, [agents, chiefs, supports, teams]);
@@ -223,10 +226,11 @@ export default function ShiftSchedulePage() {
       loadAll("/agents/"),
       loadAll("/supports/"),
     ]).then(([teamRows, chiefRows, agentRows, supportRows]) => {
+      const fromUsers = (row) => String(row.source_id || "").startsWith("user:");
       setTeams(uniqueUppercaseTeams(teamRows));
-      setChiefs(chiefRows);
-      setAgents(agentRows);
-      setSupports(supportRows);
+      setChiefs(chiefRows.filter(fromUsers));
+      setAgents(agentRows.filter(fromUsers));
+      setSupports(supportRows.filter(fromUsers));
     });
   }, []);
 
@@ -612,7 +616,7 @@ export default function ShiftSchedulePage() {
 
             <div className="shift-team-picker">
               {visibleTeams.map((team) => {
-                const roster = rostersByTeam[String(team.id)] || {};
+                const roster = rostersByTeam[team.name] || {};
                 return (
                   <label key={team.id} className={selectedTeamIds.includes(String(team.id)) ? "selected" : ""}>
                     <input
