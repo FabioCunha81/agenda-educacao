@@ -470,7 +470,16 @@ export default function EvaluationsPage() {
     api("/municipalities/?page_size=500").then((res) => setMunicipalities(res.results || res)).catch(console.error);
     api("/teams/?page_size=1000").then((res) => {
       const data = res.results || res;
-      setTeams(data.map(t => ({ ...t, name: t.name ? t.name.toUpperCase() : "" })));
+      const seen = new Set();
+      const uniqueTeams = data
+        .map(t => ({ ...t, name: String(t.name || "").trim().toUpperCase() }))
+        .filter(t => {
+          if (!t.name || seen.has(t.name)) return false;
+          seen.add(t.name);
+          return true;
+        })
+        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+      setTeams(uniqueTeams);
     }).catch(console.error);
   }, []);
 
