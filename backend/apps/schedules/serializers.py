@@ -392,9 +392,9 @@ class ShiftScheduleSerializer(serializers.ModelSerializer):
         removed_agent_ids = set(obj.removed_agents.values_list("id", flat=True))
         removed_support_ids = set(obj.removed_supports.values_list("id", flat=True))
 
-        chief_objs = Chief.objects.filter(team=obj.team, is_active=True, source_id__startswith="user:").exclude(id__in=removed_chief_ids).order_by("name")
-        agent_objs = Agent.objects.filter(team=obj.team, is_active=True, source_id__startswith="user:").exclude(id__in=removed_agent_ids).order_by("name")
-        support_objs = Support.objects.filter(team=obj.team, is_active=True, source_id__startswith="user:").exclude(id__in=removed_support_ids).order_by("name")
+        chief_objs = Chief.objects.filter(team__name__iexact=obj.team.name, is_active=True, source_id__startswith="user:").exclude(id__in=removed_chief_ids).order_by("name")
+        agent_objs = Agent.objects.filter(team__name__iexact=obj.team.name, is_active=True, source_id__startswith="user:").exclude(id__in=removed_agent_ids).order_by("name")
+        support_objs = Support.objects.filter(team__name__iexact=obj.team.name, is_active=True, source_id__startswith="user:").exclude(id__in=removed_support_ids).order_by("name")
 
         chiefs = [row(item, is_absent=item.id in absent_chief_ids) for item in chief_objs]
         agents = [row(item, is_absent=item.id in absent_agent_ids) for item in agent_objs]

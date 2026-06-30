@@ -390,7 +390,7 @@ export default function ShiftSchedulePage() {
 
       if (!memberObj) return;
 
-      const isDefaultTeamMember = String(memberObj.team) === String(detailSchedule.team);
+      const isDefaultTeamMember = String(memberObj.team_name || "").trim().toUpperCase() === String(detailSchedule.team_name || "").trim().toUpperCase();
 
       let payload = {};
       if (isChief) {
