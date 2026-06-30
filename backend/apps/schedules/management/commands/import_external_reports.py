@@ -9,7 +9,8 @@ class Command(BaseCommand):
     help = "Imports education reports from exported JSON data"
 
     def handle(self, *args, **options):
-        json_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), 'external_reports.json')
+        from django.conf import settings
+        json_path = os.path.join(settings.BASE_DIR, 'external_reports.json')
         try:
             with open(json_path, 'r') as f:
                 data = json.load(f)
