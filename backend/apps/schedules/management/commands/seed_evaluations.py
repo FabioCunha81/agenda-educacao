@@ -10,8 +10,18 @@ class Command(BaseCommand):
     help = "Popula o banco com dados fictícios de Avaliações (SatisfactionSurvey)."
 
     def handle(self, *args, **options):
-        from apps.schedules.models import Sector
+        from apps.schedules.models import Team, SatisfactionSurvey
         from apps.accounts.models import User
+        
+        # Corrige codificação e deixa tudo em caixa alta no banco existente
+        surveys_to_update = SatisfactionSurvey.objects.exclude(team="")
+        for survey in surveys_to_update:
+            original = survey.team
+            new_team = original.replace("ÃƒÂ§ÃƒÂµes", "ÇÕES").replace("ÃƒÂ§ÃƒÂ£o", "ÇÃO").replace("ÃƒÂ©", "É").replace("ÃƒÂ", "Í")
+            new_team = new_team.upper()
+            if original != new_team:
+                survey.team = new_team
+                survey.save(update_fields=["team"])
         
         agendas = list(Agenda.objects.all()[:20])
         
@@ -19,12 +29,10 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR("Nenhuma agenda encontrada para vincular avaliações. Crie agendas primeiro."))
             return
 
-        from apps.schedules.models import Sector
-        from apps.accounts.models import User
-
-        sectors = list(Sector.objects.values_list("name", flat=True))
-        if not sectors:
-            sectors = ["Operações", "Atendimento", "Campo"]
+        teams = list(Team.objects.values_list("name", flat=True))
+        teams = [t.upper() for t in teams if t]
+        if not teams:
+            teams = ["ALFA", "BETA", "GAMA", "DELTA"]
             
         users = list(User.objects.values_list("full_name", flat=True))
         if not users:
@@ -52,7 +60,7 @@ class Command(BaseCommand):
                 defaults={
                     "token": token,
                     "requester_email": f"participante{i}@exemplo.com",
-                    "team": random.choice(sectors),
+                    "team": random.choice(teams),
                     "chief_name": random.choice(users),
                     "audiovisual_resources": random.randint(3, 5) if answered else None,
                     "speaker_knowledge": random.randint(4, 5) if answered else None,

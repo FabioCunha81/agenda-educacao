@@ -468,7 +468,10 @@ export default function EvaluationsPage() {
 
   useEffect(() => {
     api("/municipalities/?page_size=500").then((res) => setMunicipalities(res.results || res)).catch(console.error);
-    api("/teams/?page_size=1000").then((res) => setTeams(res.results || res)).catch(console.error);
+    api("/teams/?page_size=1000").then((res) => {
+      const data = res.results || res;
+      setTeams(data.map(t => ({ ...t, name: t.name ? t.name.toUpperCase() : "" })));
+    }).catch(console.error);
   }, []);
 
   const loadData = async () => {
