@@ -2950,8 +2950,8 @@ class SatisfactionSurveyViewSet(viewsets.ModelViewSet):
             .values("id", "team", "suggestion", "moderated_comment", "answered_at", "overall_rating", "is_approved", "moderation_status", "agenda__id", "agenda__institution_location")[:15]
         )
         satisfaction_panel = {
-            "overall_rating": round(panel_overall_avg, 1),
-            "total_responses": panel_qs.count(),
+            "overall_rating": round(overall_avg, 1) if overall_avg is not None else 0.0,
+            "total_responses": total_surveys,
             "team_ratings": [
                 {"team": item["team"], "avg": round(item["avg"], 1), "count": item["count"]}
                 for item in panel_team_ratings if item["avg"] is not None
