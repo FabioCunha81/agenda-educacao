@@ -168,7 +168,7 @@ const RadarChart = ({ data }) => {
 
   const size = 320;
   const center = size / 2;
-  const maxRadius = (size / 2) - 40;
+  const maxRadius = (size / 2) - 70;
   const angleStep = (Math.PI * 2) / data.length;
 
   const getPoint = (value, index, radiusScale = 1) => {
@@ -677,7 +677,7 @@ export default function EvaluationsPage() {
               <div className="chart-card">
                 <div className="section-heading">
                   <Award size={18} />
-                  <h3>Ranking de Critérios</h3>
+                  <h3>Ranking de Equipes</h3>
                 </div>
                 <div className="ranking-list">
                   {data.ranking.map((item, idx) => {

@@ -2965,10 +2965,16 @@ class SatisfactionSurveyViewSet(viewsets.ModelViewSet):
                 "value": round(aggregates[f"{field}_avg"] or 0, 2),
             })
 
-        # -- Ranking --------------------------------------------------
-        ranking = sorted(radar, key=lambda x: x["value"], reverse=True)
-        for i, item in enumerate(ranking, 1):
-            item["position"] = i
+        # -- Ranking (Teams) ------------------------------------------
+        teams_avg = list(panel_qs.values("team").annotate(value=Avg("overall_rating")).order_by("-value"))
+        ranking = []
+        for i, item in enumerate(teams_avg, 1):
+            if item["team"]:
+                ranking.append({
+                    "criteria": item["team"], # Keep the key 'criteria' so frontend doesn't break, or change to 'team'
+                    "value": round(item["value"] or 0, 2),
+                    "position": len(ranking) + 1
+                })
 
         # -- Distribution ---------------------------------------------
         distribution = {}
