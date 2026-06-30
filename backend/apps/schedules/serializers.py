@@ -20,6 +20,7 @@ from .models import (
     Neighborhood,
     Sector,
     SatisfactionSurvey,
+    SatisfactionSurveyModerationHistory,
     ShiftAbsence,
     ShiftSchedule,
     ShiftSwapRequest,
@@ -625,10 +626,10 @@ class AgendaSerializer(serializers.ModelSerializer):
         if date and start_time and end_time and candidate.responsible and candidate.location:
             conflict = candidate.overlaps_queryset().select_related("responsible").order_by("start_time").first()
             if conflict:
-                conflict_time = f"{conflict.start_time:%H:%M} às {conflict.end_time:%H:%M}"
-                conflict_label = conflict.location or conflict.institution_location or "local não informado"
+                conflict_time = f"{conflict.start_time:%H:%M} ÃƒÆ’Ã‚Â s {conflict.end_time:%H:%M}"
+                conflict_label = conflict.location or conflict.institution_location or "local nÃƒÆ’Ã‚Â£o informado"
                 raise serializers.ValidationError(
-                    f"Existe conflito de horário com o protocolo #{conflict.id}, das {conflict_time}, em {conflict_label}."
+                    f"Existe conflito de horÃƒÆ’Ã‚Â¡rio com o protocolo #{conflict.id}, das {conflict_time}, em {conflict_label}."
                 )
         return attrs
 
@@ -704,44 +705,44 @@ class AgendaSerializer(serializers.ModelSerializer):
 
 def report_text(report):
     agenda = report.agenda
-    participants = report.participants_count or agenda.quantity or "não informado"
+    participants = report.participants_count or agenda.quantity or "nÃƒÆ’Ã‚Â£o informado"
     incidents = report.incidents.strip() or report.get_incident_status_display()
     materials = report.materials_used.strip() or report.get_material_status_display()
     receptivity = report.public_receptivity.strip() or report.get_receptivity_level_display()
     team = report.team_performance.strip() or report.get_team_performance_status_display()
-    positives = report.positive_points.strip() or "A atividade transcorreu de forma organizada, com participação satisfatória do público envolvido."
-    improvements = report.improvement_points.strip() or "Não foram identificados pontos críticos que comprometessem o resultado da ação."
-    recommendations = report.recommendations.strip() or "Recomenda-se manter o planejamento prévio e o alinhamento entre equipe, local e responsáveis."
+    positives = report.positive_points.strip() or "A atividade transcorreu de forma organizada, com participaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o satisfatÃƒÆ’Ã‚Â³ria do pÃƒÆ’Ã‚Âºblico envolvido."
+    improvements = report.improvement_points.strip() or "NÃƒÆ’Ã‚Â£o foram identificados pontos crÃƒÆ’Ã‚Â­ticos que comprometessem o resultado da aÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o."
+    recommendations = report.recommendations.strip() or "Recomenda-se manter o planejamento prÃƒÆ’Ã‚Â©vio e o alinhamento entre equipe, local e responsÃƒÆ’Ã‚Â¡veis."
     final = report.final_considerations.strip() or "Diante do exposto, considera-se que a atividade cumpriu sua finalidade institucional."
 
     return (
-        f"RELATÓRIO TÉCNICO DE ATIVIDADE\n\n"
-        f"1. Identificação da atividade\n"
+        f"RELATÃƒÆ’Ã¢â‚¬Å“RIO TÃƒÆ’Ã¢â‚¬Â°CNICO DE ATIVIDADE\n\n"
+        f"1. IdentificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o da atividade\n"
         f"Atividade: {agenda.title}\n"
         f"Data: {agenda.date.strftime('%d/%m/%Y')}\n"
-        f"Horário: {agenda.start_time.strftime('%H:%M')} às {agenda.end_time.strftime('%H:%M')}\n"
+        f"HorÃƒÆ’Ã‚Â¡rio: {agenda.start_time.strftime('%H:%M')} ÃƒÆ’Ã‚Â s {agenda.end_time.strftime('%H:%M')}\n"
         f"Local: {agenda.institution_location or agenda.location}\n"
-        f"Endereço: {agenda.address or 'não informado'}\n"
-        f"Município: {agenda.city or 'não informado'}\n"
+        f"EndereÃƒÆ’Ã‚Â§o: {agenda.address or 'nÃƒÆ’Ã‚Â£o informado'}\n"
+        f"MunicÃƒÆ’Ã‚Â­pio: {agenda.city or 'nÃƒÆ’Ã‚Â£o informado'}\n"
         f"Equipe: {agenda.team_name or agenda.sector.name}\n"
-        f"Chefe responsável: {agenda.chief_name or report.created_by.full_name}\n\n"
-        f"2. Público atendido\n"
+        f"Chefe responsÃƒÆ’Ã‚Â¡vel: {agenda.chief_name or report.created_by.full_name}\n\n"
+        f"2. PÃƒÆ’Ã‚Âºblico atendido\n"
         f"Quantidade estimada/registrada: {participants}\n"
-        f"Perfil do público: {report.audience_profile or agenda.audience or 'não informado'}\n\n"
-        f"3. Síntese da execução\n"
+        f"Perfil do pÃƒÆ’Ã‚Âºblico: {report.audience_profile or agenda.audience or 'nÃƒÆ’Ã‚Â£o informado'}\n\n"
+        f"3. SÃƒÆ’Ã‚Â­ntese da execuÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o\n"
         f"{report.execution_summary}\n\n"
-        f"4. Avaliação técnica\n"
+        f"4. AvaliaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o tÃƒÆ’Ã‚Â©cnica\n"
         f"Objetivo da atividade: {report.get_objective_status_display()}.\n"
-        f"Execução: {report.get_execution_quality_display()}.\n"
-        f"Receptividade do público: {receptivity}\n"
-        f"Atuação da equipe: {team}\n"
+        f"ExecuÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o: {report.get_execution_quality_display()}.\n"
+        f"Receptividade do pÃƒÆ’Ã‚Âºblico: {receptivity}\n"
+        f"AtuaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o da equipe: {team}\n"
         f"Materiais utilizados: {materials}\n"
-        f"Ocorrências: {incidents}\n\n"
+        f"OcorrÃƒÆ’Ã‚Âªncias: {incidents}\n\n"
         f"5. Pontos observados\n"
         f"Pontos positivos: {positives}\n"
         f"Pontos de melhoria: {improvements}\n"
-        f"Recomendações: {recommendations}\n\n"
-        f"6. Considerações finais\n"
+        f"RecomendaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes: {recommendations}\n\n"
+        f"6. ConsideraÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes finais\n"
         f"{final}"
     )
 
@@ -934,12 +935,12 @@ class EducationReportSerializer(serializers.ModelSerializer):
         instance = self.instance
         agenda = attrs.get("agenda", getattr(instance, "agenda", None))
         if not agenda:
-            raise serializers.ValidationError("Informe o protocolo da solicitação.")
+            raise serializers.ValidationError("Informe o protocolo da solicitaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o.")
         status = attrs.get("status", getattr(instance, "status", None))
         accessibility = attrs.get("accessibility_conditions_met", getattr(instance, "accessibility_conditions_met", ""))
         if status == EducationReport.ReportStatus.SUBMITTED and accessibility not in {"YES", "NO"}:
             raise serializers.ValidationError({
-                "accessibility_conditions_met": "Informe se o local atendeu às condições de acessibilidade para cadeirantes."
+                "accessibility_conditions_met": "Informe se o local atendeu ÃƒÆ’Ã‚Â s condiÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes de acessibilidade para cadeirantes."
             })
         return attrs
 
@@ -1040,14 +1041,14 @@ def find_accessibility_block(attrs):
 PUBLIC_AGE_RANGE_CHOICES = [
     "05 - 10 anos (ensino fundamental - anos iniciais)",
     "11 - 14 anos (ensino fundamental - anos finais)",
-    "15 - 17 anos (ensino médio)",
+    "15 - 17 anos (ensino mÃƒÆ’Ã‚Â©dio)",
     "acima de 18 anos - Adultos",
 ]
 
 LEGACY_PUBLIC_AGE_RANGE_CHOICES = [
-    "04 até 8 anos",
-    "09 até 13 anos",
-    "14 até 17 anos",
+    "04 atÃƒÆ’Ã‚Â© 8 anos",
+    "09 atÃƒÆ’Ã‚Â© 13 anos",
+    "14 atÃƒÆ’Ã‚Â© 17 anos",
     "acima de 18 anos",
 ]
 
@@ -1065,8 +1066,8 @@ class PublicAgendaRequestSerializer(serializers.Serializer):
             "Palestra Empresa",
             "Palestra Escola",
             "Palestra Virtual",
-            "Ação educativa (Espaço interno)",
-            "Palestra bilíngue (Inglês)",
+            "AÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o educativa (EspaÃƒÆ’Ã‚Â§o interno)",
+            "Palestra bilÃƒÆ’Ã‚Â­ngue (InglÃƒÆ’Ã‚Âªs)",
         ]
     )
     institution_location = serializers.CharField(max_length=220)
@@ -1090,11 +1091,11 @@ class PublicAgendaRequestSerializer(serializers.Serializer):
         choices=PUBLIC_AGE_RANGE_CHOICES + LEGACY_PUBLIC_AGE_RANGE_CHOICES
     )
     accessibility_access = serializers.ChoiceField(
-        choices=["Sim", "Não", "Não se aplica, pois será realizado no térreo"]
+        choices=["Sim", "NÃƒÆ’Ã‚Â£o", "NÃƒÆ’Ã‚Â£o se aplica, pois serÃƒÆ’Ã‚Â¡ realizado no tÃƒÆ’Ã‚Â©rreo"]
     )
-    has_ramps = serializers.ChoiceField(choices=["Sim", "Não"], required=False, allow_blank=True)
-    has_elevators = serializers.ChoiceField(choices=["Sim", "Não"], required=False, allow_blank=True)
-    has_accessible_bathrooms = serializers.ChoiceField(choices=["Sim", "Não"], required=False, allow_blank=True)
+    has_ramps = serializers.ChoiceField(choices=["Sim", "NÃƒÆ’Ã‚Â£o"], required=False, allow_blank=True)
+    has_elevators = serializers.ChoiceField(choices=["Sim", "NÃƒÆ’Ã‚Â£o"], required=False, allow_blank=True)
+    has_accessible_bathrooms = serializers.ChoiceField(choices=["Sim", "NÃƒÆ’Ã‚Â£o"], required=False, allow_blank=True)
     media_equipment = serializers.CharField(required=False, allow_blank=True)
     image_authorization = serializers.CharField(required=False, allow_blank=True)
     quantity = serializers.IntegerField(min_value=0, required=False, allow_null=True)
@@ -1118,7 +1119,7 @@ class PublicAgendaRequestSerializer(serializers.Serializer):
                 suggested = get_next_available_dates(date)
                 suggested_str = ", ".join(d.strftime("%d/%m/%Y") for d in suggested)
                 raise serializers.ValidationError(
-                    f"Infelizmente já atingimos o limite de vagas para esta data. Sugerimos os dias úteis disponíveis a seguir: {suggested_str}."
+                    f"Infelizmente jÃƒÆ’Ã‚Â¡ atingimos o limite de vagas para esta data. Sugerimos os dias ÃƒÆ’Ã‚Âºteis disponÃƒÆ’Ã‚Â­veis a seguir: {suggested_str}."
                 )
                 
         return attrs
@@ -1150,15 +1151,39 @@ class PublicAgendaRequestRescheduleSerializer(serializers.Serializer):
                 suggested = get_next_available_dates(date)
                 suggested_str = ", ".join(d.strftime("%d/%m/%Y") for d in suggested)
                 raise serializers.ValidationError(
-                    f"Infelizmente já atingimos o limite de vagas para esta data. Sugerimos os dias úteis disponíveis a seguir: {suggested_str}."
+                    f"Infelizmente jÃƒÆ’Ã‚Â¡ atingimos o limite de vagas para esta data. Sugerimos os dias ÃƒÆ’Ã‚Âºteis disponÃƒÆ’Ã‚Â­veis a seguir: {suggested_str}."
                 )
                 
         return attrs
 
 
+class SatisfactionSurveyModerationHistorySerializer(serializers.ModelSerializer):
+    decided_by_name = serializers.CharField(source="decided_by.full_name", read_only=True)
+
+    class Meta:
+        model = SatisfactionSurveyModerationHistory
+        fields = [
+            "id",
+            "previous_status",
+            "new_status",
+            "comment_snapshot",
+            "decided_at",
+            "decided_by",
+            "decided_by_name",
+        ]
+
+
 class SatisfactionSurveySerializer(serializers.ModelSerializer):
     protocol = serializers.IntegerField(source="agenda_id", read_only=True)
     agenda_title = serializers.CharField(source="agenda.title", read_only=True)
+    agenda_date = serializers.DateField(source="agenda.date", read_only=True)
+    institution = serializers.CharField(source="agenda.location", read_only=True)
+    municipality = serializers.CharField(source="agenda.municipality_ref.name", read_only=True)
+    state = serializers.CharField(source="agenda.state", read_only=True)
+    moderation_status_label = serializers.CharField(source="get_moderation_status_display", read_only=True)
+    moderated_by_name = serializers.CharField(source="moderated_by.full_name", read_only=True)
+    display_comment = serializers.SerializerMethodField()
+    moderation_history = SatisfactionSurveyModerationHistorySerializer(many=True, read_only=True)
 
     class Meta:
         model = SatisfactionSurvey
@@ -1166,6 +1191,10 @@ class SatisfactionSurveySerializer(serializers.ModelSerializer):
             "id",
             "protocol",
             "agenda_title",
+            "agenda_date",
+            "institution",
+            "municipality",
+            "state",
             "team",
             "chief_name",
             "audiovisual_resources",
@@ -1177,10 +1206,40 @@ class SatisfactionSurveySerializer(serializers.ModelSerializer):
             "team_enthusiasm",
             "overall_rating",
             "suggestion",
+            "display_comment",
             "is_approved",
+            "moderation_status",
+            "moderation_status_label",
+            "moderated_comment",
+            "moderated_at",
+            "moderated_by",
+            "moderated_by_name",
+            "moderation_history",
             "answered_at",
         ]
-        read_only_fields = ["id", "protocol", "agenda_title", "team", "chief_name", "answered_at"]
+        read_only_fields = [
+            "id",
+            "protocol",
+            "agenda_title",
+            "agenda_date",
+            "institution",
+            "municipality",
+            "state",
+            "team",
+            "chief_name",
+            "display_comment",
+            "is_approved",
+            "moderation_status",
+            "moderation_status_label",
+            "moderated_at",
+            "moderated_by",
+            "moderated_by_name",
+            "moderation_history",
+            "answered_at",
+        ]
+
+    def get_display_comment(self, obj):
+        return obj.moderated_comment or obj.suggestion
 
 
     def validate(self, attrs):

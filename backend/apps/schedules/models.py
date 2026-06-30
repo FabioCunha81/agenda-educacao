@@ -628,6 +628,12 @@ class EducationAction(models.Model):
 
 
 class SatisfactionSurvey(models.Model):
+    class ModerationStatus(models.TextChoices):
+        PENDING = "PENDING", "Pendente"
+        APPROVED = "APPROVED", "Aprovado"
+        REJECTED = "REJECTED", "Reprovado"
+        HIDDEN = "HIDDEN", "Oculto"
+
     agenda = models.ForeignKey(Agenda, on_delete=models.PROTECT, related_name="satisfaction_surveys")
     report = models.ForeignKey(
         EducationReport,
@@ -652,6 +658,20 @@ class SatisfactionSurvey(models.Model):
     sent_at = models.DateTimeField(null=True, blank=True)
     answered_at = models.DateTimeField(null=True, blank=True)
     is_approved = models.BooleanField(default=False)
+    moderation_status = models.CharField(
+        max_length=20,
+        choices=ModerationStatus.choices,
+        default=ModerationStatus.PENDING,
+    )
+    moderated_comment = models.TextField(blank=True)
+    moderated_at = models.DateTimeField(null=True, blank=True)
+    moderated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="moderated_satisfaction_surveys",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -661,6 +681,31 @@ class SatisfactionSurvey(models.Model):
 
     def __str__(self):
         return f"Pesquisa #{self.agenda_id}"
+
+
+class SatisfactionSurveyModerationHistory(models.Model):
+    survey = models.ForeignKey(
+        SatisfactionSurvey,
+        on_delete=models.CASCADE,
+        related_name="moderation_history",
+    )
+    previous_status = models.CharField(max_length=20, blank=True)
+    new_status = models.CharField(max_length=20, choices=SatisfactionSurvey.ModerationStatus.choices)
+    comment_snapshot = models.TextField(blank=True)
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="satisfaction_moderation_decisions",
+    )
+    decided_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-decided_at", "-id"]
+
+    def __str__(self):
+        return f"Moderação #{self.survey_id}: {self.new_status}"
 
 
 class EducationGoal(models.Model):
