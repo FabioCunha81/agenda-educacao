@@ -178,6 +178,8 @@ export default function UsersPage() {
         role: user.role,
         is_active: user.is_active,
         is_on_vacation: !user.is_on_vacation,
+        vacation_start: null,
+        vacation_end: null,
       };
       if (user.team_id) {
         payload.team = user.team_id;
@@ -212,7 +214,16 @@ export default function UsersPage() {
               <div className="row-actions">
                 <button className="secondary" onClick={() => edit(item)}>Editar</button>
                 {operationalRoles.has(item.role) && (
-                  <button className="secondary" onClick={() => toggleVacation(item)}>
+                  <button className="secondary" onClick={() => {
+                    if (item.is_on_vacation) {
+                      toggleVacation(item);
+                    } else {
+                      setEditing(item.id);
+                      setPasswordLink(item.password_setup_link || "");
+                      setForm({ ...item, cpf: item.cpf || "", team: item.team_id || "", sector: item.sector || "", sector_name: item.sector_name || "", is_active: item.is_active, is_on_vacation: true, vacation_start: item.vacation_start || "", vacation_end: item.vacation_end || "" });
+                      setMessage("Por favor, informe as datas de férias no formulário ao lado e salve.");
+                    }
+                  }}>
                     {item.is_on_vacation ? "Retirar Férias" : "Férias"}
                   </button>
                 )}
