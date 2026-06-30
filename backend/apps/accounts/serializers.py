@@ -94,7 +94,7 @@ def team_for_user(user):
     return lookup.team if lookup and lookup.team_id else None
 
 
-def sync_user_lookup(user, team=None):
+def sync_user_lookup(user, team=None, clear_team=False):
     if not user.full_name:
         deactivate_other_user_lookups(user)
         return
@@ -102,7 +102,7 @@ def sync_user_lookup(user, team=None):
     if user.role == User.Role.SUPERVISOR:
         existing = Chief.objects.filter(source_id=user_lookup_source_id(user)).first() or find_lookup(Chief, user)
         phone = user.phone or (existing.phone if existing else "")
-        selected_team = team or (existing.team if existing and existing.team_id else None)
+        selected_team = None if clear_team else (team or (existing.team if existing and existing.team_id else None))
         lookup = upsert_user_lookup(
             Chief,
             user,
@@ -124,7 +124,7 @@ def sync_user_lookup(user, team=None):
 
     if user.role == User.Role.USER:
         existing = Agent.objects.filter(source_id=user_lookup_source_id(user)).first() or find_lookup(Agent, user)
-        selected_team = team or (existing.team if existing and existing.team_id else None)
+        selected_team = None if clear_team else (team or (existing.team if existing and existing.team_id else None))
         lookup = upsert_user_lookup(Agent, user, "AGENTE", {"team": selected_team})
         deactivate_other_user_lookups(user, Agent)
         sector = sector_for_team(lookup.team)
@@ -135,7 +135,7 @@ def sync_user_lookup(user, team=None):
 
     if user.role == User.Role.SUPPORT:
         existing = Support.objects.filter(source_id=user_lookup_source_id(user)).first() or find_lookup(Support, user)
-        selected_team = team or (existing.team if existing and existing.team_id else None)
+        selected_team = None if clear_team else (team or (existing.team if existing and existing.team_id else None))
         lookup = upsert_user_lookup(Support, user, "APOIO", {"team": selected_team})
         deactivate_other_user_lookups(user, Support)
         sector = sector_for_team(lookup.team)
@@ -261,11 +261,12 @@ class UserSerializer(serializers.ModelSerializer):
         else:
             user.set_unusable_password()
         user.save()
-        sync_user_lookup(user, team=team)
+        sync_user_lookup(user, team=team, clear_team=not team)
         return user
 
     def update(self, instance, validated_data):
         password = validated_data.pop("password", None)
+        team_provided = "team" in validated_data
         team = validated_data.pop("team", None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -273,7 +274,7 @@ class UserSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         instance.username = instance.email
         instance.save()
-        sync_user_lookup(instance, team=team)
+        sync_user_lookup(instance, team=team, clear_team=(team_provided and not team))
         return instance
 
 
