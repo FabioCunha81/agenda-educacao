@@ -473,6 +473,8 @@ class AgendaViewSet(viewsets.ModelViewSet):
             if term.isdigit():
                 search_filter |= Q(id=int(term)) | Q(service_order_number=int(term))
             scoped = scoped.filter(search_filter)
+        if params.get("pending_report") == "true":
+            scoped = scoped.filter(technical_reports__isnull=True)
         if params.get("order") == "latest":
             return (
                 scoped.distinct()

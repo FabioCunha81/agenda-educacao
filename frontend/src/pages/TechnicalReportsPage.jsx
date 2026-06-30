@@ -366,13 +366,13 @@ export default function TechnicalReportsPage() {
 
   const load = async () => {
     setLoadError("");
-    const params = new URLSearchParams({ page_size: "1000" });
+    const params = new URLSearchParams({ page_size: "50" });
     Object.entries(techFilters).forEach(([key, value]) => {
       if (value) params.set(key, value);
     });
 
     const [agendasResult, reportsResult] = await Promise.allSettled([
-      api("/agendas/?page_size=1000&reportable=true"),
+      api("/agendas/?page_size=50&reportable=true&pending_report=true"),
       api(`/education-reports/?${params.toString()}`),
     ]);
 
