@@ -4,7 +4,6 @@ import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const emptyFilters = { date_from: "", date_to: "", state: "", municipality: "", status: "", team: "" };
-const emptyModerationFilters = { date_from: "", date_to: "", team: "", municipality: "", institution: "", status: "PENDING", q: "" };
 
 function Stars({ rating }) {
   if (rating === undefined || rating === null) return null;
@@ -21,7 +20,7 @@ function Stars({ rating }) {
   );
 }
 
-function SatisfactionSummaryPanel({ surveys = {}, onApproveSurvey }) {
+function SatisfactionSummaryPanel({ surveys = {}, onModerateSurvey }) {
   const { overall_rating = 0, total_responses = 0, team_ratings = [], messages = [] } = surveys;
   const { user } = useAuth();
   const isModerator = user?.is_superuser || user?.role === "ADMIN" || user?.role === "MANAGER";
@@ -88,35 +87,56 @@ function SatisfactionSummaryPanel({ surveys = {}, onApproveSurvey }) {
                   <Stars rating={msg.overall_rating} />
                   <span style={{ fontSize: "10px", color: "var(--text-soft)", fontWeight: "700" }}>{msg.answered_at ? new Date(msg.answered_at).toLocaleDateString("pt-BR") : "-"}</span>
                 </div>
-                <p style={{ margin: 0, fontSize: "12.5px", color: "var(--text)", lineHeight: 1.4 }}>"{msg.suggestion}"</p>
+                <p style={{ margin: 0, fontSize: "12.5px", color: "var(--text)", lineHeight: 1.4 }}>"{msg.moderated_comment || msg.suggestion}"</p>
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
                   {msg.team && <div style={{ fontSize: "11px", color: "var(--primary)", fontWeight: "800" }}>Equipe: {msg.team}</div>}
 
-                  {isModerator && !msg.is_approved && (
-                    <button
-                      onClick={() => onApproveSurvey(msg.id)}
-                      style={{
-                        background: "var(--primary)",
-                        border: "none",
-                        borderRadius: "6px",
-                        padding: "4px 8px",
-                        fontSize: "11px",
-                        fontWeight: "800",
-                        color: "#fff",
-                        cursor: "pointer",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        boxShadow: "0 2px 4px rgba(0,72,215,0.15)"
-                      }}
-                      type="button"
-                    >
-                      <ThumbsUp size={11} /> Aprovar
-                    </button>
+                  {isModerator && msg.moderation_status === "PENDING" && (
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      <button
+                        onClick={() => onModerateSurvey(msg.id, "APPROVED", msg.moderated_comment || msg.suggestion || "")}
+                        style={{
+                          background: "var(--primary)",
+                          border: "none",
+                          borderRadius: "6px",
+                          padding: "4px 8px",
+                          fontSize: "11px",
+                          fontWeight: "800",
+                          color: "#fff",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          boxShadow: "0 2px 4px rgba(0,72,215,0.15)"
+                        }}
+                        type="button"
+                      >
+                        <ThumbsUp size={11} /> Aprovar
+                      </button>
+                      <button
+                        onClick={() => onModerateSurvey(msg.id, "REJECTED", msg.moderated_comment || msg.suggestion || "")}
+                        style={{
+                          background: "#fff",
+                          border: "1px solid var(--danger)",
+                          borderRadius: "6px",
+                          padding: "4px 8px",
+                          fontSize: "11px",
+                          fontWeight: "800",
+                          color: "var(--danger)",
+                          cursor: "pointer"
+                        }}
+                        type="button"
+                      >
+                        Recusar
+                      </button>
+                    </div>
                   )}
-                  {msg.is_approved && (
+                  {msg.moderation_status === "APPROVED" && (
                     <span style={{ fontSize: "10px", color: "var(--success)", fontWeight: "700" }}>Aprovado</span>
+                  )}
+                  {msg.moderation_status === "REJECTED" && (
+                    <span style={{ fontSize: "10px", color: "var(--danger)", fontWeight: "700" }}>Recusado</span>
                   )}
                 </div>
               </div>
@@ -124,88 +144,6 @@ function SatisfactionSummaryPanel({ surveys = {}, onApproveSurvey }) {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-const moderationStatusLabels = {
-  PENDING: "Pendente",
-  APPROVED: "Aprovado",
-  REJECTED: "Reprovado",
-  HIDDEN: "Oculto",
-};
-
-function ModerationPanel({ filters, setFilters, items, teams, municipalities, loading, drafts, setDrafts, onDecision }) {
-  const criteria = [
-    ["overall_rating", "Geral"],
-    ["speaker_knowledge", "Palestrante"],
-    ["team_enthusiasm", "Equipe"],
-    ["punctuality", "Pontualidade"],
-    ["workshops", "Dinamicas"],
-    ["audiovisual_resources", "Recursos"],
-    ["support_material", "Material"],
-    ["wheelchair_testimony", "Depoimento"],
-  ];
-  const update = (field, value) => setFilters((current) => ({ ...current, [field]: value }));
-
-  return (
-    <div className="chart-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px", marginBottom: "24px" }}>
-      <div className="section-heading" style={{ marginBottom: "16px" }}>
-        <div>
-          <h2 style={{ fontSize: "16px", fontWeight: "900", margin: 0 }}>Painel de modera&ccedil;&atilde;o</h2>
-          <p style={{ fontSize: "12px", color: "var(--text-soft)", margin: "4px 0 0" }}>Coment&aacute;rios, sugest&otilde;es e elogios s&oacute; aparecem publicamente depois da aprova&ccedil;&atilde;o.</p>
-        </div>
-      </div>
-
-      <div className="global-filters" style={{ background: "var(--surface-2)", padding: "12px", borderRadius: "10px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "10px", marginBottom: "16px", border: "1px solid var(--line)" }}>
-        <div className="filter-group"><label>De</label><input type="date" value={filters.date_from} onChange={(e) => update("date_from", e.target.value)} /></div>
-        <div className="filter-group"><label>At&eacute;</label><input type="date" value={filters.date_to} onChange={(e) => update("date_to", e.target.value)} /></div>
-        <div className="filter-group"><label>Equipe</label><select value={filters.team} onChange={(e) => update("team", e.target.value)}><option value="">Todas</option>{teams.map((team) => <option key={team.id} value={team.name}>{team.name}</option>)}</select></div>
-        <div className="filter-group"><label>Munic&iacute;pio</label><select value={filters.municipality} onChange={(e) => update("municipality", e.target.value)}><option value="">Todos</option>{municipalities.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
-        <div className="filter-group"><label>Institui&ccedil;&atilde;o</label><input value={filters.institution} onChange={(e) => update("institution", e.target.value)} placeholder="Buscar..." /></div>
-        <div className="filter-group"><label>Status</label><select value={filters.status} onChange={(e) => update("status", e.target.value)}><option value="">Todos</option><option value="PENDING">Pendente</option><option value="APPROVED">Aprovado</option><option value="REJECTED">Reprovado</option><option value="HIDDEN">Oculto</option></select></div>
-        <div className="filter-group"><label>Palavra-chave</label><input value={filters.q} onChange={(e) => update("q", e.target.value)} placeholder="Coment&aacute;rio..." /></div>
-        <div className="filter-group" style={{ display: "flex", alignItems: "flex-end" }}><button className="secondary" style={{ width: "100%" }} onClick={() => setFilters(emptyModerationFilters)} type="button">Limpar</button></div>
-      </div>
-      {loading ? (
-        <div style={{ color: "var(--text-soft)", padding: "18px 0" }}>Carregando coment&aacute;rios...</div>
-      ) : items.length === 0 ? (
-        <div style={{ color: "var(--text-soft)", padding: "18px 0" }}>Nenhum coment&aacute;rio encontrado.</div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {items.map((item) => {
-            const draft = drafts[item.id] ?? item.moderated_comment ?? item.suggestion ?? "";
-            return (
-              <div key={item.id} className="comment-card" style={{ border: "1px solid var(--line)", borderRadius: "10px", padding: "14px", background: "#fff" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "10px" }}>
-                  <div>
-                    <strong>{item.institution || item.agenda_title || `Protocolo ${item.protocol}`}</strong>
-                    <div style={{ fontSize: "12px", color: "var(--text-soft)", marginTop: "3px" }}>{item.agenda_date || "-"} | {item.municipality || "-"}/{item.state || "-"} | {item.team || "Sem equipe"}</div>
-                  </div>
-                  <span className="badge" style={{ alignSelf: "flex-start" }}>{moderationStatusLabels[item.moderation_status] || item.moderation_status}</span>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "8px", marginBottom: "10px" }}>
-                  {criteria.map(([key, label]) => <span key={key} style={{ fontSize: "12px", color: "var(--text-soft)" }}><b style={{ color: "var(--text)" }}>{label}:</b> {item[key] || "-"}</span>)}
-                </div>
-
-                <label style={{ fontSize: "12px", fontWeight: "800", color: "var(--text)" }}>Coment&aacute;rio original</label>
-                <p style={{ margin: "6px 0 10px", lineHeight: 1.45 }}>&quot;{item.suggestion}&quot;</p>
-
-                <label style={{ fontSize: "12px", fontWeight: "800", color: "var(--text)" }}>Ajuste do Gestor</label>
-                <textarea value={draft} onChange={(e) => setDrafts((current) => ({ ...current, [item.id]: e.target.value }))} rows={3} style={{ width: "100%", resize: "vertical", marginTop: "6px" }} />
-
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>
-                  <button type="button" onClick={() => onDecision(item.id, "APPROVED", draft)}>Aprovar</button>
-                  <button type="button" className="secondary" onClick={() => onDecision(item.id, "REJECTED", draft)}>Reprovar</button>
-                  <button type="button" className="secondary" onClick={() => onDecision(item.id, "HIDDEN", draft)}>Ocultar</button>
-                </div>
-
-                {item.moderated_at && <div style={{ fontSize: "11px", color: "var(--text-soft)", marginTop: "10px" }}>Ultima decisao: {new Date(item.moderated_at).toLocaleString("pt-BR")} por {item.moderated_by_name || "-"}</div>}
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
@@ -522,10 +460,6 @@ export default function EvaluationsPage() {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [moderationFilters, setModerationFilters] = useState(emptyModerationFilters);
-  const [moderationItems, setModerationItems] = useState([]);
-  const [moderationLoading, setModerationLoading] = useState(false);
-  const [commentDrafts, setCommentDrafts] = useState({});
   const { user } = useAuth();
   const canModerate = user?.is_superuser || user?.role === "ADMIN" || user?.role === "MANAGER";
 
@@ -554,28 +488,6 @@ export default function EvaluationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
-  const loadModeration = async () => {
-    if (!canModerate) return;
-    setModerationLoading(true);
-    try {
-      const params = new URLSearchParams(Object.entries(moderationFilters).filter(([, v]) => v)).toString();
-      const res = await api(`/surveys/moderation/${params ? `?${params}` : ""}`);
-      setModerationItems(res);
-      const nextDrafts = {};
-      res.forEach((item) => { nextDrafts[item.id] = item.moderated_comment || item.suggestion || ""; });
-      setCommentDrafts(nextDrafts);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setModerationLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(loadModeration, 300);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moderationFilters, canModerate]);
 
   const handleModerationDecision = async (surveyId, status, moderatedComment) => {
     try {
@@ -583,7 +495,7 @@ export default function EvaluationsPage() {
         method: "POST",
         body: JSON.stringify({ status, moderated_comment: moderatedComment }),
       });
-      await Promise.all([loadData(), loadModeration()]);
+      await loadData();
     } catch (err) {
       console.error(err);
       alert(err.message || "Erro ao moderar comentario.");
@@ -608,14 +520,6 @@ export default function EvaluationsPage() {
     }
   };
 
-  const handleApproveSurvey = async (surveyId) => {
-    try {
-      await handleModerationDecision(surveyId, "APPROVED", commentDrafts[surveyId]);
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Erro ao aprovar avaliacao.");
-    }
-  };
   const availableStates = data?.states || [];
   const availableMunicipalities = data?.municipalities?.length ? data.municipalities : municipalities;
 
@@ -693,19 +597,6 @@ export default function EvaluationsPage() {
           <button className="secondary" style={{ width: "100%" }} onClick={() => setFilters(emptyFilters)}>Limpar</button>
         </div>
       </div>
-      {canModerate && (
-        <ModerationPanel
-          filters={moderationFilters}
-          setFilters={setModerationFilters}
-          items={moderationItems}
-          teams={teams}
-          municipalities={municipalities}
-          loading={moderationLoading}
-          drafts={commentDrafts}
-          setDrafts={setCommentDrafts}
-          onDecision={handleModerationDecision}
-        />
-      )}
 
       {loading ? (
         <div className="dashboard-skeleton" style={{ padding: "40px", textAlign: "center" }}>
@@ -716,7 +607,7 @@ export default function EvaluationsPage() {
         <div className="alert">{error}</div>
       ) : data ? (
         <>
-          <SatisfactionSummaryPanel surveys={data.satisfaction_panel || {}} onApproveSurvey={handleApproveSurvey} />
+          <SatisfactionSummaryPanel surveys={data.satisfaction_panel || {}} onModerateSurvey={handleModerationDecision} />
           {/* Metric Cards */}
           <div className="metric-grid" style={{ marginBottom: "24px" }}>
             {cardConfig.map(({ key, label, icon: Icon, tone, format }) => {

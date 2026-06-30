@@ -2925,9 +2925,18 @@ class SatisfactionSurveyViewSet(viewsets.ModelViewSet):
             .exclude(team="")
             .order_by("-avg", "-count")[:10]
         )
-        panel_messages_qs = qs.filter(suggestion__gt="", moderation_status=SatisfactionSurvey.ModerationStatus.APPROVED)
+        panel_messages_qs = qs.filter(suggestion__gt="")
+        if not self.can_moderate(request.user):
+            panel_messages_qs = panel_messages_qs.filter(moderation_status=SatisfactionSurvey.ModerationStatus.APPROVED)
         panel_messages = list(
-            panel_messages_qs.order_by("-answered_at")
+            panel_messages_qs.annotate(
+                moderation_rank=Case(
+                    When(moderation_status=SatisfactionSurvey.ModerationStatus.PENDING, then=Value(0)),
+                    default=Value(1),
+                    output_field=IntegerField(),
+                )
+            )
+            .order_by("moderation_rank", "-answered_at")
             .values("id", "team", "suggestion", "moderated_comment", "answered_at", "overall_rating", "is_approved", "moderation_status")[:15]
         )
         satisfaction_panel = {
