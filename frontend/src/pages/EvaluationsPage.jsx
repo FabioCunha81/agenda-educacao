@@ -618,15 +618,7 @@ export default function EvaluationsPage() {
             {availableMunicipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
         </div>
-        <div className="filter-group">
-          <label>Status Agenda</label>
-          <select value={filters.status} onChange={(e) => setFilters(f => ({ ...f, status: e.target.value }))}>
-            <option value="">Todos</option>
-            <option value="PENDING">Pendente</option>
-            <option value="APPROVED">Aprovada</option>
-            <option value="COMPLETED">Realizada</option>
-          </select>
-        </div>
+
         <div className="filter-group">
           <label>Equipe</label>
           <select value={filters.team} onChange={(e) => setFilters(f => ({ ...f, team: e.target.value }))}>
