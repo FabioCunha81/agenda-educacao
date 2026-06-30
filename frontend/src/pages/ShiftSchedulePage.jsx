@@ -223,11 +223,10 @@ export default function ShiftSchedulePage() {
       loadAll("/agents/"),
       loadAll("/supports/"),
     ]).then(([teamRows, chiefRows, agentRows, supportRows]) => {
-      const fromUsers = (row) => String(row.source_id || "").startsWith("user:");
       setTeams(uniqueUppercaseTeams(teamRows));
-      setChiefs(chiefRows.filter(fromUsers));
-      setAgents(agentRows.filter(fromUsers));
-      setSupports(supportRows.filter(fromUsers));
+      setChiefs(chiefRows);
+      setAgents(agentRows);
+      setSupports(supportRows);
     });
   }, []);
 
