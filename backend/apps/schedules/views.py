@@ -2847,11 +2847,14 @@ class SatisfactionSurveyViewSet(viewsets.ModelViewSet):
             return response.Response({
                 "cards": {
                     "total_surveys": 0,
-                    "overall_avg": 0,
                     "satisfaction_index": 0,
                     "speaker_avg": 0,
-                    "team_avg": 0,
                     "resources_avg": 0,
+                    "punctuality_avg": 0,
+                    "enthusiasm_avg": 0,
+                    "workshops_avg": 0,
+                    "support_material_avg": 0,
+                    "wheelchair_avg": 0,
                     "best_criteria": None,
                     "worst_criteria": None,
                 },
@@ -2894,10 +2897,12 @@ class SatisfactionSurveyViewSet(viewsets.ModelViewSet):
         overall_avg = round(aggregates["overall_rating_avg"] or 0, 2)
         satisfaction_index = round((aggregates["satisfaction_count"] or 0) / total_surveys * 100, 1)
         speaker_avg = round(aggregates["speaker_knowledge_avg"] or 0, 2)
-        team_avg = round(
-            ((aggregates["team_enthusiasm_avg"] or 0) + (aggregates["punctuality_avg"] or 0)) / 2, 2
-        )
         resources_avg = round(aggregates["audiovisual_resources_avg"] or 0, 2)
+        punctuality_avg = round(aggregates["punctuality_avg"] or 0, 2)
+        enthusiasm_avg = round(aggregates["team_enthusiasm_avg"] or 0, 2)
+        workshops_avg = round(aggregates["workshops_avg"] or 0, 2)
+        support_material_avg = round(aggregates["support_material_avg"] or 0, 2)
+        wheelchair_avg = round(aggregates["wheelchair_testimony_avg"] or 0, 2)
 
         criteria_averages = {}
         for field, label in CRITERIA_FIELDS:
@@ -2908,11 +2913,14 @@ class SatisfactionSurveyViewSet(viewsets.ModelViewSet):
 
         cards = {
             "total_surveys": total_surveys,
-            "overall_avg": overall_avg,
             "satisfaction_index": satisfaction_index,
             "speaker_avg": speaker_avg,
-            "team_avg": team_avg,
             "resources_avg": resources_avg,
+            "punctuality_avg": punctuality_avg,
+            "enthusiasm_avg": enthusiasm_avg,
+            "workshops_avg": workshops_avg,
+            "support_material_avg": support_material_avg,
+            "wheelchair_avg": wheelchair_avg,
             "best_criteria": best_criteria,
             "worst_criteria": worst_criteria,
         }

@@ -1,4 +1,4 @@
-import { Award, BarChart3, BookOpen, Download, Heart, MessageSquare, Mic, Search, Star, StarHalf, Target, ThumbsUp, TrendingDown, TrendingUp, Users, Zap, Clock } from "lucide-react";
+import { Award, BarChart3, BookOpen, Clock3, Download, HeartHandshake, MessageSquare, Mic, Star, StarHalf, Target, ThumbsUp, TrendingDown, TrendingUp, Users, Zap, Accessibility } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
