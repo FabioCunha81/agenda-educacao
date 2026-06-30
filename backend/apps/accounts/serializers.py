@@ -242,10 +242,8 @@ class UserSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         role = attrs.get("role", getattr(self.instance, "role", User.Role.USER))
         if role in {User.Role.USER, User.Role.SUPPORT, User.Role.SUPERVISOR}:
-            team = attrs.get("team") if "team" in attrs else team_for_user(self.instance) if self.instance else None
-            if not team:
-                raise serializers.ValidationError({"team": "Informe a equipe do usuario operacional."})
-            if not team.is_active:
+            team = attrs.get("team") if "team" in attrs else getattr(self.instance, "team", None) if self.instance else None
+            if team and not team.is_active:
                 raise serializers.ValidationError({"team": "Selecione uma equipe ativa."})
         return attrs
 
