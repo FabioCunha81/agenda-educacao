@@ -18,6 +18,7 @@ from .models import (
     Material,
     Municipality,
     Neighborhood,
+    Region,
     Sector,
     SatisfactionSurvey,
     SatisfactionSurveyModerationHistory,
@@ -114,9 +115,17 @@ class ActionTypeSerializer(LookupSerializer):
         model = ActionType
 
 
+class RegionSerializer(LookupSerializer):
+    class Meta(LookupSerializer.Meta):
+        model = Region
+
 class MunicipalitySerializer(LookupSerializer):
+    region_id = serializers.IntegerField(source="region.id", read_only=True)
+    region_name = serializers.CharField(source="region.name", read_only=True)
+
     class Meta(LookupSerializer.Meta):
         model = Municipality
+        fields = LookupSerializer.Meta.fields + ["region_id", "region_name"]
 
 
 class NeighborhoodSerializer(LookupSerializer):

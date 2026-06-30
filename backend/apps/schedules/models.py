@@ -55,8 +55,12 @@ class ActionType(NamedLookup):
     pass
 
 
-class Municipality(NamedLookup):
+class Region(NamedLookup):
     pass
+
+
+class Municipality(NamedLookup):
+    region = models.ForeignKey(Region, on_delete=models.SET_NULL, null=True, blank=True, related_name="municipalities")
 
 
 class Neighborhood(NamedLookup):

@@ -425,13 +425,20 @@ export default function DashboardPage() {
   const [dashboard, setDashboard] = useState(null);
   const [filters, setFilters] = useState(emptyFilters);
   const [municipalities, setMunicipalities] = useState([]);
+  const [regions, setRegions] = useState([]);
   const [chartRange, setChartRange] = useState("Mês");
   const [loading, setLoading] = useState(true);
   const [refreshTick, setRefreshTick] = useState(0);
   const [error, setError] = useState("");
   
   useEffect(() => {
-    api("/municipalities/?page_size=500").then((data) => setMunicipalities(data.results || data));
+    Promise.all([
+      api("/municipalities/?page_size=500"),
+      api("/regions/?page_size=200")
+    ]).then(([munData, regData]) => {
+      setMunicipalities(munData.results || munData);
+      setRegions(regData.results || regData);
+    });
   }, []);
 
   const loadDashboardData = () => {
@@ -570,6 +577,13 @@ export default function DashboardPage() {
             <option value="PENDING">Pendente</option>
             <option value="APPROVED">Aprovada</option>
             <option value="CANCELLED">Cancelada</option>
+          </select>
+        </label>
+        <label className="filter-field" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-soft)", textTransform: "uppercase" }}>Região</span>
+          <select value={filters.region} onChange={(event) => updateFilter("region", event.target.value)} style={{ borderRadius: "8px", border: "1px solid var(--line)", height: "36px", padding: "0 10px", fontSize: "12.5px", width: "100%" }}>
+            <option value="">Todas as regiões</option>
+            {regions.map((region) => <option key={region.id} value={region.id}>{region.name}</option>)}
           </select>
         </label>
         <label className="filter-field" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>

@@ -210,6 +210,7 @@ export default function AgendaPage() {
     supports: [],
     actionTypes: [],
     municipalities: [],
+    regions: [],
     neighborhoods: [],
     kits: [],
     materials: [],
@@ -266,11 +267,12 @@ export default function AgendaPage() {
       api("/supports/?page_size=200"),
       api("/action-types/?page_size=200"),
       api("/municipalities/?page_size=200"),
+      api("/regions/?page_size=200"),
       api("/neighborhoods/?page_size=500"),
       api("/kits/?page_size=1000"),
       api("/materials/?page_size=1000"),
       api("/dynamics/?page_size=1000"),
-    ]).then(([vehicles, teams, chiefs, agents, supports, actionTypes, municipalities, neighborhoods, kits, materials, dynamics]) => {
+    ]).then(([vehicles, teams, chiefs, agents, supports, actionTypes, municipalities, regions, neighborhoods, kits, materials, dynamics]) => {
       setLookups({
         vehicles: vehicles.results || vehicles,
         teams: teams.results || teams,
@@ -279,6 +281,7 @@ export default function AgendaPage() {
         supports: supports.results || supports,
         actionTypes: actionTypes.results || actionTypes,
         municipalities: municipalities.results || municipalities,
+        regions: regions.results || regions,
         neighborhoods: neighborhoods.results || neighborhoods,
         kits: kits.results || kits,
         materials: materials.results || materials,

@@ -69,6 +69,8 @@ from .serializers import (
     MaterialSerializer,
     MunicipalitySerializer,
     NeighborhoodSerializer,
+    RegionSerializer,
+    SatisfactionSurveyModerationHistorySerializer,
     PublicAgendaRequestSerializer,
     PublicAgendaRequestRescheduleSerializer,
     SatisfactionSurveySerializer,
@@ -357,6 +359,10 @@ class ActionTypeViewSet(LookupViewSet):
     serializer_class = ActionTypeSerializer
     queryset = ActionType.objects.all()
 
+class RegionViewSet(LookupViewSet):
+    serializer_class = RegionSerializer
+    queryset = Region.objects.all()
+
 
 class MunicipalityViewSet(LookupViewSet):
     serializer_class = MunicipalitySerializer
@@ -446,6 +452,8 @@ class AgendaViewSet(viewsets.ModelViewSet):
             scoped = scoped.filter(team_ref_id=params["team"])
         if params.get("municipality"):
             scoped = scoped.filter(municipality_ref_id=params["municipality"])
+        if params.get("region"):
+            scoped = scoped.filter(municipality_ref__region_id=params["region"])
         if params.get("action_type"):
             scoped = scoped.filter(action_type_ref_id=params["action_type"])
         if params.get("q"):
@@ -763,6 +771,8 @@ class AgendaViewSet(viewsets.ModelViewSet):
                 scoped = scoped.filter(sector_id=request.query_params["sector"])
             if request.query_params.get("municipality"):
                 scoped = scoped.filter(municipality_ref_id=request.query_params["municipality"])
+            if request.query_params.get("region"):
+                scoped = scoped.filter(municipality_ref__region_id=request.query_params["region"])
             if request.query_params.get("user"):
                 scoped = scoped.filter(created_by_id=request.query_params["user"])
             if request.query_params.get("responsible"):
@@ -2436,6 +2446,8 @@ class ReportViewSet(viewsets.ViewSet):
             scoped = scoped.filter(status=params["status"])
         if params.get("municipality"):
             scoped = scoped.filter(municipality_ref_id=params["municipality"])
+        if params.get("region"):
+            scoped = scoped.filter(municipality_ref__region_id=params["region"])
         if params.get("q"):
             term = params["q"].strip()
             search_filter = (
@@ -2798,6 +2810,7 @@ class SatisfactionSurveyViewSet(viewsets.ModelViewSet):
         date_to = request.query_params.get("date_to")
         state_param = request.query_params.get("state")
         municipality = request.query_params.get("municipality")
+        region = request.query_params.get("region")
         status_param = request.query_params.get("status")
         team = request.query_params.get("team") or request.query_params.get("speaker")
 
@@ -2810,6 +2823,8 @@ class SatisfactionSurveyViewSet(viewsets.ModelViewSet):
             qs = qs.filter(agenda__state__iexact=state_param)
         if municipality:
             qs = qs.filter(agenda__municipality_ref_id=municipality)
+        if region:
+            qs = qs.filter(agenda__municipality_ref__region_id=region)
         if status_param:
             qs = qs.filter(agenda__status=status_param)
         if team:

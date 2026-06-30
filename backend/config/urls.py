@@ -26,6 +26,7 @@ from apps.schedules.views import (
     PublicAgendaRequestUpdateView,
     SatisfactionSurveyPublicView,
     SatisfactionSurveyViewSet,
+    RegionViewSet,
     ReportViewSet,
     SectorViewSet,
     ShiftScheduleViewSet,
@@ -47,6 +48,7 @@ router.register("agents", AgentViewSet, basename="agents")
 router.register("supports", SupportViewSet, basename="supports")
 router.register("action-types", ActionTypeViewSet, basename="action-types")
 router.register("municipalities", MunicipalityViewSet, basename="municipalities")
+router.register("regions", RegionViewSet, basename="regions")
 router.register("neighborhoods", NeighborhoodViewSet, basename="neighborhoods")
 router.register("kits", KitViewSet, basename="kits")
 router.register("dynamics", DynamicViewSet, basename="dynamics")

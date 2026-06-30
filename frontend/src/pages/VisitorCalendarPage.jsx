@@ -39,6 +39,8 @@ export default function VisitorCalendarPage() {
   const [filters, setFilters] = useState({});
   const [agendas, setAgendas] = useState([]);
   const [sectors, setSectors] = useState([]);
+  const [municipalities, setMunicipalities] = useState([]);
+  const [regions, setRegions] = useState([]);
   const [selected, setSelected] = useState(null);
   const requestSeq = useRef(0);
 
@@ -57,6 +59,13 @@ export default function VisitorCalendarPage() {
 
   useEffect(() => {
     api("/sectors/").then((data) => setSectors(data.results || data));
+    Promise.all([
+      api("/municipalities/?page_size=500"),
+      api("/regions/?page_size=200")
+    ]).then(([munData, regData]) => {
+      setMunicipalities(munData.results || munData);
+      setRegions(regData.results || regData);
+    });
   }, []);
 
   useEffect(() => {
@@ -99,7 +108,7 @@ export default function VisitorCalendarPage() {
           ))}
         </div>
       </div>
-      <Filters filters={filters} setFilters={setFilters} sectors={sectors} showUser={false} />
+      <Filters filters={filters} setFilters={setFilters} sectors={sectors} municipalities={municipalities} regions={regions} showUser={false} />
       <div className="calendar-toolbar">
         <button className="icon-button" onClick={() => move(-1)} aria-label="Anterior"><ChevronLeft size={18} /></button>
         <strong>{cursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</strong>

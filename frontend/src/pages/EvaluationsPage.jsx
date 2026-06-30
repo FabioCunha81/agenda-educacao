@@ -482,6 +482,7 @@ export default function EvaluationsPage() {
   const [data, setData] = useState(null);
   const [filters, setFilters] = useState(emptyFilters);
   const [municipalities, setMunicipalities] = useState([]);
+  const [regions, setRegions] = useState([]);
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -489,7 +490,13 @@ export default function EvaluationsPage() {
   const canModerate = user?.is_superuser || user?.role === "ADMIN" || user?.role === "MANAGER";
 
   useEffect(() => {
-    api("/municipalities/?page_size=500").then((res) => setMunicipalities(res.results || res)).catch(console.error);
+    Promise.all([
+      api("/municipalities/?page_size=500"),
+      api("/regions/?page_size=200")
+    ]).then(([munRes, regRes]) => {
+      setMunicipalities(munRes.results || munRes);
+      setRegions(regRes.results || regRes);
+    }).catch(console.error);
     api("/teams/?page_size=1000").then((res) => {
       const data = res.results || res;
       const seen = new Set();
@@ -609,6 +616,12 @@ export default function EvaluationsPage() {
           <select value={filters.state} onChange={(e) => setFilters(f => ({ ...f, state: e.target.value, municipality: "" }))}>
             <option value="">Todos</option>
             {availableStates.map(state => <option key={state} value={state}>{state}</option>)}
+          </select>
+        <div className="filter-group">
+          <label>Região</label>
+          <select value={filters.region} onChange={(e) => setFilters(f => ({ ...f, region: e.target.value, municipality: "" }))}>
+            <option value="">Todas</option>
+            {regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
         </div>
         <div className="filter-group">

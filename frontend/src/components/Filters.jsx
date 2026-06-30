@@ -1,4 +1,4 @@
-export default function Filters({ filters, setFilters, sectors = [], municipalities = [], users = [], showUser = true }) {
+export default function Filters({ filters, setFilters, sectors = [], municipalities = [], regions = [], users = [], showUser = true }) {
   const update = (field, value) => setFilters((current) => ({ ...current, [field]: value }));
 
   return (
@@ -31,6 +31,14 @@ export default function Filters({ filters, setFilters, sectors = [], municipalit
         {sectors.map((sector) => (
           <option key={sector.id} value={sector.id}>
             {sector.name}
+          </option>
+        ))}
+      </select>
+      <select value={filters.region || ""} onChange={(e) => update("region", e.target.value)}>
+        <option value="">Todas as regiões</option>
+        {regions.map((region) => (
+          <option key={region.id} value={region.id}>
+            {region.name}
           </option>
         ))}
       </select>
