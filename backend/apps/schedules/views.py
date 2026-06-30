@@ -684,8 +684,8 @@ class AgendaViewSet(viewsets.ModelViewSet):
                 scoped = scoped.filter(search_filter)
             return scoped.distinct()
 
-        qs = apply_dashboard_filters(unscoped_dashboard_queryset()).filter(request_source_filter)
-        base_qs = unscoped_dashboard_queryset().filter(request_source_filter)
+        qs = apply_dashboard_filters(unscoped_dashboard_queryset())
+        base_qs = unscoped_dashboard_queryset()
         total = qs.count()
         yesterday = today - timedelta(days=1)
         week_start = today - timedelta(days=today.weekday())
@@ -2526,7 +2526,7 @@ class ReportViewSet(viewsets.ViewSet):
             | Q(created_by__email="solicitacao.publica@agenda.local")
             | Q(responsible__email="solicitacao.publica@agenda.local")
         )
-        qs = self._queryset(request, check_access=False, unscoped=True).filter(request_source_filter)
+        qs = self._queryset(request, check_access=False, unscoped=True)
         log_audit(
             request,
             AuditLog.Action.REPORT_EXPORT,
