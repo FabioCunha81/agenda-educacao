@@ -493,6 +493,7 @@ class AgendaSerializer(serializers.ModelSerializer):
     linked_requests_count = serializers.IntegerField(source="linked_requests.count", read_only=True)
     satisfaction_survey_token = serializers.SerializerMethodField()
     satisfaction_survey_answered_at = serializers.SerializerMethodField()
+    satisfaction_rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Agenda
@@ -505,6 +506,7 @@ class AgendaSerializer(serializers.ModelSerializer):
             "linked_requests_count",
             "satisfaction_survey_token",
             "satisfaction_survey_answered_at",
+            "satisfaction_rating",
             "title",
             "description",
             "date",
@@ -637,6 +639,13 @@ class AgendaSerializer(serializers.ModelSerializer):
     def get_satisfaction_survey_answered_at(self, obj):
         survey = obj.satisfaction_surveys.order_by("-created_at").first()
         return survey.answered_at if survey else None
+
+    def get_satisfaction_rating(self, obj):
+        answered_surveys = obj.satisfaction_surveys.filter(answered_at__isnull=False)
+        if not answered_surveys.exists():
+            return None
+        from django.db.models import Avg
+        return answered_surveys.aggregate(avg=Avg('overall_rating'))['avg']
 
     def create(self, validated_data):
         materials_data = validated_data.pop("materials", [])

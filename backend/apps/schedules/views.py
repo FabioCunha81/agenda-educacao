@@ -4,7 +4,7 @@ from datetime import date, timedelta
 
 from django.db import transaction
 from django.db.models import Avg, Case, Count, F, IntegerField, Q, Sum, Value, When
-from django.db.models.functions import ExtractMonth, ExtractYear
+from django.db.models.functions import ExtractMonth, ExtractYear, TruncMonth
 from django.core import signing
 from django.conf import settings
 from django.http import HttpResponse
@@ -2706,3 +2706,293 @@ class SatisfactionSurveyViewSet(viewsets.ModelViewSet):
             user = request.user
             if not (user.is_superuser or user.role in ["ADMIN", "MANAGER"]):
                 self.permission_denied(request, message="Apenas Gestores e Administração podem moderar avaliações.")
+
+    @decorators.action(detail=False, methods=["get"])
+    def analytics(self, request):
+        qs = SatisfactionSurvey.objects.filter(answered_at__isnull=False)
+
+        date_from = request.query_params.get("date_from")
+        date_to = request.query_params.get("date_to")
+        municipality = request.query_params.get("municipality")
+        school = request.query_params.get("school")
+        status_param = request.query_params.get("status")
+        speaker = request.query_params.get("speaker")
+        sector = request.query_params.get("sector")
+
+        if date_from:
+            qs = qs.filter(agenda__date__gte=date_from)
+        if date_to:
+            qs = qs.filter(agenda__date__lte=date_to)
+        if municipality:
+            qs = qs.filter(agenda__municipality_ref_id=municipality)
+        if school:
+            qs = qs.filter(agenda__location__icontains=school)
+        if status_param:
+            qs = qs.filter(agenda__status=status_param)
+        if speaker:
+            qs = qs.filter(team__icontains=speaker)
+        if sector:
+            qs = qs.filter(agenda__sector_id=sector)
+
+        CRITERIA_FIELDS = [
+            ("audiovisual_resources", "Recursos áudio-visuais"),
+            ("speaker_knowledge", "Palestrante"),
+            ("wheelchair_testimony", "Depoimento dos cadeirantes"),
+            ("workshops", "Dinâmicas"),
+            ("support_material", "Material de apoio"),
+            ("punctuality", "Pontualidade"),
+            ("team_enthusiasm", "Entusiasmo"),
+        ]
+        ALL_CRITERIA = CRITERIA_FIELDS + [("overall_rating", "Nota geral")]
+
+        total_surveys = qs.count()
+
+        if total_surveys == 0:
+            empty_distribution = {label: {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0} for _, label in ALL_CRITERIA}
+            return response.Response({
+                "cards": {
+                    "total_surveys": 0,
+                    "overall_avg": 0,
+                    "satisfaction_index": 0,
+                    "speaker_avg": 0,
+                    "team_avg": 0,
+                    "resources_avg": 0,
+                    "best_criteria": None,
+                    "worst_criteria": None,
+                },
+                "radar": [],
+                "ranking": [],
+                "distribution": empty_distribution,
+                "monthly_evolution": [],
+                "heatmap": [],
+                "comments": [],
+                "intelligence": {
+                    "excellence_index": 0,
+                    "best_criteria": None,
+                    "most_improved": None,
+                    "most_declined": None,
+                    "trend": None,
+                    "trend_delta": 0,
+                },
+                "executive_summary": "",
+            })
+
+        # ── Aggregates ──────────────────────────────────────────────
+        agg_kwargs = {}
+        for field, _ in ALL_CRITERIA:
+            agg_kwargs[f"{field}_avg"] = Avg(field)
+        aggregates = qs.aggregate(
+            **agg_kwargs,
+            satisfaction_count=Sum(
+                Case(When(overall_rating__gte=4, then=1), default=0, output_field=IntegerField())
+            ),
+        )
+
+        overall_avg = round(aggregates["overall_rating_avg"] or 0, 2)
+        satisfaction_index = round((aggregates["satisfaction_count"] or 0) / total_surveys * 100, 1)
+        speaker_avg = round(aggregates["speaker_knowledge_avg"] or 0, 2)
+        team_avg = round(
+            ((aggregates["team_enthusiasm_avg"] or 0) + (aggregates["punctuality_avg"] or 0)) / 2, 2
+        )
+        resources_avg = round(aggregates["audiovisual_resources_avg"] or 0, 2)
+
+        criteria_averages = {}
+        for field, label in CRITERIA_FIELDS:
+            criteria_averages[label] = round(aggregates[f"{field}_avg"] or 0, 2)
+
+        best_criteria = max(criteria_averages, key=criteria_averages.get)
+        worst_criteria = min(criteria_averages, key=criteria_averages.get)
+
+        cards = {
+            "total_surveys": total_surveys,
+            "overall_avg": overall_avg,
+            "satisfaction_index": satisfaction_index,
+            "speaker_avg": speaker_avg,
+            "team_avg": team_avg,
+            "resources_avg": resources_avg,
+            "best_criteria": best_criteria,
+            "worst_criteria": worst_criteria,
+        }
+
+        # ── Radar ────────────────────────────────────────────────────
+        radar = []
+        for field, label in ALL_CRITERIA:
+            radar.append({
+                "criteria": label,
+                "value": round(aggregates[f"{field}_avg"] or 0, 2),
+            })
+
+        # ── Ranking ──────────────────────────────────────────────────
+        ranking = sorted(radar, key=lambda x: x["value"], reverse=True)
+        for i, item in enumerate(ranking, 1):
+            item["position"] = i
+
+        # ── Distribution ─────────────────────────────────────────────
+        distribution = {}
+        dist_agg = {}
+        for field, label in ALL_CRITERIA:
+            for score in range(1, 6):
+                dist_agg[f"{field}_{score}"] = Sum(
+                    Case(When(**{field: score}, then=1), default=0, output_field=IntegerField())
+                )
+        dist_result = qs.aggregate(**dist_agg)
+        for field, label in ALL_CRITERIA:
+            distribution[label] = {
+                str(score): dist_result.get(f"{field}_{score}", 0) or 0
+                for score in range(1, 6)
+            }
+
+        # ── Monthly Evolution ────────────────────────────────────────
+        monthly_qs = (
+            qs.annotate(month=TruncMonth("agenda__date"))
+            .values("month")
+            .annotate(avg_rating=Avg("overall_rating"))
+            .order_by("month")
+        )
+        monthly_evolution = []
+        for entry in monthly_qs:
+            m = entry["month"]
+            if m:
+                month_labels = [
+                    "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+                    "Jul", "Ago", "Set", "Out", "Nov", "Dez",
+                ]
+                monthly_evolution.append({
+                    "month": m.strftime("%Y-%m"),
+                    "label": f"{month_labels[m.month - 1]}/{m.strftime('%y')}",
+                    "value": round(entry["avg_rating"] or 0, 2),
+                })
+
+        # ── Heatmap ──────────────────────────────────────────────────
+        heatmap_agg = {}
+        for field, _ in CRITERIA_FIELDS:
+            heatmap_agg[f"{field}_avg"] = Avg(field)
+        heatmap_qs = (
+            qs.annotate(month=TruncMonth("agenda__date"))
+            .values("month")
+            .annotate(**heatmap_agg)
+            .order_by("month")
+        )
+        heatmap = []
+        for entry in heatmap_qs:
+            m = entry["month"]
+            if m:
+                for field, label in CRITERIA_FIELDS:
+                    heatmap.append({
+                        "criteria": label,
+                        "month": m.strftime("%Y-%m"),
+                        "value": round(entry[f"{field}_avg"] or 0, 2),
+                    })
+
+        # ── Comments ─────────────────────────────────────────────────
+        comments_qs = (
+            qs.filter(suggestion__gt="")
+            .select_related("agenda", "agenda__municipality_ref")
+            .order_by("-answered_at")[:20]
+        )
+        comments = []
+        for s in comments_qs:
+            agenda = s.agenda
+            municipality_name = ""
+            if agenda.municipality_ref_id:
+                municipality_name = agenda.municipality_ref.name if agenda.municipality_ref else agenda.city
+            else:
+                municipality_name = agenda.city or ""
+            comments.append({
+                "school": agenda.location or "",
+                "municipality": municipality_name,
+                "date": agenda.date.strftime("%d/%m/%Y") if agenda.date else "",
+                "overall_rating": s.overall_rating,
+                "comment": s.suggestion,
+            })
+
+        # ── Intelligence ─────────────────────────────────────────────
+        most_improved = None
+        most_declined = None
+        trend = None
+        trend_delta = 0
+
+        if date_from and date_to:
+            from datetime import datetime as _dt
+            try:
+                d_from = _dt.strptime(date_from, "%Y-%m-%d").date()
+                d_to = _dt.strptime(date_to, "%Y-%m-%d").date()
+                period_days = (d_to - d_from).days
+                prev_to = d_from - timedelta(days=1)
+                prev_from = prev_to - timedelta(days=period_days)
+
+                prev_qs = SatisfactionSurvey.objects.filter(
+                    answered_at__isnull=False,
+                    agenda__date__gte=prev_from,
+                    agenda__date__lte=prev_to,
+                )
+                if municipality:
+                    prev_qs = prev_qs.filter(agenda__municipality_ref_id=municipality)
+                if school:
+                    prev_qs = prev_qs.filter(agenda__location__icontains=school)
+                if status_param:
+                    prev_qs = prev_qs.filter(agenda__status=status_param)
+                if speaker:
+                    prev_qs = prev_qs.filter(team__icontains=speaker)
+                if sector:
+                    prev_qs = prev_qs.filter(agenda__sector_id=sector)
+
+                prev_agg_kwargs = {}
+                for field, _ in CRITERIA_FIELDS:
+                    prev_agg_kwargs[f"{field}_avg"] = Avg(field)
+                prev_agg_kwargs["overall_rating_avg"] = Avg("overall_rating")
+                prev_aggregates = prev_qs.aggregate(**prev_agg_kwargs)
+
+                prev_overall = prev_aggregates.get("overall_rating_avg")
+                if prev_overall is not None:
+                    trend = "up" if overall_avg >= prev_overall else "down"
+                    trend_delta = round(abs(overall_avg - prev_overall), 2)
+
+                    deltas = {}
+                    for field, label in CRITERIA_FIELDS:
+                        cur = aggregates.get(f"{field}_avg") or 0
+                        prev = prev_aggregates.get(f"{field}_avg") or 0
+                        deltas[label] = cur - prev
+
+                    if deltas:
+                        best_delta_label = max(deltas, key=deltas.get)
+                        worst_delta_label = min(deltas, key=deltas.get)
+                        if deltas[best_delta_label] > 0:
+                            most_improved = best_delta_label
+                        if deltas[worst_delta_label] < 0:
+                            most_declined = worst_delta_label
+            except (ValueError, TypeError):
+                pass
+
+        intelligence = {
+            "excellence_index": satisfaction_index,
+            "best_criteria": best_criteria,
+            "most_improved": most_improved,
+            "most_declined": most_declined,
+            "trend": trend,
+            "trend_delta": trend_delta,
+        }
+
+        # ── Executive Summary ────────────────────────────────────────
+        sorted_criteria = sorted(criteria_averages.items(), key=lambda x: x[1], reverse=True)
+        best1 = sorted_criteria[0][0] if len(sorted_criteria) > 0 else ""
+        best2 = sorted_criteria[1][0] if len(sorted_criteria) > 1 else ""
+        executive_summary = (
+            f"Foram recebidas {total_surveys} avaliações no período selecionado. "
+            f"A nota média geral foi {overall_avg:.2f}. "
+            f"O índice de excelência atingiu {satisfaction_index:.1f}%. "
+            f"Os critérios mais bem avaliados foram {best1} e {best2}. "
+            f"O critério com menor média foi {worst_criteria}, indicando oportunidade de melhoria."
+        )
+
+        return response.Response({
+            "cards": cards,
+            "radar": radar,
+            "ranking": ranking,
+            "distribution": distribution,
+            "monthly_evolution": monthly_evolution,
+            "heatmap": heatmap,
+            "comments": comments,
+            "intelligence": intelligence,
+            "executive_summary": executive_summary,
+        })

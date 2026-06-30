@@ -4128,7 +4128,252 @@ button.stat-card.active {
   display: none;
 }
 
+/* ── Evaluations / Avaliações Module ── */
+
+.radar-chart-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ranking-item {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  transition: background 0.2s ease, transform 0.2s ease;
+  cursor: default;
+}
+
+.ranking-item:hover {
+  background: var(--surface-2);
+  transform: translateX(4px);
+}
+
+.ranking-item .rank-position {
+  font-size: 20px;
+  text-align: center;
+  line-height: 1;
+}
+
+.ranking-item .rank-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ranking-item .rank-value {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--primary);
+  font-family: Inter, monospace;
+}
+
+.ranking-item .rank-bar {
+  grid-column: 2 / -1;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.ranking-item .rank-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #0048d7aa, #0048d7);
+  transition: width 0.6s ease;
+}
+
+.stacked-bar-legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  margin-top: 14px;
+}
+
+.stacked-bar-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.stacked-bar-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+  font-style: normal;
+}
+
+.eval-heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.eval-heatmap-header {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-soft);
+  text-align: center;
+}
+
+.eval-heatmap-row {
+  display: grid;
+  gap: 3px;
+  align-items: center;
+}
+
+.eval-heatmap-cell {
+  height: 30px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.eval-heatmap-cell:hover {
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(0, 72, 215, 0.25);
+}
+
+.comment-card {
+  background: #fff;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.comment-card:hover {
+  box-shadow: 0 6px 16px rgba(23, 32, 42, 0.08);
+  transform: translateY(-2px);
+}
+
+.comment-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.comment-school {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.comment-municipality {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.comment-date {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.comment-text {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.intelligence-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.intelligence-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.intelligence-item:last-child {
+  border-bottom: none;
+}
+
+.intelligence-label {
+  color: var(--text-soft);
+  font-weight: 600;
+}
+
+.intelligence-value {
+  font-weight: 800;
+  font-family: Inter, monospace;
+}
+
+.executive-panel {
+  background: linear-gradient(135deg, #f8fbff 0%, #edf4ff 100%);
+  border: 1px solid rgba(0, 72, 215, 0.12);
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 8px;
+}
+
+.executive-panel h2 {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 14px;
+}
+
+.executive-panel p {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.excellence-ring {
+  width: 90px;
+  height: 90px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.excellence-ring strong {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--text);
+  position: absolute;
+}
+
 @media (max-width: 1060px) {
+
   .two-column, .login-panel, .report-grid, .report-editor, .dashboard-layout, .stats-charts-grid {
     grid-template-columns: 1fr;
   }

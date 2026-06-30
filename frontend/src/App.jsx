@@ -14,6 +14,7 @@ import ShiftSchedulePage from "./pages/ShiftSchedulePage.jsx";
 import TechnicalReportsPage from "./pages/TechnicalReportsPage.jsx";
 import UsersPage from "./pages/UsersPage.jsx";
 import StatisticsPage from "./pages/StatisticsPage.jsx";
+import EvaluationsPage from "./pages/EvaluationsPage.jsx";
 import SatisfactionSurveyPage from "./pages/SatisfactionSurveyPage.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 
@@ -48,6 +49,7 @@ export default function App() {
         <Route path="escala" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "SUPERVISOR", "USER", "SUPPORT", "CREATOR"]}><ShiftSchedulePage /></ProtectedRoute>} />
         <Route path="relatorio-tecnico" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "SUPERVISOR"]}><TechnicalReportsPage /></ProtectedRoute>} />
         <Route path="estatisticas" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "SUPERVISOR"]}><StatisticsPage /></ProtectedRoute>} />
+        <Route path="avaliacoes" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "SUPERVISOR"]}><EvaluationsPage /></ProtectedRoute>} />
         <Route path="metas" element={<ProtectedRoute roles={["ADMIN", "MANAGER"]}><GoalsPage /></ProtectedRoute>} />
         <Route path="cadastros" element={<ProtectedRoute roles={["ADMIN", "MANAGER"]}><LookupsPage /></ProtectedRoute>} />
         <Route path="usuarios" element={<ProtectedRoute roles={["ADMIN", "MANAGER", "CREATOR"]}><UsersPage /></ProtectedRoute>} />

@@ -1,0 +1,637 @@
+import { Award, BarChart3, BookOpen, Download, Heart, MessageSquare, Mic, Search, Star, StarHalf, Target, ThumbsUp, TrendingDown, TrendingUp, Users, Zap, Clock } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { api } from "../api/client.js";
+
+const emptyFilters = { date_from: "", date_to: "", municipality: "", school: "", status: "", speaker: "", sector: "" };
+
+function Stars({ rating }) {
+  if (rating === undefined || rating === null) return null;
+  const num = Number(rating);
+  const full = Math.floor(num);
+  const half = num % 1 >= 0.5;
+  const empty = 5 - full - (half ? 1 : 0);
+  return (
+    <div style={{ display: "flex", gap: "2px", color: "#f6bd16" }}>
+      {Array(full).fill(0).map((_, i) => <Star key={`f-${i}`} size={14} fill="currentColor" />)}
+      {half && <StarHalf size={14} fill="currentColor" />}
+      {Array(empty).fill(0).map((_, i) => <Star key={`e-${i}`} size={14} opacity={0.3} />)}
+    </div>
+  );
+}
+
+const RadarChart = ({ data }) => {
+  const svgRef = useRef(null);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    let start = null;
+    const animate = (timestamp) => {
+      if (!start) start = timestamp;
+      const elapsed = timestamp - start;
+      const p = Math.min(elapsed / 800, 1);
+      // smoothstep
+      setProgress(p * p * (3 - 2 * p));
+      if (p < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+  }, [data]);
+
+  if (!data || data.length === 0) return null;
+
+  const size = 320;
+  const center = size / 2;
+  const maxRadius = (size / 2) - 40;
+  const angleStep = (Math.PI * 2) / data.length;
+
+  const getPoint = (value, index, radiusScale = 1) => {
+    const angle = (Math.PI / 2) - (index * angleStep);
+    const r = (value / 5) * maxRadius * radiusScale;
+    return {
+      x: center + r * Math.cos(angle),
+      y: center - r * Math.sin(angle)
+    };
+  };
+
+  const points = data.map((d, i) => {
+    const p = getPoint(d.value * progress, i);
+    return `${p.x},${p.y}`;
+  }).join(" ");
+
+  return (
+    <div className="radar-chart-wrap" style={{ position: "relative", width: "100%", maxWidth: "400px", margin: "0 auto" }}>
+      <svg ref={svgRef} viewBox={`0 0 ${size} ${size}`} style={{ width: "100%", height: "auto", overflow: "visible" }}>
+        {/* Background Grids */}
+        {[1, 2, 3, 4, 5].map((level) => {
+          const gridPoints = data.map((_, i) => {
+            const p = getPoint(level, i);
+            return `${p.x},${p.y}`;
+          }).join(" ");
+          return (
+            <polygon 
+              key={level} 
+              points={gridPoints} 
+              fill={level % 2 === 0 ? "rgba(0,0,0,0.02)" : "none"} 
+              stroke="var(--line)" 
+              strokeWidth="1" 
+              strokeDasharray={level === 5 ? "none" : "2,2"}
+            />
+          );
+        })}
+
+        {/* Axes and Labels */}
+        {data.map((d, i) => {
+          const p = getPoint(5, i);
+          const labelP = getPoint(5, i, 1.15); // Push label out
+          let textAnchor = "middle";
+          if (Math.abs(Math.cos((Math.PI / 2) - (i * angleStep))) > 0.1) {
+            textAnchor = Math.cos((Math.PI / 2) - (i * angleStep)) > 0 ? "start" : "end";
+          }
+          return (
+            <g key={i}>
+              <line x1={center} y1={center} x2={p.x} y2={p.y} stroke="var(--line)" strokeWidth="1" />
+              <text 
+                x={labelP.x} 
+                y={labelP.y} 
+                textAnchor={textAnchor} 
+                dominantBaseline="middle" 
+                fontSize="9" 
+                fontWeight="600"
+                fill="var(--text-soft)"
+                style={{ transformOrigin: `${labelP.x}px ${labelP.y}px` }}
+              >
+                {d.criteria}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Data Polygon */}
+        <polygon 
+          points={points} 
+          fill="rgba(0, 72, 215, 0.2)" 
+          stroke="var(--primary)" 
+          strokeWidth="2" 
+          strokeLinejoin="round"
+        />
+
+        {/* Data Dots */}
+        {data.map((d, i) => {
+          const p = getPoint(d.value * progress, i);
+          return (
+            <circle 
+              key={`dot-${i}`} 
+              cx={p.x} 
+              cy={p.y} 
+              r="4" 
+              fill="#fff" 
+              stroke="var(--primary)" 
+              strokeWidth="2"
+            >
+              <title>{d.criteria}: {d.value}</title>
+            </circle>
+          );
+        })}
+      </svg>
+    </div>
+  );
+};
+
+const StackedBarChart = ({ distribution }) => {
+  if (!distribution || Object.keys(distribution).length === 0) return null;
+  const criteriaList = Object.keys(distribution);
+  const colors = {
+    "1": "#dc2626",
+    "2": "#f97316",
+    "3": "#f6bd16",
+    "4": "#22c55e",
+    "5": "#047857"
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px", width: "100%" }}>
+      {criteriaList.map((crit, idx) => {
+        const counts = distribution[crit];
+        const total = Object.values(counts).reduce((a, b) => a + Number(b), 0);
+        if (total === 0) return null;
+
+        return (
+          <div key={idx} style={{ display: "grid", gridTemplateColumns: "140px 1fr 30px", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "11px", fontWeight: "600", color: "var(--text-soft)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={crit}>{crit}</span>
+            <div style={{ height: "16px", display: "flex", borderRadius: "4px", overflow: "hidden", background: "var(--surface-2)" }}>
+              {["1", "2", "3", "4", "5"].map(score => {
+                const count = Number(counts[score] || 0);
+                if (count === 0) return null;
+                const pct = (count / total) * 100;
+                return (
+                  <div 
+                    key={score} 
+                    style={{ width: `${pct}%`, height: "100%", background: colors[score], transition: "width 0.5s ease" }}
+                    title={`Nota ${score}: ${count} (${pct.toFixed(1)}%)`}
+                  />
+                );
+              })}
+            </div>
+            <span style={{ fontSize: "11px", fontWeight: "700", textAlign: "right" }}>{total}</span>
+          </div>
+        );
+      })}
+      <div className="stacked-bar-legend">
+        {["1", "2", "3", "4", "5"].map(score => (
+          <span key={score}><i style={{ background: colors[score] }}></i> Nota {score}</span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const EvalLineChart = ({ data }) => {
+  const svgRef = useRef(null);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    let start = null;
+    const animate = (timestamp) => {
+      if (!start) start = timestamp;
+      const elapsed = timestamp - start;
+      const p = Math.min(elapsed / 800, 1);
+      setProgress(p * p * (3 - 2 * p));
+      if (p < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+  }, [data]);
+
+  if (!data || data.length === 0) return (
+    <div style={{ height: "200px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-soft)" }}>
+      Dados insuficientes para evolução mensal
+    </div>
+  );
+
+  const padding = { top: 30, right: 20, bottom: 30, left: 20 };
+  const width = 600;
+  const height = 240;
+  const innerWidth = width - padding.left - padding.right;
+  const innerHeight = height - padding.top - padding.bottom;
+
+  // Min and max for y-axis
+  const values = data.map(d => d.value);
+  const max = 5;
+  const min = Math.max(1, Math.floor(Math.min(...values)) - 0.5);
+
+  const getX = (index) => padding.left + (index * (innerWidth / Math.max(1, data.length - 1)));
+  const getY = (val) => padding.top + innerHeight - (((val - min) / (max - min)) * innerHeight);
+
+  const points = data.map((d, i) => `${getX(i)},${getY(d.value)}`).join(" ");
+  const fillPoints = `${getX(0)},${padding.top + innerHeight} ${points} ${getX(data.length - 1)},${padding.top + innerHeight}`;
+
+  return (
+    <div style={{ position: "relative", width: "100%", overflowX: "auto" }}>
+      <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: "auto", minWidth: "500px" }}>
+        <defs>
+          <linearGradient id="eval-gradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Grid Lines */}
+        {[min, min + (max-min)/2, max].map((val, i) => (
+          <g key={i}>
+            <line x1={padding.left} y1={getY(val)} x2={width - padding.right} y2={getY(val)} stroke="var(--line)" strokeDasharray="4 4" />
+            <text x={0} y={getY(val)} fontSize="10" fill="var(--text-soft)" dominantBaseline="middle">{val.toFixed(1)}</text>
+          </g>
+        ))}
+
+        <g style={{ transform: `scaleY(${progress})`, transformOrigin: "bottom" }}>
+          {/* Fill */}
+          <polygon points={fillPoints} fill="url(#eval-gradient)" />
+          {/* Line */}
+          <polyline points={points} fill="none" stroke="var(--primary)" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+        </g>
+
+        {/* Points and Labels */}
+        {data.map((d, i) => {
+          const cx = getX(i);
+          const cy = getY(d.value);
+          return (
+            <g key={i}>
+              <circle cx={cx} cy={cy} r="4" fill="#fff" stroke="var(--primary)" strokeWidth="2" style={{ transform: `scale(${progress})`, transformOrigin: `${cx}px ${cy}px` }} />
+              <text x={cx} y={padding.top + innerHeight + 16} fontSize="10" fill="var(--text-soft)" textAnchor="middle">{d.label}</text>
+              <rect x={cx - 16} y={cy - 24} width="32" height="16" rx="4" fill="var(--text)" style={{ opacity: progress }} />
+              <text x={cx} y={cy - 16} fontSize="9" fill="#fff" fontWeight="700" textAnchor="middle" dominantBaseline="middle" style={{ opacity: progress }}>
+                {d.value.toFixed(1)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+};
+
+const EvalHeatmap = ({ heatmap }) => {
+  if (!heatmap || heatmap.length === 0) return null;
+  const criteriaSet = new Set();
+  const monthsSet = new Set();
+  heatmap.forEach(h => {
+    criteriaSet.add(h.criteria);
+    monthsSet.add(h.month);
+  });
+  const criteriaList = Array.from(criteriaSet);
+  const monthsList = Array.from(monthsSet).sort();
+
+  const getValue = (crit, m) => {
+    const item = heatmap.find(h => h.criteria === crit && h.month === m);
+    return item ? item.value : null;
+  };
+
+  const getOpacity = (val) => {
+    if (!val) return 0.02;
+    return 0.15 + (val / 5) * 0.75; // Map 0-5 to 0.15-0.9
+  };
+
+  return (
+    <div className="eval-heatmap" style={{ overflowX: "auto", paddingBottom: "8px" }}>
+      <div className="eval-heatmap-header" style={{ gridTemplateColumns: `120px repeat(${monthsList.length}, minmax(40px, 1fr))` }}>
+        <div />
+        {monthsList.map(m => {
+          const [yy, mm] = m.split("-");
+          return <div key={m}>{mm}/{yy.slice(2)}</div>;
+        })}
+      </div>
+      {criteriaList.map(crit => (
+        <div key={crit} className="eval-heatmap-row" style={{ gridTemplateColumns: `120px repeat(${monthsList.length}, minmax(40px, 1fr))` }}>
+          <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={crit}>
+            {crit}
+          </div>
+          {monthsList.map(m => {
+            const val = getValue(crit, m);
+            return (
+              <div 
+                key={`${crit}-${m}`} 
+                className="eval-heatmap-cell" 
+                style={{ 
+                  background: val ? `rgba(0, 72, 215, ${getOpacity(val)})` : "var(--surface-2)",
+                  color: val > 3 ? "#fff" : "var(--text)"
+                }}
+                title={`${crit} (${m}): ${val ? val.toFixed(1) : '-'}`}
+              >
+                {val ? val.toFixed(1) : "-"}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default function EvaluationsPage() {
+  const [data, setData] = useState(null);
+  const [filters, setFilters] = useState(emptyFilters);
+  const [municipalities, setMunicipalities] = useState([]);
+  const [sectors, setSectors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    api("/municipalities/?page_size=500").then(setMunicipalities).catch(console.error);
+    api("/sectors/?page_size=500").then(setSectors).catch(console.error);
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams(Object.entries(filters).filter(([, v]) => v)).toString();
+      const res = await api(`/surveys/analytics/${params ? `?${params}` : ""}`);
+      setData(res);
+    } catch (err) {
+      setError(err.message || "Erro ao carregar dados de avaliações");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(loadData, 300);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
+
+  const handleExport = async (format, e) => {
+    e.preventDefault();
+    try {
+      const params = new URLSearchParams(Object.entries(filters).filter(([, v]) => v)).toString();
+      const blob = await api(`/reports/export_${format}/${params ? `?${params}` : ""}`, { responseType: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `avaliacoes.${format === "excel" ? "xlsx" : "pdf"}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao exportar. Tente novamente.");
+    }
+  };
+
+  const cardConfig = [
+    { key: "total_surveys", label: "Avaliações Recebidas", icon: BarChart3, tone: "blue", format: "int" },
+    { key: "overall_avg", label: "Média Geral", icon: Star, tone: "amber", format: "decimal" },
+    { key: "satisfaction_index", label: "Índice de Satisfação", icon: ThumbsUp, tone: "green", format: "percent" },
+    { key: "speaker_avg", label: "Nota Palestrante", icon: Mic, tone: "violet", format: "decimal" },
+    { key: "team_avg", label: "Nota da Equipe", icon: Users, tone: "cyan", format: "decimal" },
+    { key: "resources_avg", label: "Recursos Audiovisuais", icon: BookOpen, tone: "teal", format: "decimal" },
+    { key: "best_criteria", label: "Melhor Critério", icon: Award, tone: "green", format: "criteria" },
+    { key: "worst_criteria", label: "Menor Avaliação", icon: TrendingDown, tone: "red", format: "criteria" },
+  ];
+
+  return (
+    <section className="page evaluations-page" style={{ maxWidth: "1280px", margin: "0 auto", paddingBottom: "40px" }}>
+      {/* Hero Banner */}
+      <div className="dashboard-hero" style={{ background: "linear-gradient(135deg, #001338 0%, #002d72 100%)", padding: "28px", borderRadius: "16px", color: "#ffffff", marginBottom: "24px", display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 8px 32px 0 rgba(0, 19, 56, 0.15)" }}>
+        <div>
+          <span style={{ fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "1.5px", color: "#f6bd16", opacity: 0.95, display: "block", marginBottom: "2px" }}>Análise de satisfação</span>
+          <h1 style={{ color: "#ffffff", fontSize: "38px", fontWeight: "900", margin: "4px 0", lineHeight: 1 }}>Avaliações</h1>
+          <p style={{ margin: 0, color: "#d2e1ff", opacity: 0.9, fontSize: "15px", marginTop: "8px" }}>SISTEMA INTEGRADO DA EDUCAÇÃO - OPERAÇÃO LEI SECA</p>
+        </div>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <button onClick={(e) => handleExport("pdf", e)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", padding: "8px 16px", borderRadius: "8px", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }} onMouseOver={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"} onMouseOut={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}>
+            <Download size={16} /> Exportar PDF
+          </button>
+          <button onClick={(e) => handleExport("excel", e)} style={{ background: "#ffffff", border: "none", color: "#001338", padding: "8px 16px", borderRadius: "8px", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontWeight: "700", transition: "all 0.2s" }} onMouseOver={(e) => e.currentTarget.style.transform = "translateY(-2px)"} onMouseOut={(e) => e.currentTarget.style.transform = "none"}>
+            <Download size={16} /> Excel
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="global-filters" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginBottom: "24px", border: "1px solid var(--line)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+        <div className="filter-group">
+          <label>De</label>
+          <input type="date" value={filters.date_from} onChange={(e) => setFilters(f => ({ ...f, date_from: e.target.value }))} />
+        </div>
+        <div className="filter-group">
+          <label>Até</label>
+          <input type="date" value={filters.date_to} onChange={(e) => setFilters(f => ({ ...f, date_to: e.target.value }))} />
+        </div>
+        <div className="filter-group">
+          <label>Município</label>
+          <select value={filters.municipality} onChange={(e) => setFilters(f => ({ ...f, municipality: e.target.value }))}>
+            <option value="">Todos</option>
+            {municipalities?.results?.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+        </div>
+        <div className="filter-group">
+          <label>Escola / Local</label>
+          <input type="text" placeholder="Buscar..." value={filters.school} onChange={(e) => setFilters(f => ({ ...f, school: e.target.value }))} />
+        </div>
+        <div className="filter-group">
+          <label>Status Agenda</label>
+          <select value={filters.status} onChange={(e) => setFilters(f => ({ ...f, status: e.target.value }))}>
+            <option value="">Todos</option>
+            <option value="PENDING">Pendente</option>
+            <option value="APPROVED">Aprovada</option>
+            <option value="COMPLETED">Realizada</option>
+          </select>
+        </div>
+        <div className="filter-group">
+          <label>Equipe / Palestrante</label>
+          <input type="text" placeholder="Buscar..." value={filters.speaker} onChange={(e) => setFilters(f => ({ ...f, speaker: e.target.value }))} />
+        </div>
+        <div className="filter-group">
+          <label>Setor</label>
+          <select value={filters.sector} onChange={(e) => setFilters(f => ({ ...f, sector: e.target.value }))}>
+            <option value="">Todos</option>
+            {sectors?.results?.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+        <div className="filter-group" style={{ display: "flex", alignItems: "flex-end" }}>
+          <button className="secondary" style={{ width: "100%" }} onClick={() => setFilters(emptyFilters)}>Limpar</button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="dashboard-skeleton" style={{ padding: "40px", textAlign: "center" }}>
+          <div className="spinner" style={{ margin: "0 auto 16px" }} />
+          <span style={{ color: "var(--text-soft)" }}>Analisando avaliações...</span>
+        </div>
+      ) : error ? (
+        <div className="alert">{error}</div>
+      ) : data ? (
+        <>
+          {/* Metric Cards */}
+          <div className="metric-grid" style={{ marginBottom: "24px" }}>
+            {cardConfig.map(({ key, label, icon: Icon, tone, format }) => {
+              let val = data.cards[key];
+              if (format === "decimal" && val != null) val = val.toFixed(2);
+              if (format === "percent" && val != null) val = `${val}%`;
+              if (val === null || val === undefined) val = "-";
+              
+              return (
+                <button key={key} className={`metric-card ${tone}`} style={{ textAlign: "left", cursor: "default" }}>
+                  <div className="metric-icon"><Icon size={20} /></div>
+                  <div className="metric-content">
+                    <span style={{ fontSize: "12px", color: "var(--text-soft)", fontWeight: "600", display: "block", marginBottom: "4px" }}>{label}</span>
+                    <strong style={{ fontSize: format === "criteria" ? "15px" : "22px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={val}>{val}</strong>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="dashboard-layout" style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "24px", alignItems: "start" }}>
+            
+            {/* Main Column */}
+            <div className="dashboard-main" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              
+              <div className="analytics-grid">
+                <div className="chart-card">
+                  <div className="section-heading">
+                    <Target size={18} />
+                    <h3>Radar de Critérios</h3>
+                  </div>
+                  <RadarChart data={data.radar} />
+                </div>
+                <div className="chart-card">
+                  <div className="section-heading">
+                    <BarChart3 size={18} />
+                    <h3>Distribuição das Notas</h3>
+                  </div>
+                  <StackedBarChart distribution={data.distribution} />
+                </div>
+              </div>
+
+              <div className="chart-card">
+                <div className="section-heading">
+                  <TrendingUp size={18} />
+                  <h3>Evolução Mensal da Nota Geral</h3>
+                </div>
+                <EvalLineChart data={data.monthly_evolution} />
+              </div>
+
+              <div className="chart-card">
+                <div className="section-heading">
+                  <BookOpen size={18} />
+                  <h3>Mapa de Calor — Critérios por Mês</h3>
+                </div>
+                <EvalHeatmap heatmap={data.heatmap} />
+              </div>
+
+            </div>
+
+            {/* Sidebar Column */}
+            <aside className="dashboard-side" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              
+              <div className="chart-card">
+                <div className="section-heading">
+                  <Award size={18} />
+                  <h3>Ranking de Critérios</h3>
+                </div>
+                <div className="ranking-list">
+                  {data.ranking.map((item, idx) => {
+                    let badge = <span className="rank-position">{idx + 1}º</span>;
+                    if (idx === 0) badge = <span className="rank-position" style={{ textShadow: "0 0 8px rgba(255,215,0,0.6)" }}>🥇</span>;
+                    if (idx === 1) badge = <span className="rank-position">🥈</span>;
+                    if (idx === 2) badge = <span className="rank-position">🥉</span>;
+
+                    return (
+                      <div key={item.criteria} className="ranking-item">
+                        {badge}
+                        <span className="rank-label">{item.criteria}</span>
+                        <span className="rank-value">{item.value.toFixed(2)}</span>
+                        <div className="rank-bar">
+                          <div className="rank-bar-fill" style={{ width: `${(item.value / 5) * 100}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="chart-card">
+                <div className="section-heading">
+                  <Zap size={18} />
+                  <h3>Inteligência</h3>
+                </div>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
+                  <div className="excellence-ring">
+                    <svg viewBox="0 0 36 36" style={{ width: "100%", height: "100%" }}>
+                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--surface-2)" strokeWidth="3" />
+                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--primary)" strokeWidth="3" strokeDasharray={`${data.intelligence.excellence_index}, 100`} />
+                    </svg>
+                    <strong>{data.intelligence.excellence_index}%</strong>
+                  </div>
+                </div>
+                <div className="intelligence-grid">
+                  <div className="intelligence-item">
+                    <span className="intelligence-label">Maior Destaque</span>
+                    <span className="intelligence-value" style={{ color: "var(--success)" }}>{data.intelligence.best_criteria || "-"}</span>
+                  </div>
+                  <div className="intelligence-item">
+                    <span className="intelligence-label">Maior Crescimento</span>
+                    <span className="intelligence-value" style={{ display: "flex", alignItems: "center", gap: "4px", color: "var(--success)" }}>
+                      {data.intelligence.most_improved ? <><TrendingUp size={14} /> {data.intelligence.most_improved}</> : "-"}
+                    </span>
+                  </div>
+                  <div className="intelligence-item">
+                    <span className="intelligence-label">Maior Queda</span>
+                    <span className="intelligence-value" style={{ display: "flex", alignItems: "center", gap: "4px", color: "var(--danger)" }}>
+                      {data.intelligence.most_declined ? <><TrendingDown size={14} /> {data.intelligence.most_declined}</> : "-"}
+                    </span>
+                  </div>
+                  <div className="intelligence-item">
+                    <span className="intelligence-label">Tendência (Período)</span>
+                    <span className="intelligence-value" style={{ display: "flex", alignItems: "center", gap: "4px", color: data.intelligence.trend === "up" ? "var(--success)" : data.intelligence.trend === "down" ? "var(--danger)" : "var(--text-soft)" }}>
+                      {data.intelligence.trend === "up" ? <TrendingUp size={14} /> : data.intelligence.trend === "down" ? <TrendingDown size={14} /> : "-"}
+                      {data.intelligence.trend ? `${data.intelligence.trend_delta > 0 ? '+' : ''}${data.intelligence.trend_delta}` : ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="chart-card" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                <div className="section-heading">
+                  <MessageSquare size={18} />
+                  <h3>Comentários Recentes ({data.comments.length})</h3>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px", overflowY: "auto", flex: 1, paddingRight: "4px" }}>
+                  {data.comments.length === 0 ? (
+                    <div style={{ color: "var(--text-soft)", textAlign: "center", padding: "20px 0" }}>Nenhum comentário no período</div>
+                  ) : (
+                    data.comments.map((c, i) => (
+                      <div key={i} className="comment-card">
+                        <div className="comment-meta">
+                          <span className="comment-school">{c.school}</span>
+                          <span className="comment-date">{c.date}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span className="comment-municipality">{c.municipality}</span>
+                          <Stars rating={c.overall_rating} />
+                        </div>
+                        <p className="comment-text">"{c.comment}"</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+            </aside>
+          </div>
+
+          {/* Executive Panel */}
+          <div className="executive-panel">
+            <h2 style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--primary)" }}>
+              <Zap size={20} fill="currentColor" />
+              Resumo Executivo
+            </h2>
+            <p>{data.executive_summary}</p>
+          </div>
+
+        </>
+      ) : null}
+    </section>
+  );
+}

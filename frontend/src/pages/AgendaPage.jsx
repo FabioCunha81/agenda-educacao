@@ -1,4 +1,4 @@
-import { CheckCircle2, ClipboardCheck, Copy, ExternalLink, History, Plus, Save, Trash2, XCircle, Edit } from "lucide-react";
+import { CheckCircle2, ClipboardCheck, Copy, ExternalLink, History, Plus, Save, Trash2, XCircle, Edit, Star } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
 import Filters from "../components/Filters.jsx";
@@ -922,7 +922,14 @@ export default function AgendaPage() {
                   <td>{agenda.start_time.slice(0, 5)}</td>
                   <td>{agenda.city || "-"}</td>
                   <td>{agenda.quantity || "-"}</td>
-                  <td><span className={`badge ${statusClass[agenda.status]}`}>{statusLabel[agenda.status]}</span></td>
+                  <td>
+                    <span className={`badge ${statusClass[agenda.status]}`}>{statusLabel[agenda.status]}</span>
+                    {agenda.satisfaction_survey_answered_at && (
+                      <span className="badge warning" style={{ marginLeft: "8px", display: "inline-flex", alignItems: "center", gap: "4px" }} title="Avaliação respondida">
+                        <Star size={12} fill="currentColor" /> {agenda.satisfaction_rating ? agenda.satisfaction_rating.toFixed(1) : "Resp."}
+                      </span>
+                    )}
+                  </td>
                   <td className="row-actions">
                     <button className="secondary" onClick={() => reviewAndSchedule(agenda)}>
                       <ClipboardCheck size={16} /> Avaliar solicitação

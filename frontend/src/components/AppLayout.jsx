@@ -1,4 +1,4 @@
-import { Activity, BarChart3, Bell, CalendarDays, LayoutDashboard, ListPlus, LogOut, Menu, Search, ShieldCheck, Target, Users, X } from "lucide-react";
+import { Activity, BarChart3, Bell, CalendarDays, LayoutDashboard, ListPlus, LogOut, Menu, Search, ShieldCheck, Star, Target, Users, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import logoOperacaoLeiSeca from "../assets/operacao-lei-seca-logo.png";
@@ -13,6 +13,7 @@ const items = [
   { to: "/escala", label: "Escala", icon: CalendarDays, roles: ["ADMIN", "MANAGER", "SUPERVISOR", "USER", "SUPPORT", "CREATOR"] },
   { to: "/relatorio-tecnico", label: "Relatórios Técnicos", icon: BarChart3, roles: ["ADMIN", "MANAGER", "SUPERVISOR"] },
   { to: "/estatisticas", label: "Estatísticas", icon: BarChart3, roles: ["ADMIN", "MANAGER", "SUPERVISOR"] },
+  { to: "/avaliacoes", label: "Avaliações", icon: Star, roles: ["ADMIN", "MANAGER", "SUPERVISOR"] },
   { to: "/metas", label: "Metas", icon: Target, roles: ["ADMIN", "MANAGER"] },
   { to: "/cadastros", label: "Cadastros", icon: ListPlus, roles: ["ADMIN", "MANAGER"] },
   { to: "/usuarios", label: "Usuários", icon: Users, roles: ["ADMIN", "MANAGER", "CREATOR"] },
