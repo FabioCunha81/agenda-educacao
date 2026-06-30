@@ -10,6 +10,9 @@ class Command(BaseCommand):
     help = "Popula o banco com dados fictícios de Avaliações (SatisfactionSurvey)."
 
     def handle(self, *args, **options):
+        self.stdout.write("Apagando avaliações antigas...")
+        SatisfactionSurvey.objects.all().delete()
+        
         agendas = list(Agenda.objects.all()[:20])
         
         if not agendas:
