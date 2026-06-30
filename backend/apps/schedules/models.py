@@ -239,8 +239,8 @@ class Agenda(models.Model):
         related_name="linked_requests",
     )
     description = models.TextField()
-    date = models.DateField()
-    start_time = models.TimeField()
+    date = models.DateField(db_index=True)
+    start_time = models.TimeField(db_index=True)
     end_time = models.TimeField()
     location = models.CharField(max_length=180)
     vehicle = models.CharField(max_length=120, blank=True)
@@ -326,8 +326,8 @@ class Agenda(models.Model):
         related_name="responsible_agendas",
     )
     sector = models.ForeignKey(Sector, on_delete=models.PROTECT, related_name="agendas")
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
-    origin = models.CharField(max_length=20, choices=Origin.choices, default=Origin.INTERNAL)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
+    origin = models.CharField(max_length=20, choices=Origin.choices, default=Origin.INTERNAL, db_index=True)
     cancel_reason = models.TextField(blank=True)
     notes = models.TextField(blank=True)
     created_by = models.ForeignKey(
@@ -656,8 +656,8 @@ class SatisfactionSurvey(models.Model):
     overall_rating = models.PositiveSmallIntegerField(null=True, blank=True)
     suggestion = models.TextField(blank=True)
     sent_at = models.DateTimeField(null=True, blank=True)
-    answered_at = models.DateTimeField(null=True, blank=True)
-    is_approved = models.BooleanField(default=False)
+    answered_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    is_approved = models.BooleanField(default=False, db_index=True)
     moderation_status = models.CharField(
         max_length=20,
         choices=ModerationStatus.choices,
