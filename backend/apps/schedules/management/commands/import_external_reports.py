@@ -11,6 +11,11 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         from django.conf import settings
         json_path = os.path.join(settings.BASE_DIR, 'external_reports.json')
+        # Update any previously imported reports that were left as DRAFT
+        updated = EducationReport.objects.filter(source_id__startswith="external:", status="DRAFT").update(status=EducationReport.ReportStatus.SUBMITTED)
+        if updated:
+            self.stdout.write(self.style.SUCCESS(f"Updated {updated} previously imported reports to SUBMITTED status."))
+
         try:
             with open(json_path, 'r') as f:
                 data = json.load(f)
@@ -69,6 +74,7 @@ class Command(BaseCommand):
 
                 report = EducationReport.objects.create(
                     created_by=system_user,
+                    status=EducationReport.ReportStatus.SUBMITTED,
                     agenda=agenda,
                     source_id=source_id,
                     team=team,
