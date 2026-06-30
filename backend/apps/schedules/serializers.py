@@ -1178,7 +1178,7 @@ class SatisfactionSurveySerializer(serializers.ModelSerializer):
     agenda_title = serializers.CharField(source="agenda.title", read_only=True)
     agenda_date = serializers.DateField(source="agenda.date", read_only=True)
     institution = serializers.CharField(source="agenda.location", read_only=True)
-    municipality = serializers.CharField(source="agenda.municipality_ref.name", read_only=True)
+    municipality = serializers.SerializerMethodField()
     state = serializers.CharField(source="agenda.state", read_only=True)
     moderation_status_label = serializers.CharField(source="get_moderation_status_display", read_only=True)
     moderated_by_name = serializers.CharField(source="moderated_by.full_name", read_only=True)
@@ -1240,6 +1240,16 @@ class SatisfactionSurveySerializer(serializers.ModelSerializer):
 
     def get_display_comment(self, obj):
         return obj.moderated_comment or obj.suggestion
+
+    def get_municipality(self, obj):
+        agenda = getattr(obj, "agenda", None)
+        if not agenda:
+            return ""
+        try:
+            municipality = agenda.municipality_ref
+        except Municipality.DoesNotExist:
+            municipality = None
+        return municipality.name if municipality else (agenda.city or "")
 
 
     def validate(self, attrs):

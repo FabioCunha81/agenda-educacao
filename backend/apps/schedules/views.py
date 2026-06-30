@@ -3019,11 +3019,14 @@ class SatisfactionSurveyViewSet(viewsets.ModelViewSet):
         comments = []
         for s in comments_qs:
             agenda = s.agenda
-            municipality_name = ""
+            municipality_name = agenda.city or ""
             if agenda.municipality_ref_id:
-                municipality_name = agenda.municipality_ref.name if agenda.municipality_ref else agenda.city
-            else:
-                municipality_name = agenda.city or ""
+                try:
+                    municipality = agenda.municipality_ref
+                except Municipality.DoesNotExist:
+                    municipality = None
+                if municipality:
+                    municipality_name = municipality.name
             comments.append({
                 "school": agenda.location or "",
                 "municipality": municipality_name,
