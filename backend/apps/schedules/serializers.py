@@ -445,7 +445,7 @@ class ShiftScheduleSerializer(serializers.ModelSerializer):
                 "absence_attachment_url": swap_absence.attachment.url if swap_absence and swap_absence.attachment else "",
             }
             for index, member in enumerate(members[group]):
-                if int(member["id"]) == int(swap.from_member_id):
+                if str(member["id"]) == str(swap.from_member_id):
                     members[group][index] = replacement
                     break
             else:
