@@ -16,8 +16,17 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR("Nenhuma agenda encontrada para vincular avaliações. Crie agendas primeiro."))
             return
 
-        teams = ["Equipe Alfa", "Equipe Beta", "Equipe Gama", "Equipe Delta"]
-        chiefs = ["João Silva", "Maria Oliveira", "Carlos Souza", "Ana Costa"]
+        from apps.schedules.models import Sector
+        from apps.accounts.models import User
+
+        sectors = list(Sector.objects.values_list("name", flat=True))
+        if not sectors:
+            sectors = ["Operações", "Atendimento", "Campo"]
+            
+        users = list(User.objects.values_list("full_name", flat=True))
+        if not users:
+            users = ["João Silva", "Maria Oliveira"]
+
         suggestions = [
             "Excelente palestra, muito informativa.",
             "Poderia ter mais interação com o público.",
@@ -40,8 +49,8 @@ class Command(BaseCommand):
                 defaults={
                     "token": token,
                     "requester_email": f"participante{i}@exemplo.com",
-                    "team": random.choice(teams),
-                    "chief_name": random.choice(chiefs),
+                    "team": random.choice(sectors),
+                    "chief_name": random.choice(users),
                     "audiovisual_resources": random.randint(3, 5) if answered else None,
                     "speaker_knowledge": random.randint(4, 5) if answered else None,
                     "wheelchair_testimony": random.randint(3, 5) if answered else None,
