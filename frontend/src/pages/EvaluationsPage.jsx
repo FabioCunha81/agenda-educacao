@@ -82,10 +82,13 @@ function SatisfactionSummaryPanel({ surveys = {}, onModerateSurvey }) {
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Stars rating={msg.overall_rating} />
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <Stars rating={msg.overall_rating} />
+                    <span style={{ fontSize: "14px", fontWeight: "800", color: "var(--text)" }}>{Number(msg.overall_rating).toFixed(1)}</span>
+                  </div>
                   <span style={{ fontSize: "10px", color: "var(--text-soft)", fontWeight: "700" }}>{msg.answered_at ? new Date(msg.answered_at).toLocaleDateString("pt-BR") : "-"}</span>
                 </div>
-                <p style={{ margin: 0, fontSize: "12.5px", color: "var(--text)", lineHeight: 1.4 }}>"{msg.moderated_comment || msg.suggestion}"</p>
+                <p style={{ margin: 0, fontSize: "15px", color: "var(--text)", lineHeight: 1.5, fontWeight: "500", padding: "4px 0" }}>"{msg.moderated_comment || msg.suggestion}"</p>
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
