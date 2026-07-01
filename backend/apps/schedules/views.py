@@ -2853,12 +2853,25 @@ class SatisfactionSurveyViewSet(viewsets.ModelViewSet):
             .distinct()
             .order_by("agenda__state")
         ]
+        regions = [
+            {"id": item["agenda__municipality_ref__region_id"], "name": item["agenda__municipality_ref__region__name"]}
+            for item in state_options_qs.exclude(agenda__municipality_ref__region_id__isnull=True)
+            .values("agenda__municipality_ref__region_id", "agenda__municipality_ref__region__name")
+            .distinct()
+            .order_by("agenda__municipality_ref__region__name")
+        ]
         municipalities = [
             {"id": item["agenda__municipality_ref_id"], "name": item["agenda__municipality_ref__name"]}
             for item in qs.exclude(agenda__municipality_ref_id__isnull=True)
             .values("agenda__municipality_ref_id", "agenda__municipality_ref__name")
             .distinct()
             .order_by("agenda__municipality_ref__name")
+        ]
+        teams = [
+            value for value in state_options_qs.exclude(team="")
+            .values_list("team", flat=True)
+            .distinct()
+            .order_by("team")
         ]
 
         total_surveys = qs.count()
@@ -2887,7 +2900,9 @@ class SatisfactionSurveyViewSet(viewsets.ModelViewSet):
                 "heatmap": [],
                 "comments": [],
                 "states": states,
+                "regions": regions,
                 "municipalities": municipalities,
+                "teams": teams,
                 "satisfaction_panel": {
                     "overall_rating": 0,
                     "total_responses": 0,
@@ -3165,6 +3180,9 @@ class SatisfactionSurveyViewSet(viewsets.ModelViewSet):
             "distribution": distribution,
             "monthly_evolution": monthly_evolution,
             "heatmap": heatmap,
+            "regions": regions,
+            "municipalities": municipalities,
+            "teams": teams,
             "comments": comments,
             "satisfaction_panel": satisfaction_panel,
             "intelligence": intelligence,

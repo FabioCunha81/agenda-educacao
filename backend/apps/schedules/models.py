@@ -682,6 +682,10 @@ class SatisfactionSurvey(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["moderation_status", "answered_at"], name="survey_status_answered_idx"),
+            models.Index(fields=["team", "answered_at"], name="survey_team_answered_idx"),
+        ]
 
     def __str__(self):
         return f"Pesquisa #{self.agenda_id}"
@@ -731,3 +735,4 @@ class EducationGoal(models.Model):
 
     def __str__(self):
         return f"{self.year} - {self.label}"
+

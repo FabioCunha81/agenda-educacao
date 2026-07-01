@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
-const emptyFilters = { date_from: "", date_to: "", state: "", municipality: "", status: "", team: "" };
+const emptyFilters = { date_from: "", date_to: "", state: "", region: "", municipality: "", status: "", team: "" };
 
 function Stars({ rating }) {
   if (rating === undefined || rating === null) return null;
@@ -481,36 +481,11 @@ const EvalHeatmap = ({ heatmap }) => {
 export default function EvaluationsPage() {
   const [data, setData] = useState(null);
   const [filters, setFilters] = useState(emptyFilters);
-  const [municipalities, setMunicipalities] = useState([]);
-  const [regions, setRegions] = useState([]);
-  const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { user } = useAuth();
   const canModerate = user?.is_superuser || user?.role === "ADMIN" || user?.role === "MANAGER";
 
-  useEffect(() => {
-    Promise.all([
-      api("/municipalities/?page_size=500"),
-      api("/regions/?page_size=200")
-    ]).then(([munRes, regRes]) => {
-      setMunicipalities(munRes.results || munRes);
-      setRegions(regRes.results || regRes);
-    }).catch(console.error);
-    api("/teams/?page_size=1000").then((res) => {
-      const data = res.results || res;
-      const seen = new Set();
-      const uniqueTeams = data
-        .map(t => ({ ...t, name: String(t.name || "").trim().toUpperCase() }))
-        .filter(t => {
-          if (!t.name || seen.has(t.name)) return false;
-          seen.add(t.name);
-          return true;
-        })
-        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-      setTeams(uniqueTeams);
-    }).catch(console.error);
-  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -565,7 +540,9 @@ export default function EvaluationsPage() {
   };
 
   const availableStates = data?.states || [];
-  const availableMunicipalities = data?.municipalities?.length ? data.municipalities : municipalities;
+  const availableRegions = data?.regions || [];
+  const availableMunicipalities = data?.municipalities || [];
+  const availableTeams = data?.teams || [];
 
   const cardConfig = [
     { key: "total_surveys", label: "Avaliacoes Recebidas", icon: BarChart3, tone: "blue", format: "int" },
@@ -622,7 +599,7 @@ export default function EvaluationsPage() {
           <label>Região</label>
           <select value={filters.region} onChange={(e) => setFilters(f => ({ ...f, region: e.target.value, municipality: "" }))}>
             <option value="">Todas</option>
-            {regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+            {availableRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
         </div>
         <div className="filter-group">
@@ -637,7 +614,7 @@ export default function EvaluationsPage() {
           <label>Equipe</label>
           <select value={filters.team} onChange={(e) => setFilters(f => ({ ...f, team: e.target.value }))}>
             <option value="">Todas</option>
-            {teams.map(team => <option key={team.id} value={team.name}>{team.name}</option>)}
+            {availableTeams.map(team => <option key={team} value={team}>{team}</option>)}
           </select>
         </div>
         <div className="filter-group" style={{ display: "flex", alignItems: "flex-end" }}>
@@ -803,3 +780,4 @@ export default function EvaluationsPage() {
     </section>
   );
 }
+
