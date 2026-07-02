@@ -7,6 +7,8 @@ import {
   PauseCircle,
   Search,
   Users,
+  Activity,
+  Shield,
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
