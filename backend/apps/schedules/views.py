@@ -416,6 +416,16 @@ class AgendaViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         scoped = self.get_scoped_queryset()
         params = self.request.query_params
+
+        # Restrição para que relatórios só fiquem pendentes após as 18h do dia da ação
+        if params.get("reportable") == "true":
+            from django.utils import timezone
+            now = timezone.localtime(timezone.now())
+            if now.hour >= 18:
+                scoped = scoped.filter(date__lte=now.date())
+            else:
+                scoped = scoped.filter(date__lt=now.date())
+
         if params.get("date"):
             scoped = scoped.filter(date=params["date"])
         if params.get("date_from"):
@@ -904,6 +914,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
                 "updated_at",
                 "responsible__full_name",
                 "sector__name",
+                "team_name",
                 "location",
             )
         )
@@ -1006,9 +1017,9 @@ class AgendaViewSet(viewsets.ModelViewSet):
                 "id": row["id"],
                 "title": row["title"],
                 "date": row["date"].isoformat(),
-                "time": row["start_time"].isoformat(timespec="minutes"),
+                "time": row["start_time"].isoformat(timespec="minutes") if row["start_time"] else "",
                 "status": row["status"],
-                "sector": row["sector__name"],
+                "sector": row.get("team_name") or row["sector__name"],
                 "responsible": row["responsible__full_name"],
                 "updated_at": row["updated_at"].isoformat(),
                 "location": row["location"],
@@ -1018,7 +1029,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
         field_teams = [
             {
                 "id": row["id"],
-                "team": row["sector__name"] or "Sem equipe",
+                "team": row.get("team_name") or row["sector__name"] or "Sem equipe",
                 "title": row["title"],
                 "time": row["start_time"].isoformat(timespec="minutes"),
                 "status": row["status"],

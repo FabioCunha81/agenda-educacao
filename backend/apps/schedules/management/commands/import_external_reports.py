@@ -141,6 +141,8 @@ class Command(BaseCommand):
                         start_time=act[6] or "",
                         final_hour=act[7] or "",
                         approach=act[8] or 0,
+                        approached_lectures=act[8] if 'PALESTRA' in (act[3] or '').upper() or 'ESCOLA NOTA 10' in (act[3] or '').upper() else 0,
+                        approached_actions=0 if 'PALESTRA' in (act[3] or '').upper() or 'ESCOLA NOTA 10' in (act[3] or '').upper() else (act[8] or 0),
                         tests=act[9] or 0,
                         used_caps=act[10] or 0,
                         available_caps=act[11] or 0,

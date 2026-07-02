@@ -32,7 +32,7 @@ button, input, select, textarea {
 
 button {
   align-items: center;
-  background: var(--primary);
+  background: linear-gradient(135deg, #001338 0%, #002d72 100%);
   border: 0;
   border-radius: 8px;
   color: #fff;
@@ -2745,7 +2745,7 @@ button.stat-card.active {
 }
 
 .form-section h3 {
-  background: #1553c8;
+  background: linear-gradient(135deg, #001338 0%, #002d72 100%);
   color: #fff;
   margin: -18px -20px 6px;
   padding: 13px 20px;
@@ -2977,7 +2977,7 @@ button.stat-card.active {
 }
 
 .chief-required-block h4 {
-  background: #1553c8;
+  background: linear-gradient(135deg, #001338 0%, #002d72 100%);
   color: #fff;
   font-size: 13px;
   font-weight: 900;

@@ -73,41 +73,36 @@ function DashboardCard({ active, config, data, onClick }) {
 
 const chiefComparisonConfig = [
   {
-    key: "public",
-    label: "Público",
+    key: "approaches",
+    label: "Total de Abordagens",
     icon: Users,
-    requested: "requested_public",
-    reported: "reported_public",
-    difference: "public_difference",
-    rate: "public_execution_rate",
-    note: "Média por relatório",
-    average: "average_public_per_report",
+    reported: "approaches",
+    color: "#0048d7",
+    gradient: "linear-gradient(135deg, #0048d7, #003299)",
   },
   {
     key: "actions",
-    label: "Ações",
+    label: "Ações Realizadas",
     icon: CalendarCheck,
-    requested: "requested_actions",
     reported: "registered_actions",
-    difference: "actions_difference",
-    rate: "actions_execution_rate",
-    note: "Registradas pelos chefes",
+    color: "#7c3aed",
+    gradient: "linear-gradient(135deg, #7c3aed, #5b21b6)",
   },
   {
-    key: "approaches",
-    label: "Abordagens",
-    icon: Users,
-    reported: "approaches",
-    note: "Média por ação",
-    average: "average_approaches_per_action",
+    key: "avg-action",
+    label: "Média por Ação",
+    icon: Activity,
+    reported: "average_approaches_per_action",
+    color: "#047857",
+    gradient: "linear-gradient(135deg, #047857, #022c22)",
   },
   {
-    key: "team-average",
-    label: "Média de abordagens por equipe",
-    icon: Users,
+    key: "avg-team",
+    label: "Média por Equipe",
+    icon: Shield,
     reported: "average_approaches_per_team",
-    note: "Equipes consideradas",
-    average: "teams_count",
+    color: "#dc6b16",
+    gradient: "linear-gradient(135deg, #dc6b16, #ea580c)",
   },
 ];
 
@@ -115,39 +110,45 @@ function formatMetric(value) {
   return Number(value || 0).toLocaleString("pt-BR");
 }
 
-function formatDifference(value) {
-  const number = Number(value || 0);
-  return `${number > 0 ? "+" : ""}${number.toLocaleString("pt-BR")}`;
-}
-
 function ChiefFillingsMetrics({ data = {} }) {
   return (
-    <div className="chart-card chief-fillings-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "20px", marginBottom: "24px" }}>
-      <div className="section-heading" style={{ marginBottom: "14px" }}>
+    <div className="chart-card chief-fillings-card" style={{ border: "1px solid var(--line)", borderRadius: "16px", padding: "24px", marginBottom: "32px", background: "var(--surface)" }}>
+      <div className="section-heading" style={{ marginBottom: "20px" }}>
         <div>
-          <h2 style={{ fontSize: "15px", fontWeight: "800" }}>Números preenchidos pelos chefes</h2>
-          <p style={{ fontSize: "12px", color: "var(--text-soft)", marginTop: "3px" }}>Comparativo entre a solicitação enviada e o preenchimento dos relatórios técnicos.</p>
+          <h2 style={{ fontSize: "18px", fontWeight: "800", color: "var(--text)" }}>Painel de Desempenho Operacional</h2>
+          <p style={{ fontSize: "13px", color: "var(--text-soft)", marginTop: "4px" }}>Visão direta e consolidada do resultado das equipes em campo.</p>
         </div>
       </div>
-      <div className="chief-fillings-grid">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" }}>
         {chiefComparisonConfig.map((item) => {
           const Icon = item.icon;
-          const difference = Number(data[item.difference] || 0);
           return (
-            <div className="chief-filling-metric" key={item.key}>
-              <span><Icon size={17} /></span>
-              <small>{item.label}</small>
-              <strong>{formatMetric(data[item.reported])}</strong>
-              {item.requested && (
-                <div className="chief-comparison-lines">
-                  <b>Solicitado: {formatMetric(data[item.requested])}</b>
-                  <b>Diferença: <em className={difference >= 0 ? "positive" : "negative"}>{formatDifference(difference)}</em></b>
-                  <b>Execução: {Number(data[item.rate] || 0).toLocaleString("pt-BR")}%</b>
+            <div key={item.key} style={{
+              background: "var(--surface)", borderRadius: "16px", padding: "24px",
+              border: "1px solid var(--line)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.04)",
+              display: "flex", flexDirection: "column", gap: "12px", position: "relative",
+              overflow: "hidden", transition: "transform 0.2s, box-shadow 0.2s"
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 32px " + item.color + "22"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.04)"; }}
+            >
+              <div style={{
+                position: "absolute", top: -20, right: -20, width: 80, height: 80,
+                borderRadius: "50%", background: item.color, opacity: 0.06
+              }} />
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{
+                  width: "40px", height: "40px", borderRadius: "12px", display: "flex",
+                  alignItems: "center", justifyContent: "center",
+                  background: item.gradient, color: "#fff", flexShrink: 0,
+                  boxShadow: "0 4px 12px " + item.color + "44"
+                }}>
+                  <Icon size={20} />
                 </div>
-              )}
-              {item.note && (
-                <p>{item.note}: <b>{formatMetric(data[item.average])}</b></p>
-              )}
+                <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-soft)", textTransform: "uppercase", letterSpacing: "0.5px", lineHeight: "1.2" }}>{item.label}</span>
+              </div>
+              <strong style={{ fontSize: "36px", fontWeight: "800", color: "var(--text)", lineHeight: "1.1", marginTop: "4px" }}>{formatMetric(data[item.reported])}</strong>
             </div>
           );
         })}
