@@ -422,9 +422,9 @@ class AgendaViewSet(viewsets.ModelViewSet):
             from django.utils import timezone
             now = timezone.localtime(timezone.now())
             if now.hour >= 18:
-                scoped = scoped.filter(date__lte=now.date())
+                scoped = scoped.filter(date__lte=now.date()).exclude(status__in=[Agenda.Status.COMPLETED, Agenda.Status.CANCELLED])
             else:
-                scoped = scoped.filter(date__lt=now.date())
+                scoped = scoped.filter(date__lt=now.date()).exclude(status__in=[Agenda.Status.COMPLETED, Agenda.Status.CANCELLED])
 
         if params.get("date"):
             scoped = scoped.filter(date=params["date"])
@@ -485,7 +485,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
                 search_filter |= Q(id=int(term)) | Q(service_order_number=int(term))
             scoped = scoped.filter(search_filter)
         if params.get("pending_report") == "true":
-            scoped = scoped.filter(technical_reports__isnull=True)
+            scoped = scoped.filter(technical_reports__isnull=True).exclude(status__in=[Agenda.Status.COMPLETED, Agenda.Status.CANCELLED])
         if params.get("order") == "latest":
             return (
                 scoped.distinct()
@@ -1077,6 +1077,12 @@ class AgendaViewSet(viewsets.ModelViewSet):
         # Message source includes all answered messages, moderation depends on roles
         messages_qs = SatisfactionSurvey.objects.filter(agenda__in=base_qs, answered_at__isnull=False).exclude(suggestion="")
         pending_moderation_count = SatisfactionSurvey.objects.filter(agenda__in=base_qs, answered_at__isnull=False, is_approved=False).exclude(suggestion="").count()
+        now_dt = timezone.localtime(timezone.now())
+        if now_dt.hour >= 18:
+            reportable_agendas = base_qs.filter(date__lte=now_dt.date())
+        else:
+            reportable_agendas = base_qs.filter(date__lt=now_dt.date())
+        pending_technical_reports_count = reportable_agendas.exclude(status__in=[Agenda.Status.COMPLETED, Agenda.Status.CANCELLED]).filter(technical_reports__isnull=True).count()
         if not (request.user.is_superuser or request.user.role in ["ADMIN", "MANAGER"]):
             messages_qs = messages_qs.filter(is_approved=True)
 
@@ -1188,6 +1194,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
                 "average_approaches_per_team": round(approaches / chief_teams_count, 1) if chief_teams_count else 0,
             },
             "pending_moderation_count": pending_moderation_count,
+            "pending_technical_reports_count": pending_technical_reports_count,
             "activity": {
 
                 "latest": recent[:6],

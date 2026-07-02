@@ -88,17 +88,9 @@ export default function AppLayout() {
     window.addEventListener("shift-swaps:changed", loadPendingShiftSwaps);
 
     if (user && canAccessRoute(user, ["ADMIN", "MANAGER", "SUPERVISOR"])) {
-      Promise.all([
-        api("/agendas/?page_size=1000&reportable=true"),
-        api("/education-reports/?page_size=1000"),
-      ])
-        .then(([agendasData, reportsData]) => {
-          const agendas = agendasData.results || agendasData;
-          const reports = reportsData.results || reportsData;
-          const completedAgendaIds = new Set(reports.map((report) => String(report.agenda)));
-          setPendingTechnicalReports(
-            agendas.filter((agenda) => !completedAgendaIds.has(String(agenda.id))).length
-          );
+      api("/dashboard/")
+        .then((data) => {
+          setPendingTechnicalReports(data.pending_technical_reports_count || 0);
         })
         .catch(() => {});
     }
