@@ -880,6 +880,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
             today_count=Count('id', filter=Q(date=today)),
             pending=Count('id', filter=Q(status=Agenda.Status.PENDING)),
             approved=Count('id', filter=Q(status=Agenda.Status.APPROVED)),
+            completed=Count('id', filter=Q(status=Agenda.Status.COMPLETED)),
             cancelled=Count('id', filter=Q(status=Agenda.Status.CANCELLED)),
             in_progress=Count('id', filter=Q(date=today, start_time__lte=now, end_time__gte=now) & ~Q(status__in=[Agenda.Status.CANCELLED, Agenda.Status.COMPLETED]))
         )
@@ -887,6 +888,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
         yesterday_count = base_qs.filter(date=yesterday).count()
         pending = aggs['pending']
         approved = aggs['approved']
+        completed = aggs['completed']
         cancelled = aggs['cancelled']
         in_progress = aggs['in_progress']
         upcoming_qs = qs.filter(date__gte=today).order_by("date", "start_time")
@@ -1124,7 +1126,8 @@ class AgendaViewSet(viewsets.ModelViewSet):
                 "today_total": {"value": today_count, "change": pct(today_count, comparison_qs.count() if comparison_qs is not None else yesterday_count), "compare_label": comparison_label},
                 "pending": {"value": pending, "change": pct(pending, comparison_qs.filter(status=Agenda.Status.PENDING).count() if comparison_qs is not None else None), "compare_label": comparison_label},
                 "approved": {"value": approved, "change": pct(approved, comparison_qs.filter(status=Agenda.Status.APPROVED).count() if comparison_qs is not None else None), "compare_label": comparison_label},
-                "cancelled": {"value": cancelled, "change": pct(cancelled, comparison_qs.filter(status=Agenda.Status.CANCELLED).count() if comparison_qs is not None else None), "compare_label": comparison_label},
+                "completed": {"value": completed, "change": pct(completed, comparison_qs.filter(status=Agenda.Status.COMPLETED).count() if comparison_qs is not None else None), "compare_label": comparison_label},
+                  "cancelled": {"value": cancelled, "change": pct(cancelled, comparison_qs.filter(status=Agenda.Status.CANCELLED).count() if comparison_qs is not None else None), "compare_label": comparison_label},
                 "in_progress": {"value": in_progress, "change": None, "compare_label": "neste momento"},
                 "upcoming": {"value": upcoming_count, "change": None, "compare_label": "a partir de hoje"},
                 "today_agents": {"value": today_agents_count, "change": None, "compare_label": "em agendas de hoje"},
@@ -2600,6 +2603,7 @@ class ReportViewSet(viewsets.ViewSet):
             total=Count('id'),
             approved=Count('id', filter=Q(status=Agenda.Status.APPROVED)),
             pending=Count('id', filter=Q(status=Agenda.Status.PENDING)),
+            completed=Count('id', filter=Q(status=Agenda.Status.COMPLETED)),
             cancelled=Count('id', filter=Q(status=Agenda.Status.CANCELLED)),
             today_count=Count('id', filter=Q(date=today)),
             upcoming_count=Count('id', filter=Q(date__gte=today)),
@@ -2608,6 +2612,7 @@ class ReportViewSet(viewsets.ViewSet):
         total = aggs['total']
         approved = aggs['approved']
         pending = aggs['pending']
+        completed = aggs['completed']
         cancelled = aggs['cancelled']
         today_count = aggs['today_count']
         upcoming_count = aggs['upcoming_count']
