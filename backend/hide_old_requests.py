@@ -8,26 +8,27 @@ from apps.schedules.models import Agenda
 from django.db.models import Q
 
 def main():
-    # Define a rule for what a request is
-    request_source_filter = (
-        Q(origin=Agenda.Origin.PUBLIC_FORM)
-        | Q(source_id__startswith="internal-request:")
-        | Q(source_id__startswith="appsheet:")
-        | Q(sector__name__in=["Solicitacoes externas", "Solicitacoes internas"])
-        | Q(created_by__email="solicitacao.publica@agenda.local")
-        | Q(responsible__email="solicitacao.publica@agenda.local")
-    )
-    
-    # Busca solicitacoes pendentes enviadas (created_at) antes de 01/07/2026
-    old_requests = Agenda.objects.filter(
-        request_source_filter,
+    # Encontra solicitacoes pendentes que vieram de importacao de formularios
+    # e estao com a instituicao ou solicitante em branco (os tracinhos na tela)
+    ghost_requests = Agenda.objects.filter(
         status=Agenda.Status.PENDING,
-        created_at__lt='2026-07-01'
+        origin=Agenda.Origin.PUBLIC_FORM
+    ).filter(
+        Q(institution_location="") | Q(institution_location__isnull=True) |
+        Q(external_responsible="") | Q(external_responsible__isnull=True)
     )
     
-    count = old_requests.update(status=Agenda.Status.CANCELLED)
+    count = ghost_requests.update(status=Agenda.Status.CANCELLED)
     
-    print(f"Sucesso! {count} solicitacoes enviadas antes de 01/07 foram Ocultadas (Canceladas).")
+    # Tambem ocultamos qualquer coisa do AppSheet antigo que esteja pendente
+    old_appsheet = Agenda.objects.filter(
+        status=Agenda.Status.PENDING,
+        source_id__startswith="appsheet:"
+    )
+    count_appsheet = old_appsheet.update(status=Agenda.Status.CANCELLED)
+    
+    print(f"Sucesso! {count} solicitacoes sem dados do Forms foram Ocultadas.")
+    print(f"Sucesso! {count_appsheet} solicitacoes do AppSheet antigo foram Ocultadas.")
 
 if __name__ == "__main__":
     main()
