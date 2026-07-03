@@ -50,6 +50,7 @@ export default function UsersPage() {
   const [editing, setEditing] = useState(null);
   const [message, setMessage] = useState("");
   const [passwordLink, setPasswordLink] = useState("");
+  const [opFilters, setOpFilters] = useState({ name: "", cpf: "", phone: "", email: "", role: "", team: "", status: "" });
 
   const load = () => api("/users/").then((data) => setUsers(data.results || data));
 
@@ -195,54 +196,90 @@ export default function UsersPage() {
     }
   };
 
-  const renderUsersTable = (items, emptyMessage) => (
-    <table>
-      <thead>
-        <tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th>Ocupação</th><th>Equipe/Setor</th><th>Status</th><th className="actions-heading">Ações</th></tr>
-      </thead>
-      <tbody>
-        {items.map((item) => (
-          <tr key={item.id}>
-            <td>{item.full_name}</td>
-            <td>{item.cpf || "-"}</td>
-            <td>{item.phone || "-"}</td>
-            <td>{item.email}</td>
-            <td>{roleLabel[item.role] || item.role}</td>
-            <td>{item.role === "VISITOR" ? (item.sector_name || "-") : String(item.team_name || item.sector_name || "-").toUpperCase()}</td>
-            <td>{item.is_on_vacation ? <span className="badge warning">Férias</span> : <span className={`badge ${item.is_active ? "success" : "neutral"}`}>{item.is_active ? "Ativo" : "Inativo"}</span>}</td>
-            <td>
-              <div className="row-actions">
-                <button className="secondary" onClick={() => edit(item)}>Editar</button>
-                {operationalRoles.has(item.role) && (
-                  <button className="secondary" onClick={() => {
-                    if (item.is_on_vacation) {
-                      toggleVacation(item);
-                    } else {
-                      setEditing(item.id);
-                      setPasswordLink(item.password_setup_link || "");
-                      setForm({ ...item, cpf: item.cpf || "", team: item.team_id || "", sector: item.sector || "", sector_name: item.sector_name || "", is_active: item.is_active, is_on_vacation: true, vacation_start: item.vacation_start || "", vacation_end: item.vacation_end || "" });
-                      setMessage("Por favor, informe as datas de férias no formulário ao lado e salve.");
-                    }
-                  }}>
-                    {item.is_on_vacation ? "Retirar Férias" : "Férias"}
-                  </button>
-                )}
-                <button className="icon-button" onClick={() => sendPasswordLink(item)} aria-label={`Enviar link para ${item.full_name || item.email}`} title="Enviar link de senha">
-                  <Mail size={18} />
-                </button>
-                <button className="icon-button danger" onClick={() => remove(item)} disabled={item.id === currentUser?.id} aria-label={`Excluir ${item.full_name || item.email}`} title={item.id === currentUser?.id ? "Você não pode excluir seu próprio usuário" : "Excluir usuário"}>
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-        {!items.length && (
-          <tr><td colSpan="8" className="empty-cell">{emptyMessage}</td></tr>
+  const renderUsersTable = (items, emptyMessage, filters = null, setFilters = null) => {
+    const filteredItems = items.filter((item) => {
+      if (!filters) return true;
+      if (filters.name && !item.full_name?.toLowerCase().includes(filters.name.toLowerCase())) return false;
+      if (filters.cpf && !item.cpf?.toLowerCase().includes(filters.cpf.toLowerCase())) return false;
+      if (filters.phone && !item.phone?.toLowerCase().includes(filters.phone.toLowerCase())) return false;
+      if (filters.email && !item.email?.toLowerCase().includes(filters.email.toLowerCase())) return false;
+      if (filters.role && !(roleLabel[item.role] || item.role).toLowerCase().includes(filters.role.toLowerCase())) return false;
+      const teamLabel = item.role === "VISITOR" ? (item.sector_name || "-") : String(item.team_name || item.sector_name || "-").toUpperCase();
+      if (filters.team && !teamLabel.toLowerCase().includes(filters.team.toLowerCase())) return false;
+      const statusLabel = item.is_on_vacation ? "férias" : (item.is_active ? "ativo" : "inativo");
+      if (filters.status && !statusLabel.toLowerCase().includes(filters.status.toLowerCase())) return false;
+      return true;
+    });
+
+    const filterStyle = { display: "block", width: "100%", padding: "4px", marginTop: "4px", fontSize: "12px", fontWeight: "normal", borderRadius: "4px", border: "1px solid var(--border-color, #ccc)", boxSizing: "border-box" };
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <div style={{ overflowX: "auto" }}>
+          <table>
+            <thead>
+              <tr>
+                <th style={{ verticalAlign: "top" }}>Nome {filters && <input type="text" placeholder="Filtrar..." value={filters.name} onChange={(e) => setFilters({...filters, name: e.target.value})} style={filterStyle} />}</th>
+                <th style={{ verticalAlign: "top" }}>CPF {filters && <input type="text" placeholder="Filtrar..." value={filters.cpf} onChange={(e) => setFilters({...filters, cpf: e.target.value})} style={filterStyle} />}</th>
+                <th style={{ verticalAlign: "top" }}>Telefone {filters && <input type="text" placeholder="Filtrar..." value={filters.phone} onChange={(e) => setFilters({...filters, phone: e.target.value})} style={filterStyle} />}</th>
+                <th style={{ verticalAlign: "top" }}>E-mail {filters && <input type="text" placeholder="Filtrar..." value={filters.email} onChange={(e) => setFilters({...filters, email: e.target.value})} style={filterStyle} />}</th>
+                <th style={{ verticalAlign: "top" }}>Ocupação {filters && <input type="text" placeholder="Filtrar..." value={filters.role} onChange={(e) => setFilters({...filters, role: e.target.value})} style={filterStyle} />}</th>
+                <th style={{ verticalAlign: "top" }}>Equipe/Setor {filters && <input type="text" placeholder="Filtrar..." value={filters.team} onChange={(e) => setFilters({...filters, team: e.target.value})} style={filterStyle} />}</th>
+                <th style={{ verticalAlign: "top" }}>Status {filters && <input type="text" placeholder="Filtrar..." value={filters.status} onChange={(e) => setFilters({...filters, status: e.target.value})} style={filterStyle} />}</th>
+                <th className="actions-heading" style={{ verticalAlign: "top" }}>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredItems.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.full_name}</td>
+                  <td>{item.cpf || "-"}</td>
+                  <td>{item.phone || "-"}</td>
+                  <td>{item.email}</td>
+                  <td>{roleLabel[item.role] || item.role}</td>
+                  <td>{item.role === "VISITOR" ? (item.sector_name || "-") : String(item.team_name || item.sector_name || "-").toUpperCase()}</td>
+                  <td>{item.is_on_vacation ? <span className="badge warning">Férias</span> : <span className={`badge ${item.is_active ? "success" : "neutral"}`}>{item.is_active ? "Ativo" : "Inativo"}</span>}</td>
+                  <td>
+                    <div className="row-actions">
+                      <button className="secondary" onClick={() => edit(item)}>Editar</button>
+                      {operationalRoles.has(item.role) && (
+                        <button className="secondary" onClick={() => {
+                          if (item.is_on_vacation) {
+                            toggleVacation(item);
+                          } else {
+                            setEditing(item.id);
+                            setPasswordLink(item.password_setup_link || "");
+                            setForm({ ...item, cpf: item.cpf || "", team: item.team_id || "", sector: item.sector || "", sector_name: item.sector_name || "", is_active: item.is_active, is_on_vacation: true, vacation_start: item.vacation_start || "", vacation_end: item.vacation_end || "" });
+                            setMessage("Por favor, informe as datas de férias no formulário ao lado e salve.");
+                          }
+                        }}>
+                          {item.is_on_vacation ? "Retirar Férias" : "Férias"}
+                        </button>
+                      )}
+                      <button className="icon-button" onClick={() => sendPasswordLink(item)} aria-label={`Enviar link para ${item.full_name || item.email}`} title="Enviar link de senha">
+                        <Mail size={18} />
+                      </button>
+                      <button className="icon-button danger" onClick={() => remove(item)} disabled={item.id === currentUser?.id} aria-label={`Excluir ${item.full_name || item.email}`} title={item.id === currentUser?.id ? "Você não pode excluir seu próprio usuário" : "Excluir usuário"}>
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {!filteredItems.length && (
+                <tr><td colSpan="8" className="empty-cell">{emptyMessage}</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        {filters && (
+          <div style={{ fontWeight: "600", fontSize: "14px", color: "var(--text-soft, #555)", textAlign: "right" }}>
+            Total de valores: {filteredItems.length}
+          </div>
         )}
-      </tbody>
-    </table>
-  );
+      </div>
+    );
+  };
 
   return (
     <section className="page two-column">
@@ -259,7 +296,7 @@ export default function UsersPage() {
         </div>
         <div className="table-wrap users-table-wrap">
           <h2>Usuários operacionais</h2>
-          {renderUsersTable(operationalUsers, "Nenhum agente, apoio ou chefe cadastrado.")}
+          {renderUsersTable(operationalUsers, "Nenhum agente, apoio ou chefe cadastrado.", opFilters, setOpFilters)}
         </div>
         <div className="table-wrap users-table-wrap">
           <h2>Visitantes</h2>
