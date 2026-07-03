@@ -133,7 +133,7 @@ export default function VisitorCalendarPage() {
               <span>{day.getDate()}</span>
               {dayAgendas.map((agenda) => (
                 <button key={agenda.id} className={`event-pill ${statusClass[agenda.status]}`} onClick={() => setSelected(agenda)}>
-                  <strong>{agenda.start_time.slice(0, 5)} - {requestLocation(agenda)}</strong>
+                  <strong>{agenda.start_time?.slice(0, 5) || ""} - {requestLocation(agenda)}</strong>
                   <small>{agenda.title}</small>
                 </button>
               ))}
@@ -153,7 +153,7 @@ export default function VisitorCalendarPage() {
             </div>
             <dl>
               <dt>Protocolo</dt><dd>#{selected.id}</dd>
-              <dt>Data e horario</dt><dd>{formatDateBR(selected.date)} das {selected.start_time.slice(0, 5)} as {selected.end_time.slice(0, 5)}</dd>
+              <dt>Data e horario</dt><dd>{formatDateBR(selected.date)} das {selected.start_time?.slice(0, 5) || ""} as {selected.end_time?.slice(0, 5) || ""}</dd>
               <dt>Status</dt><dd>{statusLabel[selected.status]}</dd>
               <dt>Solicitante</dt><dd><UserRound size={15} /> {selected.external_responsible || "-"}</dd>
               <dt>Telefone</dt><dd><Phone size={15} /> {selected.external_responsible_phone || "-"}</dd>

@@ -203,7 +203,7 @@ export default function CalendarPage() {
               <span>{day.getDate()}</span>
               {dayAgendas.map((agenda) => (
                 <button key={agenda.id} className={`event-pill ${statusClass[agenda.status]}`} onClick={() => setSelected(agenda)}>
-                  <strong>{agenda.start_time.slice(0, 5)}{!isVisitor && ` - ${serviceTeamLabel(agenda)}`}</strong>
+                  <strong>{agenda.start_time?.slice(0, 5) || ""}{!isVisitor && ` - ${serviceTeamLabel(agenda)}`}</strong>
                   <small>{valueOrDash(agenda.title)}</small>
                 </button>
               ))}
@@ -225,7 +225,7 @@ export default function CalendarPage() {
                 </header>
                 <div className="visitor-event-summary">
                   <span><CalendarDays size={17} /> {formatDateBR(selected.date)}</span>
-                  <span><Clock size={17} /> {selected.start_time.slice(0, 5)} às {selected.end_time.slice(0, 5)}</span>
+                  <span><Clock size={17} /> {selected.start_time?.slice(0, 5) || ""} às {selected.end_time?.slice(0, 5) || ""}</span>
                   <span><MapPin size={17} /> {valueOrDash(selected.city || selected.municipality_ref_name || "Município não informado")}</span>
                 </div>
               </>
@@ -264,7 +264,7 @@ export default function CalendarPage() {
             {!isVisitor && (
             <dl>
               <dt>Protocolo</dt><dd>#{selected.id}</dd>
-              <dt>Horário</dt><dd>{formatDateBR(selected.date)} das {selected.start_time.slice(0, 5)} às {selected.end_time.slice(0, 5)}</dd>
+              <dt>Horário</dt><dd>{formatDateBR(selected.date)} das {selected.start_time?.slice(0, 5) || ""} às {selected.end_time?.slice(0, 5) || ""}</dd>
               <dt>Status</dt><dd>{statusLabel[selected.status]}</dd>
               {!isVisitor && (
                 <>

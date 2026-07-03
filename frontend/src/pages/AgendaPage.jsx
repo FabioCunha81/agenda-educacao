@@ -922,7 +922,7 @@ export default function AgendaPage() {
                   <td>{agenda.external_responsible || "-"}</td>
                   <td>{agenda.institution_location || agenda.location || "-"}</td>
                   <td>{formatDateBR(agenda.date)}</td>
-                  <td>{agenda.start_time.slice(0, 5)}</td>
+                  <td>{agenda.start_time?.slice(0, 5) || "-"}</td>
                   <td>{agenda.city || "-"}</td>
                   <td>{agenda.quantity || "-"}</td>
                   <td>
