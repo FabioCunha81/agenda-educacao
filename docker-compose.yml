@@ -40,6 +40,8 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        VITE_API_URL: /api
     container_name: sied_frontend
     restart: unless-stopped
     environment:
