@@ -211,7 +211,16 @@ export default function UsersPage() {
       return true;
     });
 
-    const filterStyle = { display: "block", width: "100%", padding: "4px", marginTop: "4px", fontSize: "12px", fontWeight: "normal", borderRadius: "4px", border: "1px solid var(--border-color, #ccc)", boxSizing: "border-box" };
+    const filterStyle = { display: "block", width: "100%", padding: "4px", marginTop: "4px", fontSize: "12px", fontWeight: "normal", borderRadius: "4px", border: "1px solid var(--border-color, #ccc)", boxSizing: "border-box", backgroundColor: "var(--bg-color, #fff)", color: "inherit" };
+
+    const getUniqueValues = (keyFn) => {
+      const values = items.map(keyFn).filter(Boolean);
+      return [...new Set(values)].sort();
+    };
+
+    const uniqueRoles = getUniqueValues(item => roleLabel[item.role] || item.role);
+    const uniqueTeams = getUniqueValues(item => item.role === "VISITOR" ? (item.sector_name || "-") : String(item.team_name || item.sector_name || "-").toUpperCase());
+    const uniqueStatuses = ["Ativo", "Inativo", "Férias"];
 
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -223,9 +232,33 @@ export default function UsersPage() {
                 <th style={{ verticalAlign: "top" }}>CPF {filters && <input type="text" placeholder="Filtrar..." value={filters.cpf} onChange={(e) => setFilters({...filters, cpf: e.target.value})} style={filterStyle} />}</th>
                 <th style={{ verticalAlign: "top" }}>Telefone {filters && <input type="text" placeholder="Filtrar..." value={filters.phone} onChange={(e) => setFilters({...filters, phone: e.target.value})} style={filterStyle} />}</th>
                 <th style={{ verticalAlign: "top" }}>E-mail {filters && <input type="text" placeholder="Filtrar..." value={filters.email} onChange={(e) => setFilters({...filters, email: e.target.value})} style={filterStyle} />}</th>
-                <th style={{ verticalAlign: "top" }}>Ocupação {filters && <input type="text" placeholder="Filtrar..." value={filters.role} onChange={(e) => setFilters({...filters, role: e.target.value})} style={filterStyle} />}</th>
-                <th style={{ verticalAlign: "top" }}>Equipe/Setor {filters && <input type="text" placeholder="Filtrar..." value={filters.team} onChange={(e) => setFilters({...filters, team: e.target.value})} style={filterStyle} />}</th>
-                <th style={{ verticalAlign: "top" }}>Status {filters && <input type="text" placeholder="Filtrar..." value={filters.status} onChange={(e) => setFilters({...filters, status: e.target.value})} style={filterStyle} />}</th>
+                <th style={{ verticalAlign: "top" }}>
+                  Ocupação 
+                  {filters && (
+                    <select value={filters.role} onChange={(e) => setFilters({...filters, role: e.target.value})} style={filterStyle}>
+                      <option value="">Todas</option>
+                      {uniqueRoles.map(role => <option key={role} value={role}>{role}</option>)}
+                    </select>
+                  )}
+                </th>
+                <th style={{ verticalAlign: "top" }}>
+                  Equipe/Setor 
+                  {filters && (
+                    <select value={filters.team} onChange={(e) => setFilters({...filters, team: e.target.value})} style={filterStyle}>
+                      <option value="">Todas</option>
+                      {uniqueTeams.map(team => <option key={team} value={team}>{team}</option>)}
+                    </select>
+                  )}
+                </th>
+                <th style={{ verticalAlign: "top" }}>
+                  Status 
+                  {filters && (
+                    <select value={filters.status} onChange={(e) => setFilters({...filters, status: e.target.value})} style={filterStyle}>
+                      <option value="">Todos</option>
+                      {uniqueStatuses.map(status => <option key={status} value={status}>{status}</option>)}
+                    </select>
+                  )}
+                </th>
                 <th className="actions-heading" style={{ verticalAlign: "top" }}>Ações</th>
               </tr>
             </thead>
