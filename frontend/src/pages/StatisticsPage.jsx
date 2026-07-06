@@ -171,8 +171,24 @@ export default function StatisticsPage() {
 
   const comparisonFields = [
     { key: "approach", label: "Total de abordagens", icon: Activity, color: "#0048d7" },
-    { key: "approached_lectures", label: "Abordados em palestras", icon: BarChart3, color: "#7c3aed" },
-    { key: "approached_actions", label: "Abordados em ações", icon: TrendingUp, color: "#047857" },
+    { key: "approached_lectures", label: "1.1 - Abordados em palestras", icon: BarChart3, color: "#7c3aed" },
+    { key: "approached_actions", label: "1.2 - Abordados em ações", icon: TrendingUp, color: "#047857" },
+    { key: "lectures", label: "2 - Palestras realizadas", icon: CalendarDays, color: "#0ea5e9" },
+    { key: "schools", label: "2.1 - Escolas", icon: Activity, color: "#f59e0b" },
+    { key: "universities", label: "2.2 - Universidades", icon: BarChart3, color: "#ec4899" },
+    { key: "companies", label: "2.3 - Empresas", icon: TrendingUp, color: "#8b5cf6" },
+    { key: "distributed_certificates", label: "2.4 - Certificados entregues", icon: CalendarDays, color: "#14b8a6" },
+    { key: "educational_actions", label: "3 - Ações", icon: Activity, color: "#f43f5e" },
+    { key: "bars", label: "3.1 - Bares", icon: BarChart3, color: "#eab308" },
+    { key: "tolls", label: "3.2 - Pedágio", icon: TrendingUp, color: "#a855f7" },
+    { key: "sports", label: "3.3 - Esportes", icon: CalendarDays, color: "#3b82f6" },
+    { key: "beach", label: "3.4 - Praia", icon: Activity, color: "#22c55e" },
+    { key: "events", label: "3.5 - Eventos", icon: BarChart3, color: "#ec4899" },
+    { key: "shopping", label: "3.6 - Shopping", icon: TrendingUp, color: "#f97316" },
+    { key: "social_actions", label: "3.7 - Ação Social", icon: CalendarDays, color: "#6366f1" },
+    { key: "other_actions", label: "3.8 - Outros", icon: Activity, color: "#64748b" },
+    { key: "gibis", label: "3 - Revistinha Soprinho", icon: BarChart3, color: "#10b981" },
+    { key: "publicity_materials", label: "4 - Materiais de Divulgação", icon: TrendingUp, color: "#8b5cf6" },
   ];
 
   function extractTotals(stats) {
@@ -451,6 +467,61 @@ export default function StatisticsPage() {
                       <td style={{ ...cellStyle, textAlign: "center" }}>
                         <VariationBadge value={row.percentage} />
                       </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Tabela 3: Histórico Anual */}
+          <div style={{
+            background: "var(--surface)", borderRadius: 16,
+            border: "1px solid var(--line)",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.04)",
+            overflow: "hidden", marginBottom: 32
+          }}>
+            <div style={{ padding: "24px 28px 16px", borderBottom: "1px solid var(--line)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 8, display: "flex",
+                  alignItems: "center", justifyContent: "center",
+                  background: "linear-gradient(135deg, #7c3aed, #5b21b6)", color: "#fff"
+                }}>
+                  <BarChart3 size={16} />
+                </div>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--text)" }}>
+                  Histórico de Abordagens e Ações Educativas
+                </h2>
+              </div>
+              <p style={{ margin: 0, fontSize: 13, color: "var(--text-soft)" }}>
+                Série histórica com totais anuais desde 2011.
+              </p>
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...tableHeaderStyle, background: "linear-gradient(135deg, #3b0764 0%, #7c3aed 100%)" }}>Ano</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: "right", background: "linear-gradient(135deg, #3b0764 0%, #7c3aed 100%)" }}>Total de Abordagens</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: "right", background: "linear-gradient(135deg, #3b0764 0%, #7c3aed 100%)" }}>Abordados Palestras</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: "right", background: "linear-gradient(135deg, #3b0764 0%, #7c3aed 100%)" }}>Abordados Ações</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: "right", background: "linear-gradient(135deg, #3b0764 0%, #7c3aed 100%)" }}>Palestras Realizadas</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: "right", background: "linear-gradient(135deg, #3b0764 0%, #7c3aed 100%)" }}>Ações Educativas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(annualData?.current?.historical_totals || []).map((row, i) => (
+                    <tr key={row.year} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-2)", transition: "background 0.15s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(124, 58, 237, 0.04)"}
+                      onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "var(--surface)" : "var(--surface-2)"}
+                    >
+                      <td style={{ ...cellStyle, fontWeight: 800, color: "var(--primary)" }}>{row.year}</td>
+                      <td style={cellNumStyle}>{formatNumber(row.approach)}</td>
+                      <td style={cellNumStyle}>{formatNumber(row.approached_lectures)}</td>
+                      <td style={cellNumStyle}>{formatNumber(row.approached_actions)}</td>
+                      <td style={cellNumStyle}>{formatNumber(row.lectures)}</td>
+                      <td style={cellNumStyle}>{formatNumber(row.educational_actions)}</td>
                     </tr>
                   ))}
                 </tbody>

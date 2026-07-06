@@ -1439,7 +1439,7 @@ class EducationReportViewSet(viewsets.ModelViewSet):
                 reference_date = date.fromisoformat(params["date_to"])
             except ValueError:
                 reference_date = timezone.localdate()
-        first_year = 2019
+        first_year = 2011
         yearly_actions = EducationAction.objects.filter(
             report_id__in=yearly_reports.filter(
                 operation_date__year__gte=first_year,
@@ -1681,6 +1681,26 @@ class EducationReportViewSet(viewsets.ModelViewSet):
             )
         ]
 
+        historical_totals = [
+            {
+                "year": row["year"],
+                **{
+                    field: row.get(field) or 0
+                    for field, _ in self.statistics_fields
+                }
+            }
+            for row in (
+                yearly_actions.annotate(
+                    year=ExtractYear("report__operation_date"),
+                )
+                .values("year")
+                .annotate(
+                    **{field: Sum(field) for field, _ in self.statistics_fields}
+                )
+                .order_by("year")
+            )
+        ]
+
         data = {
             "reports_count": reports.count(),
             "actions_count": actions.count(),
@@ -1695,6 +1715,7 @@ class EducationReportViewSet(viewsets.ModelViewSet):
             "by_entity_type": by_entity_type,
             "by_modality": by_modality,
             "by_age_range": by_age_range,
+            "historical_totals": historical_totals,
         }
         
         cache.set(cache_key, data, 60 * 15)
