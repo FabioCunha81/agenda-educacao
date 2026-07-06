@@ -121,8 +121,7 @@ export default function StatisticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [annualData, setAnnualData] = useState(null);
-  const [monthlyData, setMonthlyData] = useState(null);
-  const [monthlyPrevData, setMonthlyPrevData] = useState(null);
+
   const [filters, setFilters] = useState(getDefaultFilters);
   const [pendingFilters, setPendingFilters] = useState(getDefaultFilters);
 
@@ -133,11 +132,7 @@ export default function StatisticsPage() {
   const prevDateFrom = shiftYear(filters.date_from, -1);
   const prevDateTo = shiftYear(filters.date_to, -1);
 
-  const monthRange = getMonthRange(filters.date_to);
-  const prevMonthRange = {
-    from: shiftYear(monthRange.from, -1),
-    to: shiftYear(monthRange.to, -1),
-  };
+
 
   const elapsedMonths = useMemo(() => {
     const from = new Date(filters.date_from + "T00:00:00");
@@ -151,19 +146,12 @@ export default function StatisticsPage() {
 
     const curFilter = `date_from=${filters.date_from}&date_to=${filters.date_to}`;
     const prevFilter = `date_from=${prevDateFrom}&date_to=${prevDateTo}`;
-    const mtdCurFilter = `date_from=${monthRange.from}&date_to=${monthRange.to}`;
-    const mtdPrevFilter = `date_from=${prevMonthRange.from}&date_to=${prevMonthRange.to}`;
-
     Promise.all([
       api(`/education-reports/statistics/?${curFilter}`),
       api(`/education-reports/statistics/?${prevFilter}`),
-      api(`/education-reports/statistics/?${mtdCurFilter}`),
-      api(`/education-reports/statistics/?${mtdPrevFilter}`),
     ])
-      .then(([curStats, prevStats, mtdCur, mtdPrev]) => {
+      .then(([curStats, prevStats]) => {
         setAnnualData({ current: curStats, previous: prevStats });
-        setMonthlyData(mtdCur);
-        setMonthlyPrevData(mtdPrev);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -210,20 +198,7 @@ export default function StatisticsPage() {
     });
   }, [annualData, elapsedMonths]);
 
-  const table2Data = useMemo(() => {
-    const curTotals = extractTotals(monthlyData);
-    const prevTotals = extractTotals(monthlyPrevData);
 
-    return comparisonFields.map(field => {
-      const current = curTotals[field.key] || 0;
-      const previous = prevTotals[field.key] || 0;
-      const difference = current - previous;
-      const pct = previous > 0 ? (difference / previous) * 100 : (current > 0 ? 100 : 0);
-      return { ...field, current, previous, difference, percentage: pct };
-    });
-  }, [monthlyData, monthlyPrevData]);
-
-  const monthlyTotals = extractTotals(monthlyData);
   const periodTotals = extractTotals(annualData?.current);
 
   /* Chart data from API breakdown fields */
@@ -231,8 +206,7 @@ export default function StatisticsPage() {
   const modalityData = annualData?.current?.by_modality || [];
   const ageRangeData = annualData?.current?.by_age_range || [];
 
-  const currentMonthName = refDateTo.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-  const prevMonthName = new Date(prevMonthRange.from + "T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+
 
   const applyFilters = () => setFilters({ ...pendingFilters });
   const clearFilters = () => {
@@ -412,67 +386,7 @@ export default function StatisticsPage() {
             </div>
           </div>
 
-          {/* Tabela 2: Comparativo Mensal */}
-          <div style={{
-            background: "var(--surface)", borderRadius: 16,
-            border: "1px solid var(--line)",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.04)",
-            overflow: "hidden", marginBottom: 32
-          }}>
-            <div style={{ padding: "24px 28px 16px", borderBottom: "1px solid var(--line)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: 8, display: "flex",
-                  alignItems: "center", justifyContent: "center",
-                  background: "linear-gradient(135deg, #047857, #059669)", color: "#fff"
-                }}>
-                  <CalendarDays size={16} />
-                </div>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--text)", textTransform: "capitalize" }}>
-                  Comparativo Mensal — {currentMonthName} vs {prevMonthName}
-                </h2>
-              </div>
-              <p style={{ margin: 0, fontSize: 13, color: "var(--text-soft)" }}>
-                Mês vigente comparado com o mesmo mês do ano anterior.
-              </p>
-            </div>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr>
-                    <th style={{ ...tableHeaderStyle, background: "linear-gradient(135deg, #022c22 0%, #047857 100%)" }}>Indicador</th>
-                    <th style={{ ...tableHeaderStyle, textAlign: "right", background: "linear-gradient(135deg, #022c22 0%, #047857 100%)" }}>{prevMonthName}</th>
-                    <th style={{ ...tableHeaderStyle, textAlign: "right", background: "linear-gradient(135deg, #022c22 0%, #047857 100%)" }}>{currentMonthName}</th>
-                    <th style={{ ...tableHeaderStyle, textAlign: "right", background: "linear-gradient(135deg, #022c22 0%, #047857 100%)" }}>Diferença</th>
-                    <th style={{ ...tableHeaderStyle, textAlign: "center", background: "linear-gradient(135deg, #022c22 0%, #047857 100%)" }}>Variação</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {table2Data.map((row, i) => (
-                    <tr key={row.key} style={{ background: i % 2 === 0 ? "var(--surface)" : "var(--surface-2)", transition: "background 0.15s" }}
-                      onMouseEnter={e => e.currentTarget.style.background = "rgba(4, 120, 87, 0.04)"}
-                      onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "var(--surface)" : "var(--surface-2)"}
-                    >
-                      <td style={{ ...cellStyle, fontWeight: 700 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ width: 4, height: 24, borderRadius: 2, background: row.color, flexShrink: 0 }} />
-                          {row.label}
-                        </div>
-                      </td>
-                      <td style={cellNumStyle}>{formatNumber(row.previous)}</td>
-                      <td style={{ ...cellNumStyle, color: "#047857" }}>{formatNumber(row.current)}</td>
-                      <td style={{ ...cellNumStyle, color: row.difference >= 0 ? "#047857" : "#dc2626" }}>
-                        {row.difference >= 0 ? "+" : ""}{formatNumber(row.difference)}
-                      </td>
-                      <td style={{ ...cellStyle, textAlign: "center" }}>
-                        <VariationBadge value={row.percentage} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+
 
           {/* Tabela 3: Histórico Anual */}
           <div style={{
