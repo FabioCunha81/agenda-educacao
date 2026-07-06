@@ -208,6 +208,7 @@ export default function StatisticsPage() {
   }, [monthlyData, monthlyPrevData]);
 
   const monthlyTotals = extractTotals(monthlyData);
+  const periodTotals = extractTotals(annualData?.current);
 
   /* Chart data from API breakdown fields */
   const entityTypeData = annualData?.current?.by_entity_type || [];
@@ -315,8 +316,8 @@ export default function StatisticsPage() {
                 key={field.key}
                 icon={field.icon}
                 label={field.label}
-                value={formatNumber(monthlyTotals[field.key] || 0)}
-                subtitle={currentMonthName}
+                value={formatNumber(periodTotals[field.key] || 0)}
+                subtitle={formatPeriod(filters.date_from, filters.date_to)}
                 color={field.color}
               />
             ))}
