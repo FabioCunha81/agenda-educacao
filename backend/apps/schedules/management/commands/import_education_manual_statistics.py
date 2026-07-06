@@ -143,7 +143,7 @@ class Command(BaseCommand):
     def metric_rows(self, sheet):
         rows = {}
         for row in range(1, sheet.max_row + 1):
-            label = key(sheet.cell(row=row, column=2).value)
+            label = key(sheet.cell(row=row, column=2).value) or key(sheet.cell(row=row, column=3).value)
             if label:
                 rows[label] = row
         missing = sorted(set(FIELD_MAP) - set(rows))
