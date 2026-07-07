@@ -21,6 +21,7 @@ created_count = 0
 for model, role in models:
     for lookup in model.objects.all():
         cpf = "".join(filter(str.isdigit, lookup.cpf or ""))
+        cpf = cpf if cpf else None
         if cpf:
             user = User.objects.filter(cpf=cpf).first() or User.objects.filter(full_name__iexact=lookup.name).first()
         else:
