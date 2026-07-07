@@ -52,7 +52,7 @@ export default function UsersPage() {
   const [passwordLink, setPasswordLink] = useState("");
   const [opFilters, setOpFilters] = useState({ name: "", cpf: "", phone: "", email: "", role: "", team: "", status: "" });
 
-  const load = () => api("/users/").then((data) => setUsers(data.results || data));
+  const load = () => api("/users/?page_size=1000").then((data) => setUsers(data.results || data));
 
   const adminUsers = useMemo(() => users.filter((user) => adminRoles.has(user.role)), [users]);
   const visitorUsers = useMemo(() => users.filter((user) => visitorRoles.has(user.role)), [users]);
