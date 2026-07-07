@@ -19,7 +19,7 @@ print("Verificando trabalhadores sem usuário no sistema...")
 created_count = 0
 
 for model, role in models:
-    for lookup in model.objects.filter(is_active=True):
+    for lookup in model.objects.all():
         cpf = "".join(filter(str.isdigit, lookup.cpf or ""))
         if cpf:
             user = User.objects.filter(cpf=cpf).first() or User.objects.filter(full_name__iexact=lookup.name).first()
