@@ -703,6 +703,21 @@ export default function AgendaPage() {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!canDelete) {
+      setMessage("Seu perfil não tem permissão para excluir solicitações.");
+      return;
+    }
+    if (!window.confirm("Tem certeza que deseja excluir esta solicitação permanentemente?")) return;
+    try {
+      await api(`/agendas/${id}/`, { method: "DELETE" });
+      setMessage("Solicitação excluída com sucesso.");
+      loadAgendas();
+    } catch (err) {
+      setMessage(err.message);
+    }
+  };
+
   const decideReview = async (status) => {
     if (!editing) return;
     if (!canManageRequests) {
@@ -933,10 +948,15 @@ export default function AgendaPage() {
                       </span>
                     )}
                   </td>
-                  <td className="row-actions">
+                  <td className="row-actions" style={{ display: "flex", gap: "8px" }}>
                     <button className="secondary" onClick={() => reviewAndSchedule(agenda)}>
                       <ClipboardCheck size={16} /> Avaliar solicitação
                     </button>
+                    {canDelete && (
+                      <button className="secondary" style={{ color: "#d9534f", borderColor: "#d9534f" }} onClick={() => handleDelete(agenda.id)} title="Excluir">
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

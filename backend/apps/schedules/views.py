@@ -494,14 +494,9 @@ class AgendaViewSet(viewsets.ModelViewSet):
                         When(status=Agenda.Status.PENDING, then=Value(0)),
                         default=Value(1),
                         output_field=IntegerField(),
-                    ),
-                    pending_protocol=Case(
-                        When(status=Agenda.Status.PENDING, then=F("id")),
-                        default=Value(0),
-                        output_field=IntegerField(),
-                    ),
+                    )
                 )
-                .order_by("pending_rank", "-pending_protocol", "date", "start_time")
+                .order_by("pending_rank", "-id")
             )
         return scoped.distinct().order_by("date", "start_time")
 
