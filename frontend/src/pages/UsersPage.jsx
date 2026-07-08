@@ -398,9 +398,9 @@ export default function UsersPage() {
                 required
               >
                 <option value="" disabled>Selecione o setor</option>
-                {sectors.map((s) => (
-                  <option key={s.id} value={s.name}>{s.name}</option>
-                ))}
+                <option value="Subsecretaria">Subsecretaria</option>
+                <option value="OLS/CooAdm">OLS/CooAdm</option>
+                <option value="ASCOM">ASCOM</option>
               </select>
             </label>
           )}
