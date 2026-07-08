@@ -124,7 +124,7 @@ function hasAnyAgeRange(ranges, allowedRanges) {
 
 function normalizeMaterialRows(rows = []) {
   return rows
-    .filter((item) => item?.kit || item?.material)
+    .filter((item) => item?.kit || item?.material || item?.dynamic)
     .map((item, index) => ({
       id: item.id,
       position: item.position || index + 1,
@@ -132,6 +132,8 @@ function normalizeMaterialRows(rows = []) {
       kit_name: item.kit_name || "",
       material: item.material || null,
       material_name: item.material_name || "",
+      dynamic: item.dynamic || null,
+      dynamic_name: item.dynamic_name || "",
       quantity: item.quantity ?? "",
     }));
 }
@@ -1233,7 +1235,7 @@ export default function AgendaPage() {
                   </div>
                   <div className="material-selection-grid">
                     {renderMaterialChecklist("Dinâmica", "dynamic", lookups.dynamics || [])}
-                    {renderMaterialChecklist("Material distribuição", "material", lookups.materials || [])}
+                    {renderMaterialChecklist("Material distribuição", "kit", lookups.kits || [])}
                   </div>
                 </div>
                 {message && <div className="alert">{message}</div>}
