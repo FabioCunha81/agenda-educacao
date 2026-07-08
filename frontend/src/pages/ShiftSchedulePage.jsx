@@ -525,19 +525,6 @@ export default function ShiftSchedulePage() {
       setLoading(false);
     }
   };
-      }
-      const updated = await api(`/shift-schedules/${absenceTarget.scheduleId}/absence/`, { method: "POST", body });
-      setSchedules((current) =>
-        current.map((s) => (String(s.id) === String(absenceTarget.scheduleId) ? updated : s))
-      );
-      setAbsenceTarget(null);
-      setAbsenceForm(emptyAbsenceForm());
-    } catch (err) {
-      setMessage(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const deleteSchedule = async () => {
     if (!canApprove || !detailSchedule) return;
