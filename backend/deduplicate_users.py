@@ -3,7 +3,7 @@ import django
 import unicodedata
 from collections import defaultdict
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
 from apps.schedules.models import Agent, Chief, Support, Agenda, ShiftSchedule, ShiftAbsence
