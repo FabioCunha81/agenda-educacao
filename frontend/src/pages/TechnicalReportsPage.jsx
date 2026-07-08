@@ -343,6 +343,8 @@ export default function TechnicalReportsPage() {
   const [locationMessage, setLocationMessage] = useState("");
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [pendingDateFilter, setPendingDateFilter] = useState("");
+  const [reportSchedule, setReportSchedule] = useState(null);
+  const [attendanceForm, setAttendanceForm] = useState({});
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN" || user?.role === "MANAGER";
   const requestFieldsReadOnly = Boolean(form.agenda);
@@ -446,6 +448,38 @@ export default function TechnicalReportsPage() {
         distribution_materials_distributed: action.distribution_materials_distributed || selectedMaterials.distributionDistributed,
       })),
     }));
+
+    if (agenda.date) {
+      api(`/shift-schedules/?date=${agenda.date}`).then(res => {
+        const schedules = res.results || res;
+        const schedule = schedules.find(s => 
+          String(s.team) === String(agenda.team_ref) || 
+          String(s.team_name) === String(agenda.team_name) ||
+          String(s.team_name) === String(agenda.sector_name)
+        );
+        setReportSchedule(schedule || null);
+        if (schedule) {
+           const formObj = {};
+           schedule.members?.forEach?.(m => {
+             formObj[`${m.type}_${m.id}`] = {
+               is_absent: !!m.is_absent,
+               reason: m.absence_reason || "",
+               attachment: null,
+               member: m
+             };
+           });
+           setAttendanceForm(formObj);
+        } else {
+           setAttendanceForm({});
+        }
+      }).catch(() => {
+        setReportSchedule(null);
+        setAttendanceForm({});
+      });
+    } else {
+      setReportSchedule(null);
+      setAttendanceForm({});
+    }
   };
 
   const fillCoordinatesFromAgenda = async (agenda = selectedAgenda) => {
@@ -536,15 +570,46 @@ export default function TechnicalReportsPage() {
   };
 
   const saveReport = async (status) => {
-    const nextForm = { ...form, status };
-    const saved = editing
-      ? await api(`/education-reports/${editing}/`, { method: "PUT", body: JSON.stringify(normalizePayload(nextForm)) })
-      : await api("/education-reports/", { method: "POST", body: JSON.stringify(normalizePayload(nextForm)) });
-    setEditing(saved.id);
-    setForm({ ...saved, actions: saved.actions.length ? saved.actions : [{ ...emptyAction, agenda: saved.agenda }] });
-    const savedAgenda = agendas.find((agenda) => String(agenda.id) === String(saved.agenda));
-    setProtocolSearch(savedAgenda?.service_order_number ? serviceOrderLabel(savedAgenda) : saved.agenda ? String(saved.agenda) : "");
-    load();
+    try {
+      if (reportSchedule && Object.keys(attendanceForm).length > 0) {
+        const promises = Object.entries(attendanceForm).map(([key, data]) => {
+          const [memberType, memberId] = key.split("_");
+          if (data.is_absent) {
+            const body = new FormData();
+            body.append("member_type", memberType);
+            body.append("member_id", memberId);
+            body.append("reason", data.reason || "Falta");
+            if (data.attachment) body.append("attachment", data.attachment);
+            return api(`/shift-schedules/${reportSchedule.id}/absence/`, { method: "POST", body });
+          } else {
+            return api(`/shift-schedules/${reportSchedule.id}/absence/`, { 
+              method: "DELETE", 
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ member_type: memberType, member_id: memberId })
+            });
+          }
+        });
+        await Promise.all(promises);
+        
+        if (status === "SUBMITTED") {
+          const formData = new FormData();
+          formData.append("attendance_reported", "true");
+          await api(`/shift-schedules/${reportSchedule.id}/`, { method: "PATCH", body: formData });
+        }
+      }
+
+      const payload = normalizePayload({ ...form, status });
+      const saved = editing
+        ? await api(`/education-reports/${editing}/`, { method: "PUT", body: JSON.stringify(payload) })
+        : await api("/education-reports/", { method: "POST", body: JSON.stringify(payload) });
+      setEditing(saved.id);
+      setForm({ ...saved, actions: saved.actions.length ? saved.actions : [{ ...emptyAction, agenda: saved.agenda }] });
+      const savedAgenda = agendas.find((agenda) => String(agenda.id) === String(saved.agenda));
+      setProtocolSearch(savedAgenda?.service_order_number ? serviceOrderLabel(savedAgenda) : saved.agenda ? String(saved.agenda) : "");
+      load();
+    } catch (err) {
+      throw err;
+    }
   };
 
   const submit = async (event) => {
@@ -764,6 +829,69 @@ export default function TechnicalReportsPage() {
             ))}
             <button type="button" className="secondary" onClick={addAction}><Plus size={18} /> Adicionar ação</button>
           </div>
+
+          {reportSchedule && (
+            <div className="form-section">
+              <h3>Frequência da Equipe</h3>
+              <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "12px" }}>
+                Marque as presenças e faltas para a equipe escalada nesta data. 
+                Ao marcar falta, você pode justificar e anexar um comprovante.
+              </p>
+              <div className="attendance-manager-list">
+                {Object.entries(attendanceForm).map(([key, data]) => (
+                  <div key={key} style={{ border: "1px solid #ddd", borderRadius: "8px", padding: "12px", marginBottom: "10px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                      <div style={{ fontWeight: 500 }}>
+                        {data.member.name} <small style={{ color: "var(--text-soft)" }}>({data.member.typeLabel})</small>
+                      </div>
+                      <div style={{ display: "flex", gap: "15px" }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                          <input
+                            type="radio"
+                            name={`report_status_${key}`}
+                            checked={!data.is_absent}
+                            onChange={() => setAttendanceForm(prev => ({ ...prev, [key]: { ...prev[key], is_absent: false } }))}
+                          />
+                          <span style={{ color: !data.is_absent ? "#15803d" : "inherit", fontWeight: !data.is_absent ? "bold" : "normal" }}>Presente</span>
+                        </label>
+                        <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                          <input
+                            type="radio"
+                            name={`report_status_${key}`}
+                            checked={data.is_absent}
+                            onChange={() => setAttendanceForm(prev => ({ ...prev, [key]: { ...prev[key], is_absent: true } }))}
+                          />
+                          <span style={{ color: data.is_absent ? "#b91c1c" : "inherit", fontWeight: data.is_absent ? "bold" : "normal" }}>Falta</span>
+                        </label>
+                      </div>
+                    </div>
+                    {data.is_absent && (
+                      <div style={{ background: "#f9fafb", padding: "10px", borderRadius: "4px", marginTop: "10px" }}>
+                        <label style={{ display: "block", marginBottom: "10px" }}>
+                          <span style={{ display: "block", fontSize: "0.85rem", marginBottom: "4px" }}>Justificativa</span>
+                          <input
+                            type="text"
+                            value={data.reason}
+                            onChange={(e) => setAttendanceForm(prev => ({ ...prev, [key]: { ...prev[key], reason: e.target.value } }))}
+                            placeholder="Ex: Férias, Atestado, etc."
+                            style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
+                          />
+                        </label>
+                        <label style={{ display: "block" }}>
+                          <span style={{ display: "block", fontSize: "0.85rem", marginBottom: "4px" }}>Comprovante (opcional)</span>
+                          <input
+                            type="file"
+                            onChange={(e) => setAttendanceForm(prev => ({ ...prev, [key]: { ...prev[key], attachment: e.target.files?.[0] || null } }))}
+                            style={{ fontSize: "0.85rem" }}
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="form-section">
             <h3>Contato, ocorrências e localização</h3>
