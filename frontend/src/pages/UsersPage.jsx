@@ -350,12 +350,12 @@ export default function UsersPage() {
               <option value="ADMIN">Administração</option>
             </select>
           </label>
+          <label>
+            Nome completo
+            <input placeholder="Digite o nome completo" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required />
+          </label>
           {form.role !== "VISITOR" && (
             <>
-              <label>
-                Nome completo
-                <input placeholder="Digite o nome completo" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required />
-              </label>
               <label>
                 CPF
                 <input placeholder="Digite o CPF" value={form.cpf || ""} onChange={(e) => setForm({ ...form, cpf: e.target.value })} required />
