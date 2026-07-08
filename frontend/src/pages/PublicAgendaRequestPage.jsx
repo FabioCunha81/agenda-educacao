@@ -568,7 +568,6 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
           <div className="form-section">
             <h3>Sobre o local</h3>
             <div className="notice-card">
-              <strong>SOBRE O LOCAL</strong>
               <p>Por contar com agentes cadeirantes, necessitamos que o local esteja apto a recebê-los.</p>
               <p>
                 <b>A presença de itens de acessibilidade é condição essencial para a viabilidade técnica da palestra;</b>
