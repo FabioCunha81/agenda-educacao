@@ -19,9 +19,19 @@ def clean_ghost_agendas():
     count = ghosts.count()
     if count > 0:
         print(f"Encontradas {count} solicitações 'fantasmas' (sem dados e canceladas).")
-        # To avoid deleting things accidentally, let's just delete the ones that meet strict criteria
+        # We must first delete related objects that protect the Agenda
+        from apps.schedules.models import EducationReport, SatisfactionSurvey
+        reports = EducationReport.objects.filter(agenda__in=ghosts)
+        surveys = SatisfactionSurvey.objects.filter(agenda__in=ghosts)
+        
+        rcount, _ = reports.delete()
+        scount, _ = surveys.delete()
+        
+        print(f"Apagados {rcount} relatórios técnicos e {scount} avaliações associadas.")
+        
+        # Now we can safely delete the agendas
         deleted_count, _ = ghosts.delete()
-        print(f"Limpeza concluída! Foram apagados {deleted_count} registros do banco.")
+        print(f"Limpeza concluída! Foram apagados {deleted_count} registros de agenda do banco.")
     else:
         print("Nenhuma solicitação 'fantasma' foi encontrada.")
 
