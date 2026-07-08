@@ -278,6 +278,17 @@ export default function CalendarPage() {
               <dt>Endereço</dt><dd><MapPin size={15} /> {fullAddress(selected) || "-"}</dd>
               {!isVisitor && <><dt>Viatura</dt><dd>{selected.vehicle || "-"}</dd></>}
               <dt>Município</dt><dd>{selected.city || "-"}</dd>
+              <dt>Materiais</dt>
+              <dd>
+                {selected.materials?.filter(m => m.kit_name || m.material_name || m.dynamic_name).length > 0 ? (
+                  <ul style={{ paddingLeft: "16px", margin: 0 }}>
+                    {selected.materials.map((m, i) => {
+                      const name = m.kit_name || m.material_name || m.dynamic_name;
+                      return name ? <li key={i}>{name} {m.quantity ? `(${m.quantity})` : ""}</li> : null;
+                    })}
+                  </ul>
+                ) : "-"}
+              </dd>
             </dl>
             )}
             <button onClick={() => setSelected(null)}>Fechar</button>
