@@ -11,7 +11,18 @@ from apps.schedules.models import Agent, Chief, Support, Agenda, ShiftSchedule, 
 def normalize(name):
     # Remove accents and lowercase
     n = unicodedata.normalize('NFD', name).encode('ascii', 'ignore').decode('utf-8')
-    return n.strip().lower()
+    n = n.lower().replace('.', '')
+    
+    # Replace abbreviations like "jr" with "junior"
+    words = n.split()
+    normalized_words = []
+    for w in words:
+        if w == 'jr':
+            normalized_words.append('junior')
+        else:
+            normalized_words.append(w)
+            
+    return " ".join(normalized_words).strip()
 
 def merge_duplicates(model_class, member_type_enum):
     records = model_class.objects.all()
