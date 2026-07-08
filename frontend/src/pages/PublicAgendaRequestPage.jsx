@@ -104,6 +104,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
   const editMode = Boolean(token);
   const [form, setForm] = useState(empty);
   const [message, setMessage] = useState("");
+  const [successData, setSuccessData] = useState(null);
   const [cepMessage, setCepMessage] = useState("");
   const [dateMessage, setDateMessage] = useState("");
   const [cepLoading, setCepLoading] = useState(false);
@@ -222,7 +223,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
             time_3: null,
           }),
         });
-        setMessage(`${response.detail} Protocolo: ${response.protocol}`);
+        setSuccessData({ detail: response.detail, protocol: response.protocol });
       } catch (err) {
         setMessage(err.message);
       } finally {
@@ -280,7 +281,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
         body: JSON.stringify(payload),
       });
       setForm(empty);
-      setMessage(`${response.detail} Protocolo: ${response.protocol}`);
+      setSuccessData({ detail: response.detail, protocol: response.protocol });
     } catch (err) {
       setMessage(err.message);
     } finally {
@@ -347,9 +348,23 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
               </div>
             </div>
             {message && <div className="alert">{message}</div>}
-            <button disabled={loading}><CalendarPlus size={18} /> {loading ? "Enviando..." : "Reenviar formulário"}</button>
+            <button disabled={loading}><CalendarPlus size={18} /> {loading ? "Enviando..." : "Confirmar alteração de data"}</button>
           </form>
         </section>
+        {successData && (
+          <div className="modal-backdrop">
+            <article className="modal" style={{ textAlign: "center", padding: "40px 20px", maxWidth: "400px" }}>
+              <h2 style={{ color: "var(--primary)", marginBottom: "16px" }}>Sucesso!</h2>
+              <p style={{ fontSize: "16px", marginBottom: "24px", color: "var(--text)" }}>{successData.detail}</p>
+              <div style={{ background: "#f6bd16", color: "#001338", padding: "12px 24px", borderRadius: "8px", display: "inline-block", fontWeight: "bold", fontSize: "18px", marginBottom: "32px" }}>
+                Protocolo: {successData.protocol}
+              </div>
+              <div>
+                <button onClick={() => setSuccessData(null)} style={{ width: "100%" }}>Fechar</button>
+              </div>
+            </article>
+          </div>
+        )}
       </main>
     );
   }
@@ -667,6 +682,20 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
           <button disabled={loading}><CalendarPlus size={18} /> {loading ? "Enviando..." : internalRequest ? "Registrar solicitação interna" : "Enviar solicitação"}</button>
         </form>
       </section>
+      {successData && (
+        <div className="modal-backdrop">
+          <article className="modal" style={{ textAlign: "center", padding: "40px 20px", maxWidth: "400px" }}>
+            <h2 style={{ color: "var(--primary)", marginBottom: "16px" }}>Sucesso!</h2>
+            <p style={{ fontSize: "16px", marginBottom: "24px", color: "var(--text)" }}>{successData.detail}</p>
+            <div style={{ background: "#f6bd16", color: "#001338", padding: "12px 24px", borderRadius: "8px", display: "inline-block", fontWeight: "bold", fontSize: "18px", marginBottom: "32px" }}>
+              Protocolo: {successData.protocol}
+            </div>
+            <div>
+              <button onClick={() => setSuccessData(null)} style={{ width: "100%" }}>Fechar e fazer nova solicitação</button>
+            </div>
+          </article>
+        </div>
+      )}
     </main>
   );
 }
