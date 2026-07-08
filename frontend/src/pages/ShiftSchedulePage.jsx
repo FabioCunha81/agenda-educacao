@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarDays, Check, ChevronLeft, ChevronRight, Paperclip, Repeat2, Trash2, X } from "lucide-react";
+import { AlertTriangle, CalendarDays, Check, ChevronLeft, ChevronRight, Paperclip, Repeat2, Trash2, X, AlertCircle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -593,6 +593,11 @@ export default function ShiftSchedulePage() {
                     <strong>{formatTeamName(schedule.team_name)}</strong>
                     {(schedule.swap_requests || []).some((swap) => swap.status === "PENDING") && (
                       <b><AlertTriangle size={12} /> Troca</b>
+                    )}
+                    {schedule.date <= toISO(new Date()) && (
+                      <b style={{ background: "#fee2e2", color: "#b91c1c", marginLeft: "4px", gap: "2px" }} title="Lembrete: Tirar falta da equipe">
+                        <AlertCircle size={12} /> Faltas
+                      </b>
                     )}
                   </span>
                   <small>{memberRows(schedule.members).length} integrantes</small>
