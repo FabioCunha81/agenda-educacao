@@ -668,20 +668,20 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
             </div>
           )}
 
-          <div className="form-section">
-            <h3>Recursos disponíveis</h3>
-            <div className="field-card resource-card">
-              <strong>Recursos disponíveis no local</strong>
-              <div className="choice-grid resource-grid">
-                {mediaEquipmentOptions.map((option) => (
-                  <label className="checkbox option-tile" key={option}>
-                    <input type="checkbox" checked={form.media_equipment.includes(option)} onChange={() => toggleList("media_equipment", option)} />
-                    <span>{option}</span>
-                  </label>
-                ))}
+          {form.requester_entity_kind !== "Ação de Rua" && (
+            <div className="form-section">
+              <h3>Recursos disponíveis</h3>
+              <div className="field-card resource-card">
+                <strong>Recursos disponíveis no local</strong>
+                <div className="choice-grid resource-grid">
+                  {mediaEquipmentOptions.map((option) => (
+                    <label className="checkbox option-tile" key={option}>
+                      <input type="checkbox" checked={form.media_equipment.includes(option)} onChange={() => toggleList("media_equipment", option)} />
+                      <span>{option}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
-            {form.requester_entity_kind !== "Ação de Rua" && (
               <div className="field-card resource-card">
                 <strong>Autorização de uso de imagem <b>*</b></strong>
                 <div className="radio-list image-auth-list" role="radiogroup" aria-label="Autorização de uso de imagem">
@@ -708,7 +708,10 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
                   ))}
                 </div>
               </div>
-            )}
+            </div>
+          )}
+
+          <div className="form-section">
             <label className="field-label">
               <span>Comentários ou sugestões</span>
               <textarea value={form.notes} onChange={(event) => update("notes", event.target.value)} />
