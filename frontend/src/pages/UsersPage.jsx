@@ -412,6 +412,7 @@ export default function UsersPage() {
               <option value="SUPERVISOR">Chefe</option>
               <option value="MANAGER">Gestor</option>
               <option value="VISITOR">Visitante</option>
+              <option value="ALMOXARIFADO">Almoxarifado</option>
               <option value="ADMIN">Administração</option>
             </select>
           </label>

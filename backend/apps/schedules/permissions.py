@@ -46,7 +46,7 @@ class AgendaPermission(BasePermission):
 
     def has_object_permission(self, request, view, obj):
         user = request.user
-        if user.is_admin_role or user.role == User.Role.VISITOR:
+        if user.is_admin_role or user.role in [User.Role.VISITOR, User.Role.ALMOXARIFADO]:
             return True
         if request.method in SAFE_METHODS:
             if user.role == User.Role.SUPERVISOR:
@@ -71,7 +71,7 @@ class ShiftSchedulePermission(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        if request.user.role == User.Role.VISITOR:
+        if request.user.role in [User.Role.VISITOR, User.Role.ALMOXARIFADO]:
             if request.method in SAFE_METHODS and request.user.sector and request.user.sector.name == "Subsecretaria":
                 pass
             else:
@@ -85,7 +85,7 @@ class ShiftSchedulePermission(BasePermission):
     def has_object_permission(self, request, view, obj):
         if not request.user or not request.user.is_authenticated:
             return False
-        if request.user.role == User.Role.VISITOR:
+        if request.user.role in [User.Role.VISITOR, User.Role.ALMOXARIFADO]:
             if request.method in SAFE_METHODS and request.user.sector and request.user.sector.name == "Subsecretaria":
                 pass
             else:

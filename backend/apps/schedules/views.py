@@ -428,7 +428,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
         ).annotate(linked_requests_count_annotated=Count('linked_requests', distinct=True))
         if user.is_admin_role:
             return queryset
-        elif user.role == User.Role.VISITOR:
+        elif user.role in [User.Role.VISITOR, User.Role.ALMOXARIFADO]:
             return queryset
         elif user.role == User.Role.SUPERVISOR:
             if self.request.query_params.get("reportable") == "true":

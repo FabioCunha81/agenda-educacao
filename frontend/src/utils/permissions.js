@@ -5,6 +5,7 @@ export const roleLabel = {
   SUPPORT: "Apoio",
   VISITOR: "Visitante",
   USER: "Agente",
+  ALMOXARIFADO: "Almoxarifado",
 };
 
 export function isCreator(user) {
@@ -31,6 +32,10 @@ export function canAccessRoute(user, allowedRoles = [], moduleName = null) {
     if (sector === "ASCOM" && moduleName === "CALENDARIO") {
       return true;
     }
+  }
+
+  if (user?.role === "ALMOXARIFADO" && moduleName === "CALENDARIO") {
+    return true;
   }
 
   return allowedRoles.includes(user?.role);

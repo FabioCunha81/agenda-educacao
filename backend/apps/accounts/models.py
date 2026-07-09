@@ -31,6 +31,7 @@ class User(AbstractUser):
         VISITOR = "VISITOR", "Visitante"
         USER = "USER", "Usuário comum"
         SUPPORT = "SUPPORT", "Apoio"
+        ALMOXARIFADO = "ALMOXARIFADO", "Almoxarifado"
 
     username = models.CharField(max_length=150, unique=False, blank=True)
     email = models.EmailField(unique=True)
