@@ -398,6 +398,41 @@ export default function TechnicalReportsPage() {
   };
   useEffect(() => { load(); }, [techFilters]);
 
+  useEffect(() => {
+    if (form.operation_date && form.team) {
+      api(`/shift-schedules/?date=${form.operation_date}`).then(res => {
+        const schedules = res.results || res;
+        const schedule = schedules.find(s => 
+          String(s.team) === String(form.team) || 
+          String(s.team_name) === String(form.team) ||
+          (selectedAgenda && String(s.team) === String(selectedAgenda.team_ref)) ||
+          (selectedAgenda && String(s.team_name) === String(selectedAgenda.sector_name))
+        );
+        setReportSchedule(schedule || null);
+        if (schedule) {
+           const formObj = {};
+           schedule.members?.forEach?.(m => {
+             formObj[`${m.type}_${m.id}`] = {
+               is_absent: !!m.is_absent,
+               reason: m.absence_reason || "",
+               attachment: null,
+               member: m
+             };
+           });
+           setAttendanceForm(formObj);
+        } else {
+           setAttendanceForm({});
+        }
+      }).catch(() => {
+        setReportSchedule(null);
+        setAttendanceForm({});
+      });
+    } else {
+      setReportSchedule(null);
+      setAttendanceForm({});
+    }
+  }, [form.operation_date, form.team, selectedAgenda]);
+
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
 
   const applyAgenda = (agenda) => {
@@ -449,37 +484,7 @@ export default function TechnicalReportsPage() {
       })),
     }));
 
-    if (agenda.date) {
-      api(`/shift-schedules/?date=${agenda.date}`).then(res => {
-        const schedules = res.results || res;
-        const schedule = schedules.find(s => 
-          String(s.team) === String(agenda.team_ref) || 
-          String(s.team_name) === String(agenda.team_name) ||
-          String(s.team_name) === String(agenda.sector_name)
-        );
-        setReportSchedule(schedule || null);
-        if (schedule) {
-           const formObj = {};
-           schedule.members?.forEach?.(m => {
-             formObj[`${m.type}_${m.id}`] = {
-               is_absent: !!m.is_absent,
-               reason: m.absence_reason || "",
-               attachment: null,
-               member: m
-             };
-           });
-           setAttendanceForm(formObj);
-        } else {
-           setAttendanceForm({});
-        }
-      }).catch(() => {
-        setReportSchedule(null);
-        setAttendanceForm({});
-      });
-    } else {
-      setReportSchedule(null);
-      setAttendanceForm({});
-    }
+    // O carregamento da escala agora é feito pelo useEffect monitorando operation_date e team
   };
 
   const fillCoordinatesFromAgenda = async (agenda = selectedAgenda) => {
