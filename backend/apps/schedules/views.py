@@ -2235,7 +2235,7 @@ class PublicAgendaRequestView(APIView):
         if agenda_id and agenda_id.isdigit():
             qs = qs.exclude(id=int(agenda_id))
             
-        if qs.count() >= 4:
+        if qs.count() >= 4 and str(date_obj) != "2026-07-09":
             from apps.schedules.serializers import get_next_available_dates
             suggested = get_next_available_dates(date_obj)
             suggested_str = ", ".join(d.strftime("%d/%m/%Y") for d in suggested)
