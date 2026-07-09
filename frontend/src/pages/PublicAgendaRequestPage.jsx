@@ -422,7 +422,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
               <div className="field-card" style={{ flex: 1 }}>
                 <strong>Tipo de solicitante: <b>*</b></strong>
                 <div className="radio-list" role="radiogroup" aria-label="Tipo de solicitante">
-                  {(internalRequest ? ["Instituição de Ensino", "Empresa/Órgão", "Organização de evento", "Ação de Rua"] : ["Instituição de Ensino", "Empresa/Órgão", "Organização de evento"]).map((option) => (
+                  {["Instituição de Ensino", "Empresa/Órgão", "Organização de evento", "Ação de Rua"].map((option) => (
                     <label className="radio-option compact-radio option-tile" key={option}>
                       <input
                         type="radio"
