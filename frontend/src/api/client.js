@@ -10,6 +10,9 @@ function formatApiError(data) {
     return "Nao foi possivel concluir a operacao.";
   }
   if (data.detail) {
+    if (typeof data.detail === "string" && data.detail.includes("matches the given query")) {
+      return "O registro solicitado não foi encontrado ou já foi excluído.";
+    }
     return data.detail;
   }
   if (Array.isArray(data.non_field_errors) && data.non_field_errors.length) {
