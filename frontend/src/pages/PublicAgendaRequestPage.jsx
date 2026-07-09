@@ -244,7 +244,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
         return;
       }
     }
-    if (!form.image_authorization) {
+    if (form.requester_entity_kind !== "Ação de Rua" && !form.image_authorization) {
       setMessage("Selecione uma opção de autorização de uso de imagem.");
       return;
     }
@@ -681,32 +681,34 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
                 ))}
               </div>
             </div>
-            <div className="field-card resource-card">
-              <strong>Autorização de uso de imagem <b>*</b></strong>
-              <div className="radio-list image-auth-list" role="radiogroup" aria-label="Autorização de uso de imagem">
-                {imageAuthorizationOptions.map((option) => (
-                  <label className="radio-option option-tile" key={option}>
-                    <input
-                      type="radio"
-                      name="image_authorization"
-                      checked={form.image_authorization === option}
-                      onChange={() => update("image_authorization", option)}
-                      required
-                    />
-                    <span>{option === "Outro" ? "Outro:" : option}</span>
-                    {option === "Outro" && (
+            {form.requester_entity_kind !== "Ação de Rua" && (
+              <div className="field-card resource-card">
+                <strong>Autorização de uso de imagem <b>*</b></strong>
+                <div className="radio-list image-auth-list" role="radiogroup" aria-label="Autorização de uso de imagem">
+                  {imageAuthorizationOptions.map((option) => (
+                    <label className="radio-option option-tile" key={option}>
                       <input
-                        className="inline-other-input"
-                        value={form.image_authorization_other}
-                        onChange={(event) => update("image_authorization_other", event.target.value)}
-                        required={form.image_authorization === "Outro"}
-                        aria-label="Outra autorização de imagem"
+                        type="radio"
+                        name="image_authorization"
+                        checked={form.image_authorization === option}
+                        onChange={() => update("image_authorization", option)}
+                        required={form.requester_entity_kind !== "Ação de Rua"}
                       />
-                    )}
-                  </label>
-                ))}
+                      <span>{option === "Outro" ? "Outro:" : option}</span>
+                      {option === "Outro" && (
+                        <input
+                          className="inline-other-input"
+                          value={form.image_authorization_other}
+                          onChange={(event) => update("image_authorization_other", event.target.value)}
+                          required={form.image_authorization === "Outro"}
+                          aria-label="Outra autorização de imagem"
+                        />
+                      )}
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
             <label className="field-label">
               <span>Comentários ou sugestões</span>
               <textarea value={form.notes} onChange={(event) => update("notes", event.target.value)} />
