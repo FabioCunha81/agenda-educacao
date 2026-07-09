@@ -1166,8 +1166,8 @@ export default function AgendaPage() {
                     </label>
                     <label className="field-label">
                       <span>Viatura</span>
-                      <select value={form.vehicle_ref || ""} onChange={(e) => selectLookup("vehicle_ref", "vehicle", lookups.vehicles, e.target.value)} required>
-                        <option value="">Selecione a viatura</option>
+                      <select value={form.vehicle_ref || ""} onChange={(e) => selectLookup("vehicle_ref", "vehicle", lookups.vehicles, e.target.value)}>
+                        <option value="">Sem viatura</option>
                         {lookups.vehicles.map((item) => <option key={item.id} value={item.id} disabled={[String(form.vehicle_2_ref), String(form.vehicle_3_ref)].includes(String(item.id))}>{item.name}</option>)}
                       </select>
                     </label>

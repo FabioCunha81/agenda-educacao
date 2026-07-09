@@ -1134,13 +1134,13 @@ class PublicAgendaRequestSerializer(serializers.Serializer):
     requester_entity_type = serializers.CharField(max_length=160)
     audience = serializers.CharField(max_length=160, required=False, allow_blank=True)
     participant_range = serializers.ChoiceField(
-        choices=["30 a 50", "51 a 100", "100 a 200"]
+        choices=["30 a 50", "51 a 100", "100 a 200"], required=False, allow_blank=True
     )
     age_ranges = serializers.ChoiceField(
-        choices=PUBLIC_AGE_RANGE_CHOICES + LEGACY_PUBLIC_AGE_RANGE_CHOICES
+        choices=PUBLIC_AGE_RANGE_CHOICES + LEGACY_PUBLIC_AGE_RANGE_CHOICES, required=False, allow_blank=True
     )
     accessibility_access = serializers.ChoiceField(
-        choices=["Sim", "Não", "Não se aplica, pois será realizado no térreo"]
+        choices=["Sim", "Não", "Não se aplica, pois será realizado no térreo"], required=False, allow_blank=True
     )
     has_ramps = serializers.ChoiceField(choices=["Sim", "Não"], required=False, allow_blank=True)
     has_elevators = serializers.ChoiceField(choices=["Sim", "Não"], required=False, allow_blank=True)

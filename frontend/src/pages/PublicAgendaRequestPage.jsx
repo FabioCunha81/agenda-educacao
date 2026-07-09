@@ -273,12 +273,12 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
         actions_count: form.actions_count === "" ? null : Number(form.actions_count),
         time_2: null,
         time_3: null,
-        age_ranges: form.age_ranges || "N/A",
+        age_ranges: isAcaoRua ? "" : form.age_ranges,
         media_equipment: form.media_equipment.join(", "),
         action_type: isAcaoRua ? "Ação de educação/conscientização" : form.action_type,
-        participant_range: isAcaoRua ? "N/A" : form.participant_range,
-        accessibility_access: isAcaoRua ? "N/A" : form.accessibility_access,
-        has_accessible_bathrooms: isAcaoRua ? "N/A" : form.has_accessible_bathrooms,
+        participant_range: isAcaoRua ? "" : form.participant_range,
+        accessibility_access: isAcaoRua ? "" : form.accessibility_access,
+        has_accessible_bathrooms: isAcaoRua ? "" : form.has_accessible_bathrooms,
       };
       delete payload.requester_entity_kind;
       delete payload.requester_entity_nature;
