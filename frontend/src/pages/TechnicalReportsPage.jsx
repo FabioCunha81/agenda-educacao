@@ -687,6 +687,7 @@ export default function TechnicalReportsPage() {
   };
 
   return (
+    <>
     <section className="page two-column report-editor">
       {activeTab !== "completed" && (
       <div className="main-column">
@@ -927,18 +928,18 @@ export default function TechnicalReportsPage() {
       )}
 
       {isAttendanceModalOpen && (
-        <div className="modal-backdrop">
-          <div className="modal-content" style={{ width: "600px", maxWidth: "95%" }}>
-            <div className="modal-header">
+        <div className="modal-backdrop" style={{ zIndex: 9999 }}>
+          <article className="modal" style={{ width: "600px", maxWidth: "95%", display: "flex", flexDirection: "column", padding: "20px" }} onClick={(e) => e.stopPropagation()}>
+            <header className="modal-header">
               <h2 style={{ display: "flex", alignItems: "center", gap: "10px", margin: 0 }}>
                 <Clipboard size={20} />
                 {reportSchedule ? `Gerenciar Frequência e Fotos - ${reportSchedule.team}` : "Anexar Fotos do Evento"}
               </h2>
-              <button className="icon-btn" onClick={() => setIsAttendanceModalOpen(false)}>
+              <button className="icon-btn" type="button" onClick={() => setIsAttendanceModalOpen(false)}>
                 <X size={20} />
               </button>
-            </div>
-            <div className="modal-body" style={{ maxHeight: "65vh", overflowY: "auto" }}>
+            </header>
+            <div className="modal-body" style={{ maxHeight: "65vh", overflowY: "auto", flex: 1 }}>
               {reportSchedule && (
                 <div className="attendance-manager-list">
                   {Object.entries(attendanceForm).map(([key, data]) => (
@@ -1056,7 +1057,7 @@ export default function TechnicalReportsPage() {
                 Salvar Arquivos
               </button>
             </div>
-          </div>
+          </article>
         </div>
       )}
 
@@ -1220,6 +1221,7 @@ export default function TechnicalReportsPage() {
         )}
       </aside>
     </section>
+    </>
   );
 }
 
