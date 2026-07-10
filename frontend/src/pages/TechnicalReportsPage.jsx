@@ -749,77 +749,79 @@ export default function TechnicalReportsPage() {
             </div>
           </div>
 
-          {isAttendanceModalOpen && reportSchedule && (
+          {isAttendanceModalOpen && (
             <div className="modal-backdrop">
               <div className="modal-content" style={{ width: "600px", maxWidth: "95%" }}>
                 <div className="modal-header">
                   <h2 style={{ display: "flex", alignItems: "center", gap: "10px", margin: 0 }}>
                     <Clipboard size={20} />
-                    Gerenciar Frequência - {reportSchedule.team}
+                    {reportSchedule ? `Gerenciar Frequência e Fotos - ${reportSchedule.team}` : "Anexar Fotos do Evento"}
                   </h2>
                   <button className="icon-btn" onClick={() => setIsAttendanceModalOpen(false)}>
                     <X size={20} />
                   </button>
                 </div>
                 <div className="modal-body" style={{ maxHeight: "65vh", overflowY: "auto" }}>
-                  <div className="attendance-manager-list">
-                    {Object.entries(attendanceForm).map(([key, data]) => (
-                      <div key={key} style={{ border: "1px solid #ddd", borderRadius: "8px", padding: "12px", marginBottom: "10px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <div style={{ fontWeight: 500 }}>
-                            {data.member.name} <small style={{ color: "var(--text-soft)" }}>({data.member.typeLabel})</small>
+                  {reportSchedule && (
+                    <div className="attendance-manager-list">
+                      {Object.entries(attendanceForm).map(([key, data]) => (
+                        <div key={key} style={{ border: "1px solid #ddd", borderRadius: "8px", padding: "12px", marginBottom: "10px" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div style={{ fontWeight: 500 }}>
+                              {data.member.name} <small style={{ color: "var(--text-soft)" }}>({data.member.typeLabel})</small>
+                            </div>
+                            <div style={{ display: "flex", gap: "15px" }}>
+                              <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                                <input
+                                  type="radio"
+                                  name={`modal_status_${key}`}
+                                  checked={!data.is_absent}
+                                  onChange={() => setAttendanceForm(prev => ({ ...prev, [key]: { ...prev[key], is_absent: false } }))}
+                                />
+                                <span style={{ color: !data.is_absent ? "#15803d" : "inherit", fontWeight: !data.is_absent ? "bold" : "normal" }}>Presente</span>
+                              </label>
+                              <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                                <input
+                                  type="radio"
+                                  name={`modal_status_${key}`}
+                                  checked={data.is_absent}
+                                  onChange={() => setAttendanceForm(prev => ({ ...prev, [key]: { ...prev[key], is_absent: true } }))}
+                                />
+                                <span style={{ color: data.is_absent ? "#b91c1c" : "inherit", fontWeight: data.is_absent ? "bold" : "normal" }}>Falta</span>
+                              </label>
+                            </div>
                           </div>
-                          <div style={{ display: "flex", gap: "15px" }}>
-                            <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
-                              <input
-                                type="radio"
-                                name={`modal_status_${key}`}
-                                checked={!data.is_absent}
-                                onChange={() => setAttendanceForm(prev => ({ ...prev, [key]: { ...prev[key], is_absent: false } }))}
-                              />
-                              <span style={{ color: !data.is_absent ? "#15803d" : "inherit", fontWeight: !data.is_absent ? "bold" : "normal" }}>Presente</span>
-                            </label>
-                            <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
-                              <input
-                                type="radio"
-                                name={`modal_status_${key}`}
-                                checked={data.is_absent}
-                                onChange={() => setAttendanceForm(prev => ({ ...prev, [key]: { ...prev[key], is_absent: true } }))}
-                              />
-                              <span style={{ color: data.is_absent ? "#b91c1c" : "inherit", fontWeight: data.is_absent ? "bold" : "normal" }}>Falta</span>
-                            </label>
-                          </div>
+                          {data.is_absent && (
+                            <div style={{ background: "#f9fafb", padding: "10px", borderRadius: "4px", marginTop: "10px" }}>
+                              <label style={{ display: "block", marginBottom: "10px" }}>
+                                <span style={{ display: "block", fontSize: "0.85rem", marginBottom: "4px" }}>Justificativa</span>
+                                <input
+                                  type="text"
+                                  value={data.reason}
+                                  onChange={(e) => setAttendanceForm(prev => ({ ...prev, [key]: { ...prev[key], reason: e.target.value } }))}
+                                  placeholder="Ex: Férias, Atestado, etc."
+                                  style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
+                                />
+                              </label>
+                              <label style={{ display: "block" }}>
+                                <span style={{ display: "block", fontSize: "0.85rem", marginBottom: "4px" }}>Comprovante (opcional)</span>
+                                <input
+                                  type="file"
+                                  onChange={(e) => setAttendanceForm(prev => ({ ...prev, [key]: { ...prev[key], attachment: e.target.files?.[0] || null } }))}
+                                  style={{ fontSize: "0.85rem" }}
+                                />
+                              </label>
+                            </div>
+                          )}
                         </div>
-                        {data.is_absent && (
-                          <div style={{ background: "#f9fafb", padding: "10px", borderRadius: "4px", marginTop: "10px" }}>
-                            <label style={{ display: "block", marginBottom: "10px" }}>
-                              <span style={{ display: "block", fontSize: "0.85rem", marginBottom: "4px" }}>Justificativa</span>
-                              <input
-                                type="text"
-                                value={data.reason}
-                                onChange={(e) => setAttendanceForm(prev => ({ ...prev, [key]: { ...prev[key], reason: e.target.value } }))}
-                                placeholder="Ex: Férias, Atestado, etc."
-                                style={{ width: "100%", padding: "6px", border: "1px solid #ccc", borderRadius: "4px" }}
-                              />
-                            </label>
-                            <label style={{ display: "block" }}>
-                              <span style={{ display: "block", fontSize: "0.85rem", marginBottom: "4px" }}>Comprovante (opcional)</span>
-                              <input
-                                type="file"
-                                onChange={(e) => setAttendanceForm(prev => ({ ...prev, [key]: { ...prev[key], attachment: e.target.files?.[0] || null } }))}
-                                style={{ fontSize: "0.85rem" }}
-                              />
-                            </label>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
 
-                  <div style={{ marginTop: "20px", borderTop: "1px solid #ddd", paddingTop: "15px" }}>
+                  <div style={{ marginTop: reportSchedule ? "20px" : "0", borderTop: reportSchedule ? "1px solid #ddd" : "none", paddingTop: reportSchedule ? "15px" : "0" }}>
                     <h3 style={{ marginBottom: "10px" }}>Fotos do Evento</h3>
                     <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "10px" }}>
-                      Anexe até 2 fotos para comprovar a execução do evento e presença da equipe. Caso não seja possível enviar fotos, a justificativa é obrigatória.
+                      Anexe até 2 fotos para comprovar a execução do evento{reportSchedule ? " e presença da equipe" : ""}. Caso não seja possível enviar fotos, a justificativa é obrigatória.
                     </p>
                     <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
                       <div style={{ flex: 1, border: "1px solid #ddd", borderRadius: "8px", padding: "10px" }}>
@@ -862,8 +864,9 @@ export default function TechnicalReportsPage() {
                   </div>
                 </div>
                 <div className="modal-footer" style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-                  <button className="secondary" onClick={() => setIsAttendanceModalOpen(false)}>Cancelar</button>
+                  <button type="button" className="secondary" onClick={() => setIsAttendanceModalOpen(false)}>Cancelar</button>
                   <button 
+                    type="button"
                     className="primary" 
                     onClick={() => {
                       if (!form.photo_1 && !form.photo_2 && (!form.no_photo_reason || !form.no_photo_reason.trim())) {
@@ -873,12 +876,27 @@ export default function TechnicalReportsPage() {
                       setIsAttendanceModalOpen(false);
                     }}
                   >
-                    Concluir Frequência
+                    Salvar Arquivos
                   </button>
                 </div>
               </div>
             </div>
           )}
+
+          <div className="form-section">
+            <h3>Frequência da Equipe e Fotos</h3>
+            <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "12px" }}>
+              {reportSchedule ? "Gerencie as presenças, faltas e anexe fotos comprovando a execução do evento." : "Anexe as fotos comprovando a execução do evento (Obrigatório)."}
+            </p>
+            <button 
+              type="button" 
+              className="secondary" 
+              onClick={() => setIsAttendanceModalOpen(true)}
+              style={(!form.photo_1 && !form.photo_2 && !form.no_photo_reason) ? { border: "2px solid #b91c1c" } : {}}
+            >
+              <Clipboard size={18} /> {reportSchedule ? "Gerenciar Frequência e Fotos" : "Anexar Fotos do Evento"}
+            </button>
+          </div>
 
           <div className="form-section">
             <h3>Efetivo e recursos</h3>
