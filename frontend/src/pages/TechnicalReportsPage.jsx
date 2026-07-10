@@ -464,10 +464,10 @@ export default function TechnicalReportsPage() {
       agenda_location: agenda.institution_location || agenda.location,
       operation_date: agenda.date || current.operation_date,
       team: agenda.team_name || agenda.team_ref_name || agenda.sector_name || current.team,
-      education_pcd: current.education_pcd || details.audience,
+      education_pcd: current.education_pcd || "",
       education_agents: current.education_agents || details.agents,
       changes_staff: current.changes_staff || details.notes,
-      approximate_public: current.approximate_public || "",
+      approximate_public: current.approximate_public || details.audience,
       materials_removed: current.materials_removed || materialsFromAgenda(agenda),
       breathalyzers: current.breathalyzers || details.resources,
       cars: current.cars || joinValues([agenda.vehicle, agenda.vehicle_name]),
@@ -767,21 +767,6 @@ export default function TechnicalReportsPage() {
 
 
           <div className="form-section">
-            <h3>Frequência da Equipe e Fotos</h3>
-            <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "12px" }}>
-              {reportSchedule ? "Gerencie as presenças, faltas e anexe fotos comprovando a execução do evento." : "Anexe as fotos comprovando a execução do evento (Obrigatório)."}
-            </p>
-            <button 
-              type="button" 
-              className="secondary" 
-              onClick={() => setIsAttendanceModalOpen(true)}
-              style={(!form.photo_1 && !form.photo_2 && !form.no_photo_reason) ? { border: "2px solid #b91c1c" } : {}}
-            >
-              <Clipboard size={18} /> {reportSchedule ? "Gerenciar Frequência e Fotos" : "Anexar Fotos do Evento"}
-            </button>
-          </div>
-
-          <div className="form-section">
             <h3>Efetivo e recursos</h3>
             <label className="field-label report-text-box">
               <span>Público aproximado e dados da solicitação</span>
@@ -879,7 +864,7 @@ export default function TechnicalReportsPage() {
                     <MaterialSummary value={action.distribution_materials_removed || ""} />
                   </div>
                   <div className="field-label report-text-box">
-                    <span>Material distribuído</span>
+                    <span>Material devolvido</span>
                     <MaterialQuantityEditor value={action.distribution_materials_distributed || ""} onChange={(value) => updateAction(index, "distribution_materials_distributed", value)} />
                   </div>
                 </div>
@@ -888,21 +873,20 @@ export default function TechnicalReportsPage() {
             <button type="button" className="secondary" onClick={addAction}><Plus size={18} /> Adicionar ação</button>
           </div>
 
-          {reportSchedule && (
-            <div className="form-section">
-              <h3>Frequência da Equipe e Fotos</h3>
-              <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "12px" }}>
-                Gerencie as presenças, faltas e anexe fotos comprovando a execução do evento.
-              </p>
-              <button 
-                type="button" 
-                className="secondary" 
-                onClick={() => setIsAttendanceModalOpen(true)}
-              >
-                <Clipboard size={18} /> Gerenciar Frequência e Fotos
-              </button>
-            </div>
-          )}
+          <div className="form-section">
+            <h3>Frequência da Equipe e Fotos</h3>
+            <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "12px" }}>
+              {reportSchedule ? "Gerencie as presenças, faltas e anexe fotos comprovando a execução do evento." : "Anexe as fotos comprovando a execução do evento (Obrigatório)."}
+            </p>
+            <button 
+              type="button" 
+              className="secondary" 
+              onClick={() => setIsAttendanceModalOpen(true)}
+              style={(!form.photo_1 && !form.photo_2 && !form.no_photo_reason) ? { border: "2px solid #b91c1c" } : {}}
+            >
+              <Clipboard size={18} /> {reportSchedule ? "Gerenciar Frequência e Fotos" : "Anexar Fotos do Evento"}
+            </button>
+          </div>
 
           <div className="form-section">
             <h3>Contato, ocorrências e localização</h3>
