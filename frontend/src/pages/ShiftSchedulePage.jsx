@@ -1147,8 +1147,8 @@ export default function ShiftSchedulePage() {
 
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "20px" }}>
                   <div style={{ width: "300px", borderBottom: "1px solid #000", marginBottom: "5px" }}></div>
-                  <strong style={{ fontSize: "0.9rem" }}>{reportChiefName}</strong>
-                  <span style={{ fontSize: "0.8rem", color: "#555" }}>Chefe de Equipe / Responsável</span>
+                  <strong style={{ fontSize: "0.9rem" }}>Madelon de Souza Candido</strong>
+                  <span style={{ fontSize: "0.8rem", color: "#555" }}>Major PM RG 80.961</span>
                 </div>
               </div>
             </section>

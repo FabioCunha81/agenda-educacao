@@ -815,7 +815,14 @@ export default function TechnicalReportsPage() {
                     {numberFields.map((field) => (
                       <label className="field-label" key={field}>
                         <span>{fieldLabels[field]}</span>
-                        <input type="number" value={action[field] ?? ""} className="read-only-field" readOnly title="Preenchido automaticamente a partir da solicitação" />
+                        <input 
+                          type="number" 
+                          value={action[field] ?? ""} 
+                          className={field === "approach" ? "read-only-field" : ""} 
+                          readOnly={field === "approach"} 
+                          title={field === "approach" ? "Preenchido automaticamente a partir da solicitação" : ""} 
+                          onChange={field === "approached_actions" ? (e) => updateAction(index, field, e.target.value) : undefined} 
+                        />
                       </label>
                     ))}
                     <label className="field-label">

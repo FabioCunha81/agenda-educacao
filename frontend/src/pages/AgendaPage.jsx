@@ -147,6 +147,7 @@ function normalizePayload(form) {
   payload.materials = normalizeMaterialRows(form.materials).map((item, index) => ({
     position: index + 1,
     kit: item.kit || null,
+    dynamic: item.dynamic || null,
     material: item.material || null,
     quantity: valueForPayload(item.quantity),
   }));
