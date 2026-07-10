@@ -685,7 +685,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
             return Agenda.objects.select_related("responsible", "sector", "created_by").prefetch_related(
                 "history",
                 "satisfaction_surveys",
-            )
+            ).filter(date__gte="2026-07-09")
 
         def apply_dashboard_filters(scoped):
             params = request.query_params
