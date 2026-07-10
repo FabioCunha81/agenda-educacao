@@ -6,6 +6,14 @@ import { formatDateBR } from "../utils/date.js";
 
 import { buildPreview, chiefFromReport, reportName } from "../utils/reportPreview.js";
 
+function memberRows(members = {}) {
+  return [
+    ...(members.chiefs || []).map((item) => ({ ...item, type: "CHIEF", typeLabel: "Chefe" })),
+    ...(members.agents || []).map((item) => ({ ...item, type: "AGENT", typeLabel: "Agente" })),
+    ...(members.supports || []).map((item) => ({ ...item, type: "SUPPORT", typeLabel: "Apoio" })),
+  ];
+}
+
 const emptyAction = {
   agenda: "",
   source_id: "",
@@ -416,7 +424,7 @@ export default function TechnicalReportsPage() {
           api(`/shift-schedules/${scheduleInfo.id}/`).then(detailSchedule => {
             setReportSchedule(detailSchedule);
             const formObj = {};
-            detailSchedule.members?.forEach?.(m => {
+            memberRows(detailSchedule.members).forEach(m => {
               formObj[`${m.type}_${m.id}`] = {
                 is_absent: !!m.is_absent,
                 reason: m.absence_reason || "",
