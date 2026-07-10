@@ -641,8 +641,8 @@ class AgendaSerializer(serializers.ModelSerializer):
         start_time = attrs.get("start_time", getattr(instance, "start_time", None))
         end_time = attrs.get("end_time", getattr(instance, "end_time", None))
 
-        if start_time and end_time and start_time >= end_time:
-            raise serializers.ValidationError("A hora final deve ser maior que a hora inicial.")
+        if start_time and end_time and start_time == end_time:
+            raise serializers.ValidationError("A hora final não pode ser igual à hora inicial.")
 
         status = attrs.get("status", getattr(instance, "status", None))
         cancel_reason = attrs.get("cancel_reason", getattr(instance, "cancel_reason", ""))
