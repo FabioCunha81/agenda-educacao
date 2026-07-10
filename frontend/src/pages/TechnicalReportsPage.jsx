@@ -496,7 +496,7 @@ export default function TechnicalReportsPage() {
         start_time: action.start_time || agenda.start_time?.slice(0, 5) || "",
         final_hour: action.final_hour || agenda.end_time?.slice(0, 5) || "",
         approach: action.approach || agenda.quantity || 0,
-        approached_actions: action.approached_actions || agenda.actions_count || 0,
+        approached_actions: action.approached_actions || agenda.quantity || 0,
         equipment_materials_removed: action.equipment_materials_removed || selectedMaterials.equipmentRemoved,
         equipment_materials_distributed: action.equipment_materials_distributed || selectedMaterials.equipmentDistributed,
         distribution_materials_removed: action.distribution_materials_removed || selectedMaterials.distributionRemoved,
