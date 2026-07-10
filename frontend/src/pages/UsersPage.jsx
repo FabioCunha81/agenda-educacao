@@ -261,7 +261,7 @@ export default function UsersPage() {
       if (filters.phone && !item.phone?.toLowerCase().includes(filters.phone.toLowerCase())) return false;
       if (filters.email && !item.email?.toLowerCase().includes(filters.email.toLowerCase())) return false;
       if (filters.role && !(roleLabel[item.role] || item.role).toLowerCase().includes(filters.role.toLowerCase())) return false;
-      const teamLabel = item.role === "VISITOR" ? (item.sector_name || "-") : String(item.team_name || item.sector_name || "-").toUpperCase();
+      const teamLabel = item.role === "VISITOR" ? (item.sector_name || "-") : String(item.team_name || "-").toUpperCase();
       if (filters.team && !teamLabel.toLowerCase().includes(filters.team.toLowerCase())) return false;
       const statusLabel = item.is_on_vacation ? "férias" : (item.is_active ? "ativo" : "inativo");
       if (filters.status && !statusLabel.toLowerCase().includes(filters.status.toLowerCase())) return false;
@@ -276,7 +276,7 @@ export default function UsersPage() {
     };
 
     const uniqueRoles = getUniqueValues(item => roleLabel[item.role] || item.role);
-    const uniqueTeams = getUniqueValues(item => item.role === "VISITOR" ? (item.sector_name || "-") : String(item.team_name || item.sector_name || "-").toUpperCase());
+    const uniqueTeams = getUniqueValues(item => item.role === "VISITOR" ? (item.sector_name || "-") : String(item.team_name || "-").toUpperCase());
     const uniqueStatuses = ["Ativo", "Inativo", "Férias"];
 
     return (

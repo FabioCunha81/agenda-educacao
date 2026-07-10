@@ -2285,7 +2285,7 @@ class PublicAgendaRequestView(APIView):
             end_time=data["end_time"],
             time_2=data.get("time_2"),
             time_3=data.get("time_3"),
-            location=data["institution_location"],
+            location=data["address"] if data["requester_entity_type"].startswith("Ação de Rua") else data["institution_location"],
             action_type=data["action_type"],
             institution_location=data["institution_location"],
             actions_count=data.get("actions_count"),
