@@ -492,24 +492,15 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
             {form.requester_entity_kind === "Ação de Rua" && internalRequest && (
               <div className="field-card" style={{ marginTop: "16px" }}>
                 <strong>Número aproximado de pessoas (para relatório/estatística) <b>*</b></strong>
-                <div className="radio-list" role="radiogroup" aria-label="Número aproximado de participantes">
-                  {participantRangeOptions.map((option) => (
-                    <label className="radio-option compact-radio option-tile" key={option.label}>
-                      <input
-                        type="radio"
-                        name="participant_range"
-                        checked={form.participant_range === option.label}
-                        onChange={() => setForm((current) => ({
-                          ...current,
-                          participant_range: option.label,
-                          quantity: String(option.quantity),
-                        }))}
-                        required
-                      />
-                      <span>{option.label}</span>
-                    </label>
-                  ))}
-                </div>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Ex: 50"
+                  value={form.quantity}
+                  onChange={(event) => update("quantity", event.target.value)}
+                  required
+                  style={{ marginTop: "8px", maxWidth: "200px" }}
+                />
               </div>
             )}
           </div>
