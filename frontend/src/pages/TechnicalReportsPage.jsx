@@ -42,7 +42,6 @@ const empty = {
   team: "",
   management_id: "",
   management_name: "",
-  education_pcd: "",
   education_agents: "",
   changes_staff: "",
   approximate_public: "",

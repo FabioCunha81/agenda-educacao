@@ -51,7 +51,6 @@ export function buildPreview(report) {
     `Chefe responsável: ${selectedChief || "não informado"}\n` +
     "\n" +
     `EFETIVO E ESTRUTURA\n` +
-    `Educação PCD: ${report.education_pcd || "não informado"}\n` +
     `Agentes de educação: ${report.education_agents || "não informado"}\n` +
     `Alterações de efetivo: ${report.changes_staff || "não informado"}\n` +
     `Etilômetros: ${report.breathalyzers || "não informado"}\n` +
