@@ -695,7 +695,7 @@ class AgendaSerializer(serializers.ModelSerializer):
         for position, material_data in enumerate(materials_data, start=1):
             material_data.pop("id", None)
             material_data.pop("position", None)
-            if not material_data.get("kit") and not material_data.get("material"):
+            if not material_data.get("kit") and not material_data.get("material") and not material_data.get("dynamic"):
                 continue
             AgendaMaterial.objects.create(agenda=agenda, position=position, **material_data)
 

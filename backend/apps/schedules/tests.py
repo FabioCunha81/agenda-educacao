@@ -7,8 +7,8 @@ from rest_framework.test import APITestCase
 
 from apps.accounts.models import User
 from apps.schedules.emails import approval_message, available_dates_message, message_for_status, rejection_message
-from apps.schedules.models import Agenda, Agent, EducationAction, EducationReport, Sector, ShiftSchedule, Team
-from apps.schedules.serializers import EducationReportSerializer, PublicAgendaRequestSerializer
+from apps.schedules.models import Agenda, Agent, Dynamic, EducationAction, EducationReport, Sector, ShiftSchedule, Team
+from apps.schedules.serializers import AgendaSerializer, EducationReportSerializer, PublicAgendaRequestSerializer
 
 
 
@@ -207,6 +207,41 @@ class EducationReportSerializerTests(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
+
+class AgendaMaterialPersistenceTests(TestCase):
+    def test_serializer_persists_dynamic_materials(self):
+        sector = Sector.objects.create(name="EDUCACAO")
+        manager = User.objects.create_user(
+            email="agenda-material@example.com",
+            password="password123",
+            full_name="Gestor Materiais",
+            role=User.Role.MANAGER,
+            sector=sector,
+        )
+        dynamic = Dynamic.objects.create(name="KIT BLITZ EDUCATIVA")
+        serializer = AgendaSerializer(data={
+            "title": "Acao educativa",
+            "description": "Atividade com dinamica",
+            "date": "2026-07-20",
+            "start_time": "10:00",
+            "end_time": "11:00",
+            "location": "Escola Municipal",
+            "responsible": manager.id,
+            "sector": sector.id,
+            "status": Agenda.Status.APPROVED,
+            "origin": Agenda.Origin.INTERNAL,
+            "materials": [
+                {"dynamic": dynamic.id, "quantity": 52, "position": 1}
+            ],
+        })
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        agenda = serializer.save(created_by=manager)
+
+        saved_material = agenda.materials.get()
+        self.assertEqual(saved_material.dynamic_id, dynamic.id)
+        self.assertEqual(saved_material.quantity, 52)
+
 
 class TeamLookupTests(APITestCase):
     def test_manager_can_create_and_list_custom_team(self):

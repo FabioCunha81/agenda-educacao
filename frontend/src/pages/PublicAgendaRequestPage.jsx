@@ -265,7 +265,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
             ? form.image_authorization_other
             : form.image_authorization,
         end_time: isAcaoRua ? addHours(form.start_time, 4) : addHours(form.start_time, 1),
-        quantity: (isAcaoRua && !internalRequest) ? null : (form.quantity === "" ? null : Number(form.quantity)),
+        quantity: isAcaoRua ? null : (form.quantity === "" ? null : Number(form.quantity)),
         actions_count: form.actions_count === "" ? null : Number(form.actions_count),
         time_2: null,
         time_3: null,
@@ -415,6 +415,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
                           setForm((current) => ({
                             ...current,
                             requester_entity_kind: option,
+                            ...(isAcaoRua ? { quantity: "", participant_range: "" } : {}),
                             ...(isAcaoRua && internalRequest && user ? {
                               external_responsible: user.full_name || "",
                               external_email: user.email || "",
