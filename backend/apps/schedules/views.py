@@ -919,7 +919,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
 
         def action_team_queryset():
             scoped = apply_dashboard_filters(unscoped_dashboard_queryset(), ignore_status=True).filter(
-                status=Agenda.Status.COMPLETED
+                Q(status=Agenda.Status.COMPLETED) | Q(technical_reports__status="SUBMITTED")
             )
             return scoped
 
@@ -1045,7 +1045,9 @@ class AgendaViewSet(viewsets.ModelViewSet):
             {"label": label, "value": value}
             for label, value in by_municipality_counter.most_common(8)
         ]
-        realized_qs = apply_dashboard_filters(unscoped_dashboard_queryset(), ignore_status=True).filter(status=Agenda.Status.COMPLETED)
+        realized_qs = apply_dashboard_filters(unscoped_dashboard_queryset(), ignore_status=True).filter(
+            Q(status=Agenda.Status.COMPLETED) | Q(technical_reports__status="SUBMITTED")
+        )
         
         by_neighborhood_counter = Counter(
             normalize_name(
