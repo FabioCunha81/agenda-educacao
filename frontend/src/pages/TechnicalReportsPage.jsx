@@ -339,6 +339,9 @@ export default function TechnicalReportsPage() {
   const [reports, setReports] = useState([]);
   const [techFilters, setTechFilters] = useState({ protocol: "", team: "", date: "" });
   const [pendingTechFilters, setPendingTechFilters] = useState({ protocol: "", team: "", date: "" });
+  const [pendingDateFilter, setPendingDateFilter] = useState("");
+  const [pendingChiefFilter, setPendingChiefFilter] = useState("");
+  const [pendingChiefQuery, setPendingChiefQuery] = useState("");
   const [reportsPreviewModal, setReportsPreviewModal] = useState(null);
   const [activeTab, setActiveTab] = useState("pending");
   const [protocolSearch, setProtocolSearch] = useState("");
@@ -349,7 +352,6 @@ export default function TechnicalReportsPage() {
   const [locationMessage, setLocationMessage] = useState("");
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
-  const [pendingDateFilter, setPendingDateFilter] = useState("");
   const [reportSchedule, setReportSchedule] = useState(null);
   const [attendanceForm, setAttendanceForm] = useState({});
   const { user } = useAuth();
@@ -373,6 +375,7 @@ export default function TechnicalReportsPage() {
     return list;
   }, [pendingAgendas, pendingDateFilter]);
 
+
   const load = async () => {
     setLoadError("");
     const params = new URLSearchParams({ page_size: "50" });
@@ -381,7 +384,7 @@ export default function TechnicalReportsPage() {
     });
 
     const [agendasResult, reportsResult] = await Promise.allSettled([
-      api("/agendas/?page_size=50&reportable=true&pending_report=true"),
+      api(`/agendas/?page_size=50&reportable=true&pending_report=true${pendingChiefQuery ? `&chief=${encodeURIComponent(pendingChiefQuery)}` : ''}`),
       api(`/education-reports/?${params.toString()}`),
     ]);
 
@@ -403,7 +406,7 @@ export default function TechnicalReportsPage() {
       setLoadError(failures.join(" "));
     }
   };
-  useEffect(() => { load(); }, [techFilters]);
+  useEffect(() => { load(); }, [techFilters, pendingChiefQuery]);
 
   useEffect(() => {
     if (form.operation_date && form.team) {
@@ -483,22 +486,41 @@ export default function TechnicalReportsPage() {
         agenda.external_email,
       ], current.contact_received),
       occurrence_observation: current.occurrence_observation || agenda.notes || agenda.description || "",
-      actions: current.actions.map((action) => ({
-        ...action,
-        agenda: agenda.id,
-        place_action: action.place_action || agenda.institution_location || agenda.location || "",
-        institution_name: action.institution_name || agenda.institution_location || "",
-        type_action: action.type_action || agenda.action_type || agenda.action_type_ref_name || "",
-        type_audience: action.type_audience || agenda.audience || "",
-        start_time: action.start_time || agenda.start_time?.slice(0, 5) || "",
-        final_hour: action.final_hour || agenda.end_time?.slice(0, 5) || "",
-        approach: action.approach || agenda.quantity || 0,
-        approached_actions: action.approached_actions || agenda.quantity || 0,
-        equipment_materials_removed: action.equipment_materials_removed || selectedMaterials.equipmentRemoved,
-        equipment_materials_distributed: action.equipment_materials_distributed || selectedMaterials.equipmentDistributed,
-        distribution_materials_removed: action.distribution_materials_removed || selectedMaterials.distributionRemoved,
-        distribution_materials_distributed: action.distribution_materials_distributed || selectedMaterials.distributionDistributed,
-      })),
+      actions: (agenda.requester_entity_type?.startsWith("Ação de Rua") && agenda.street_action_details?.length) 
+        ? agenda.street_action_details.map((detail, idx) => {
+            const action = current.actions[idx] || { place_action: "", type_action: "", type_audience: "", institution_name: "", start_time: "", final_hour: "", approach: 0, approached_actions: 0, equipment_materials_removed: "", equipment_materials_distributed: "", distribution_materials_removed: "", distribution_materials_distributed: "" };
+            return {
+              ...action,
+              agenda: agenda.id,
+              place_action: action.place_action || detail.type || agenda.institution_location || agenda.location || "",
+              type_action: action.type_action || detail.type || agenda.action_type || agenda.action_type_ref_name || "",
+              type_audience: action.type_audience || agenda.audience || "",
+              start_time: action.start_time || agenda.start_time?.slice(0, 5) || "",
+              final_hour: action.final_hour || agenda.end_time?.slice(0, 5) || "",
+              approach: action.approach || agenda.quantity || 0,
+              approached_actions: action.approached_actions || detail.public || agenda.quantity || 0,
+              equipment_materials_removed: action.equipment_materials_removed || selectedMaterials.equipmentRemoved,
+              equipment_materials_distributed: action.equipment_materials_distributed || selectedMaterials.equipmentDistributed,
+              distribution_materials_removed: action.distribution_materials_removed || selectedMaterials.distributionRemoved,
+              distribution_materials_distributed: action.distribution_materials_distributed || selectedMaterials.distributionDistributed,
+            };
+          })
+        : current.actions.map((action) => ({
+            ...action,
+            agenda: agenda.id,
+            place_action: action.place_action || agenda.institution_location || agenda.location || "",
+            institution_name: action.institution_name || agenda.institution_location || "",
+            type_action: action.type_action || agenda.action_type || agenda.action_type_ref_name || "",
+            type_audience: action.type_audience || agenda.audience || "",
+            start_time: action.start_time || agenda.start_time?.slice(0, 5) || "",
+            final_hour: action.final_hour || agenda.end_time?.slice(0, 5) || "",
+            approach: action.approach || agenda.quantity || 0,
+            approached_actions: action.approached_actions || agenda.quantity || 0,
+            equipment_materials_removed: action.equipment_materials_removed || selectedMaterials.equipmentRemoved,
+            equipment_materials_distributed: action.equipment_materials_distributed || selectedMaterials.equipmentDistributed,
+            distribution_materials_removed: action.distribution_materials_removed || selectedMaterials.distributionRemoved,
+            distribution_materials_distributed: action.distribution_materials_distributed || selectedMaterials.distributionDistributed,
+          })),
     }));
 
     // O carregamento da escala agora é feito pelo useEffect monitorando operation_date e team
@@ -869,66 +891,7 @@ export default function TechnicalReportsPage() {
             </div>
           )}
 
-          {selectedAgenda?.requester_entity_type?.startsWith("Ação de Rua") && (
-            <div className="form-section">
-              <h3>Detalhes da Ação de Rua</h3>
-              <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "12px" }}>
-                Preencha os tipos de locais abordados e a respectiva estimativa de público.
-              </p>
-              <div className="street-action-list">
-                {(form.street_action_details || []).map((detail, idx) => (
-                  <div key={idx} style={{ display: "flex", gap: "8px", marginBottom: "8px", alignItems: "center" }}>
-                    <select
-                      style={{ flex: 1 }}
-                      value={detail.type}
-                      onChange={(e) => {
-                        const newDetails = [...(form.street_action_details || [])];
-                        newDetails[idx].type = e.target.value;
-                        update("street_action_details", newDetails);
-                      }}
-                      required
-                    >
-                      <option value="">Selecione o tipo</option>
-                      <option value="Bar">Bar</option>
-                      <option value="Praça Esportiva">Praça Esportiva</option>
-                      <option value="Evento">Evento</option>
-                      <option value="Praia">Praia</option>
-                      <option value="Outros">Outros</option>
-                    </select>
-                    <input
-                      style={{ flex: 1 }}
-                      type="number"
-                      placeholder="Quantidade de público"
-                      value={detail.public}
-                      onChange={(e) => {
-                        const newDetails = [...(form.street_action_details || [])];
-                        newDetails[idx].public = e.target.value ? Number(e.target.value) : "";
-                        update("street_action_details", newDetails);
-                      }}
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="danger icon-only"
-                      onClick={() => {
-                        const newDetails = (form.street_action_details || []).filter((_, i) => i !== idx);
-                        update("street_action_details", newDetails);
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => update("street_action_details", [...(form.street_action_details || []), { type: "", public: "" }])}
-                >
-                  <Plus size={18} /> Adicionar Tipo de Ação
-                </button>
-              </div>
-            </div>
-          )}
+
 
           <div className="form-section">
             <h3>Contato, ocorrências e localização</h3>
@@ -1161,19 +1124,41 @@ export default function TechnicalReportsPage() {
         {activeTab === "pending" && (
           <div className="report-list-content" style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "calc(100vh - 180px)", overflowY: "auto", paddingRight: "4px" }}>
             <div style={{ marginBottom: "12px", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "8px", padding: "10px", display: "flex", flexDirection: "column", gap: "6px" }}>
-              <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-soft)" }}>FILTRAR POR DATA</span>
+              <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-soft)" }}>FILTRAR PENDENTES</span>
               <div style={{ display: "flex", gap: "8px" }}>
-                <input 
-                  type="date" 
-                  value={pendingDateFilter} 
-                  onChange={(e) => setPendingDateFilter(e.target.value)} 
+                <input
+                  type="date"
+                  value={pendingDateFilter}
+                  onChange={(e) => setPendingDateFilter(e.target.value)}
                   style={{ minHeight: "32px", fontSize: "12.5px", padding: "4px 8px", flex: 1 }}
                 />
-                {pendingDateFilter && (
+              </div>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input
+                  type="text"
+                  placeholder="Buscar chefe na base..."
+                  value={pendingChiefFilter}
+                  onChange={(e) => setPendingChiefFilter(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setPendingChiefQuery(pendingChiefFilter);
+                    }
+                  }}
+                  style={{ minHeight: "32px", fontSize: "12.5px", padding: "4px 8px", flex: 1 }}
+                />
+                <button 
+                  type="button" 
+                  className="secondary" 
+                  onClick={() => setPendingChiefQuery(pendingChiefFilter)}
+                  style={{ minHeight: "32px", padding: "0 10px", fontSize: "12px" }}
+                >
+                  Buscar
+                </button>
+                {(pendingDateFilter || pendingChiefQuery) && (
                   <button 
                     type="button" 
                     className="secondary" 
-                    onClick={() => setPendingDateFilter("")}
+                    onClick={() => { setPendingDateFilter(""); setPendingChiefFilter(""); setPendingChiefQuery(""); }}
                     style={{ minHeight: "32px", padding: "0 10px", fontSize: "12px" }}
                   >
                     Limpar

@@ -60,6 +60,10 @@ def delete_user_dependencies(user):
     SatisfactionSurvey.objects.filter(agenda__in=agendas).delete()
     AgendaHistory.objects.filter(changed_by=user).delete()
     agendas.delete()
+    
+    from .serializers import deactivate_other_user_lookups
+    deactivate_other_user_lookups(user)
+
 
 
 class UserAccessPermission(BasePermission):

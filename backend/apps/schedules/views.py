@@ -232,8 +232,26 @@ class ShiftScheduleViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(team_id=params["team"])
             
         user = self.request.user
-        if not user.is_admin_role and user.sector_id:
-            queryset = queryset.filter(team_id=user.sector_id)
+        if not user.is_admin_role:
+            from apps.schedules.models import Chief, Agent, Support
+            source_id = f"user:{user.id}"
+            
+            q_filter = Q()
+            if user.sector_id:
+                q_filter |= Q(team_id=user.sector_id)
+                
+            chief_ids = Chief.objects.filter(source_id=source_id).values_list("id", flat=True)
+            agent_ids = Agent.objects.filter(source_id=source_id).values_list("id", flat=True)
+            support_ids = Support.objects.filter(source_id=source_id).values_list("id", flat=True)
+            
+            if chief_ids:
+                q_filter |= Q(extra_chiefs__in=chief_ids)
+            if agent_ids:
+                q_filter |= Q(extra_agents__in=agent_ids)
+            if support_ids:
+                q_filter |= Q(extra_supports__in=support_ids)
+                
+            queryset = queryset.filter(q_filter).distinct()
             
         return queryset.order_by("date", "team__name")
 
@@ -485,6 +503,9 @@ class AgendaViewSet(viewsets.ModelViewSet):
             scoped = scoped.filter(created_by_id=params["user"])
         if params.get("responsible"):
             scoped = scoped.filter(responsible_id=params["responsible"])
+        if params.get("chief"):
+            term = params["chief"].strip()
+            scoped = scoped.filter(Q(chief_name__icontains=term) | Q(chief_ref__name__icontains=term))
         if params.get("vehicle"):
             scoped = scoped.filter(vehicle_ref_id=params["vehicle"])
         if params.get("team"):
