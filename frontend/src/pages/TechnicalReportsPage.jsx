@@ -807,7 +807,7 @@ export default function TechnicalReportsPage() {
                           className={field === "approach" ? "read-only-field" : ""} 
                           readOnly={field === "approach"} 
                           title={field === "approach" ? "Preenchido automaticamente a partir da solicitação" : ""} 
-                          onChange={field === "approached_actions" ? (e) => updateAction(index, field, e.target.value) : undefined} 
+                          onChange={(e) => updateAction(index, field, e.target.value)} 
                         />
                       </label>
                     ))}
