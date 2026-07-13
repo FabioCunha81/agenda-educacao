@@ -2,6 +2,18 @@ import re
 from collections import Counter, defaultdict
 from datetime import date, timedelta
 
+def normalize_name(name):
+    if not name:
+        return ""
+    val = name.strip()
+    if val.lower() in ["sem bairro", "sem município", "sem municipio"]:
+        return val
+    t = val.title()
+    for prep in [" Da ", " De ", " Do ", " Das ", " Dos "]:
+        t = t.replace(prep, prep.lower())
+    return t
+
+
 from django.db import transaction
 from django.db.models import Avg, Case, Count, F, IntegerField, Q, Sum, Value, When
 from django.db.models.functions import ExtractMonth, ExtractYear, TruncMonth
@@ -1022,11 +1034,11 @@ class AgendaViewSet(viewsets.ModelViewSet):
             for status, label in visible_statuses
         ]
         by_municipality_counter = Counter(
-            (
+            normalize_name(
                 row.get("municipality_ref__name")
                 or row.get("city")
                 or "Sem município"
-            ).strip()
+            )
             for row in qs.values("municipality_ref__name", "city")
         )
         by_municipality = [
@@ -1034,11 +1046,11 @@ class AgendaViewSet(viewsets.ModelViewSet):
             for label, value in by_municipality_counter.most_common(8)
         ]
         by_neighborhood_counter = Counter(
-            (
+            normalize_name(
                 row.get("neighborhood_ref__name")
                 or row.get("neighborhood")
                 or "Sem bairro"
-            ).strip()
+            )
             for row in qs.values("neighborhood_ref__name", "neighborhood")
         )
         by_neighborhood = [
@@ -2707,13 +2719,13 @@ class ReportViewSet(viewsets.ViewSet):
 
         # 3. Compute Top categories lists
         by_municipality_counter = Counter(
-            (row.get("municipality_ref__name") or row.get("city") or "Sem município").strip()
+            normalize_name(row.get("municipality_ref__name") or row.get("city") or "Sem município")
             for row in qs.values("municipality_ref__name", "city")
         )
         by_municipality = by_municipality_counter.most_common(8)
 
         by_neighborhood_counter = Counter(
-            (row.get("neighborhood_ref__name") or row.get("neighborhood") or "Sem bairro").strip()
+            normalize_name(row.get("neighborhood_ref__name") or row.get("neighborhood") or "Sem bairro")
             for row in qs.values("neighborhood_ref__name", "neighborhood")
         )
         by_neighborhood = by_neighborhood_counter.most_common(8)
