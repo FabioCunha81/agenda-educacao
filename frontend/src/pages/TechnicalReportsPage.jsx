@@ -473,6 +473,7 @@ export default function TechnicalReportsPage() {
       education_agents: current.education_agents || details.agents,
       changes_staff: current.changes_staff || "",
       approximate_public: current.approximate_public || details.audience,
+      street_action_details: current.street_action_details?.length ? current.street_action_details : (agenda.street_action_details || []),
       materials_removed: current.materials_removed || materialsFromAgenda(agenda),
       breathalyzers: current.breathalyzers || details.resources,
       cars: current.cars || joinValues([agenda.vehicle, agenda.vehicle_name]),

@@ -293,6 +293,7 @@ class Agenda(models.Model):
     institution_location = models.CharField(max_length=220, blank=True)
     quantity = models.PositiveIntegerField(null=True, blank=True)
     participant_range = models.CharField(max_length=40, blank=True)
+    street_action_details = models.JSONField(default=list, blank=True)
     actions_count = models.PositiveSmallIntegerField(null=True, blank=True)
     schedule_text = models.CharField(max_length=120, blank=True)
     time_2 = models.TimeField(null=True, blank=True)

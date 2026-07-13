@@ -34,6 +34,7 @@ const emptyForm = {
   institution_location: "",
   quantity: "",
   participant_range: "",
+  street_action_details: [],
   actions_count: "",
   schedule_text: "",
   time_2: "",
@@ -1384,8 +1385,57 @@ export default function AgendaPage() {
             </div>
             <input placeholder="Público" value={form.audience} onChange={(e) => update("audience", e.target.value)} />
             <input placeholder="Faixa etária" value={form.age_ranges} onChange={(e) => update("age_ranges", e.target.value)} />
-            {(!form.requester_entity_type || !form.requester_entity_type.startsWith("Ação de Rua")) && (
+            {(!form.requester_entity_type || !form.requester_entity_type.startsWith("Ação de Rua")) ? (
               <input placeholder="Faixa de participantes" value={form.participant_range} onChange={(e) => update("participant_range", e.target.value)} />
+            ) : (
+              <div style={{ marginTop: "12px", marginBottom: "12px", border: "1px solid var(--border)", padding: "12px", borderRadius: "8px" }}>
+                <strong>Tipos de Ação (Locais)</strong>
+                <p style={{ fontSize: "12px", color: "var(--text-soft)", marginBottom: "8px" }}>
+                  Adicione os locais que serão visitados. O público será preenchido pelo Chefe de Equipe no relatório.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {(form.street_action_details || []).map((detail, idx) => (
+                    <div key={idx} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      <select
+                        style={{ flex: 1 }}
+                        value={detail.type}
+                        onChange={(e) => {
+                          const newDetails = [...(form.street_action_details || [])];
+                          newDetails[idx].type = e.target.value;
+                          update("street_action_details", newDetails);
+                        }}
+                        required
+                      >
+                        <option value="">Selecione o tipo</option>
+                        <option value="Bar">Bar</option>
+                        <option value="Praça Esportiva">Praça Esportiva</option>
+                        <option value="Evento">Evento</option>
+                        <option value="Praia">Praia</option>
+                        <option value="Outros">Outros</option>
+                      </select>
+                      <button
+                        type="button"
+                        className="danger icon-only"
+                        title="Remover"
+                        onClick={() => {
+                          const newDetails = (form.street_action_details || []).filter((_, i) => i !== idx);
+                          update("street_action_details", newDetails);
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => update("street_action_details", [...(form.street_action_details || []), { type: "", public: "" }])}
+                    style={{ alignSelf: "flex-start" }}
+                  >
+                    <Plus size={16} /> Adicionar Local
+                  </button>
+                </div>
+              </div>
             )}
             <input placeholder="Acesso por rampa/elevador" value={form.accessibility_access} onChange={(e) => update("accessibility_access", e.target.value)} />
             <div className="compact-grid three-cols">
