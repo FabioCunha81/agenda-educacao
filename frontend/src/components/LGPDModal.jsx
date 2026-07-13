@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Shield } from "lucide-react";
@@ -36,7 +37,7 @@ export default function LGPDModal({ onConsent }) {
     }
   };
 
-  return (
+  const modalContent = (
     <div style={{
       position: "fixed",
       top: 0,
@@ -44,7 +45,7 @@ export default function LGPDModal({ onConsent }) {
       right: 0,
       bottom: 0,
       backgroundColor: "rgba(0, 0, 0, 0.7)",
-      zIndex: 99999,
+      zIndex: 999999,
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
@@ -98,4 +99,6 @@ export default function LGPDModal({ onConsent }) {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
