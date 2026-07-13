@@ -46,6 +46,7 @@ const empty = {
   education_agents: "",
   changes_staff: "",
   approximate_public: "",
+  street_action_details: [],
   accessibility_conditions_met: "",
   materials_removed: "",
   materials_spent: "",
@@ -864,6 +865,67 @@ export default function TechnicalReportsPage() {
               >
                 <Clipboard size={18} /> Gerenciar Frequência
               </button>
+            </div>
+          )}
+
+          {selectedAgenda?.requester_entity_type?.startsWith("Ação de Rua") && (
+            <div className="form-section">
+              <h3>Detalhes da Ação de Rua</h3>
+              <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "12px" }}>
+                Preencha os tipos de locais abordados e a respectiva estimativa de público.
+              </p>
+              <div className="street-action-list">
+                {(form.street_action_details || []).map((detail, idx) => (
+                  <div key={idx} style={{ display: "flex", gap: "8px", marginBottom: "8px", alignItems: "center" }}>
+                    <select
+                      style={{ flex: 1 }}
+                      value={detail.type}
+                      onChange={(e) => {
+                        const newDetails = [...(form.street_action_details || [])];
+                        newDetails[idx].type = e.target.value;
+                        update("street_action_details", newDetails);
+                      }}
+                      required
+                    >
+                      <option value="">Selecione o tipo</option>
+                      <option value="Bar">Bar</option>
+                      <option value="Praça Esportiva">Praça Esportiva</option>
+                      <option value="Evento">Evento</option>
+                      <option value="Praia">Praia</option>
+                      <option value="Outros">Outros</option>
+                    </select>
+                    <input
+                      style={{ flex: 1 }}
+                      type="number"
+                      placeholder="Quantidade de público"
+                      value={detail.public}
+                      onChange={(e) => {
+                        const newDetails = [...(form.street_action_details || [])];
+                        newDetails[idx].public = e.target.value ? Number(e.target.value) : "";
+                        update("street_action_details", newDetails);
+                      }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="danger icon-only"
+                      onClick={() => {
+                        const newDetails = (form.street_action_details || []).filter((_, i) => i !== idx);
+                        update("street_action_details", newDetails);
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => update("street_action_details", [...(form.street_action_details || []), { type: "", public: "" }])}
+                >
+                  <Plus size={18} /> Adicionar Tipo de Ação
+                </button>
+              </div>
             </div>
           )}
 

@@ -1384,7 +1384,9 @@ export default function AgendaPage() {
             </div>
             <input placeholder="Público" value={form.audience} onChange={(e) => update("audience", e.target.value)} />
             <input placeholder="Faixa etária" value={form.age_ranges} onChange={(e) => update("age_ranges", e.target.value)} />
-            <input placeholder="Faixa de participantes" value={form.participant_range} onChange={(e) => update("participant_range", e.target.value)} />
+            {(!form.requester_entity_type || !form.requester_entity_type.startsWith("Ação de Rua")) && (
+              <input placeholder="Faixa de participantes" value={form.participant_range} onChange={(e) => update("participant_range", e.target.value)} />
+            )}
             <input placeholder="Acesso por rampa/elevador" value={form.accessibility_access} onChange={(e) => update("accessibility_access", e.target.value)} />
             <div className="compact-grid three-cols">
               <input placeholder="Rampa" value={form.has_ramps} onChange={(e) => update("has_ramps", e.target.value)} />

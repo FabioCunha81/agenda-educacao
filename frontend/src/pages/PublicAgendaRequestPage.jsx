@@ -92,11 +92,11 @@ function optionList(options) {
   ));
 }
 
-function addOneHour(time) {
+function addHours(time, amount) {
   if (!time) return "";
   const [hours, minutes] = time.split(":").map(Number);
   const date = new Date(2000, 0, 1, hours, minutes);
-  date.setHours(date.getHours() + 1);
+  date.setHours(date.getHours() + amount);
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
@@ -211,6 +211,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
 
   const submit = async (event) => {
     event.preventDefault();
+    const isAcaoRua = form.requester_entity_kind === "Ação de Rua";
     if (editMode) {
       setLoading(true);
       setMessage("");
@@ -220,7 +221,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
           body: JSON.stringify({
             date: form.date,
             start_time: form.start_time,
-            end_time: addOneHour(form.start_time),
+            end_time: isAcaoRua ? addHours(form.start_time, 4) : addHours(form.start_time, 1),
             actions_count: form.actions_count === "" ? null : Number(form.actions_count),
             time_2: null,
             time_3: null,
@@ -257,7 +258,6 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
         form.address_number ? `nº ${form.address_number}` : "",
         form.address_complement,
       ].filter(Boolean).join(", ");
-      const isAcaoRua = form.requester_entity_kind === "Ação de Rua";
       const payload = {
         ...form,
         address: fullAddress,
@@ -268,7 +268,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
           form.image_authorization === "Outro"
             ? form.image_authorization_other
             : form.image_authorization,
-        end_time: addOneHour(form.start_time),
+        end_time: isAcaoRua ? addHours(form.start_time, 4) : addHours(form.start_time, 1),
         quantity: (isAcaoRua && !internalRequest) ? null : (form.quantity === "" ? null : Number(form.quantity)),
         actions_count: form.actions_count === "" ? null : Number(form.actions_count),
         time_2: null,

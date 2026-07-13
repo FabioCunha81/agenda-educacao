@@ -643,6 +643,12 @@ class AgendaSerializer(serializers.ModelSerializer):
 
         if start_time and end_time and start_time == end_time:
             raise serializers.ValidationError("A hora final não pode ser igual à hora inicial.")
+            
+        requester_entity_type = attrs.get("requester_entity_type", getattr(instance, "requester_entity_type", ""))
+        if str(requester_entity_type).startswith("Ação de Rua") and start_time:
+            from datetime import datetime, timedelta
+            dummy_date = datetime.combine(datetime.today(), start_time)
+            attrs["end_time"] = (dummy_date + timedelta(hours=4)).time()
 
         status = attrs.get("status", getattr(instance, "status", None))
         cancel_reason = attrs.get("cancel_reason", getattr(instance, "cancel_reason", ""))
@@ -907,6 +913,7 @@ class EducationReportSerializer(serializers.ModelSerializer):
             "education_agents",
             "changes_staff",
             "approximate_public",
+            "street_action_details",
             "accessibility_conditions_met",
             "materials_removed",
             "materials_spent",
@@ -1138,6 +1145,11 @@ class PublicAgendaRequestSerializer(serializers.Serializer):
     notes = serializers.CharField(required=False, allow_blank=True)
 
     def validate(self, attrs):
+        if attrs.get("requester_entity_type", "").startswith("Ação de Rua") and attrs.get("start_time"):
+            from datetime import datetime, timedelta
+            dummy_date = datetime.combine(datetime.today(), attrs["start_time"])
+            attrs["end_time"] = (dummy_date + timedelta(hours=4)).time()
+
         if attrs["start_time"] >= attrs["end_time"]:
             raise serializers.ValidationError("A hora final deve ser maior que a hora inicial.")
             

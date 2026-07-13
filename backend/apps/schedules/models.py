@@ -534,6 +534,7 @@ class EducationReport(models.Model):
     education_agents = models.TextField(blank=True)
     changes_staff = models.TextField(blank=True)
     approximate_public = models.PositiveIntegerField(null=True, blank=True)
+    street_action_details = models.JSONField(default=list, blank=True)
     accessibility_conditions_met = models.CharField(
         max_length=3,
         choices=[("YES", "Sim"), ("NO", "Não")],
