@@ -531,6 +531,8 @@ class AgendaSerializer(serializers.ModelSerializer):
     satisfaction_survey_token = serializers.SerializerMethodField()
     satisfaction_survey_answered_at = serializers.SerializerMethodField()
     satisfaction_rating = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
+    delete_block_reason = serializers.SerializerMethodField()
 
     class Meta:
         model = Agenda
@@ -544,6 +546,8 @@ class AgendaSerializer(serializers.ModelSerializer):
             "satisfaction_survey_token",
             "satisfaction_survey_answered_at",
             "satisfaction_rating",
+            "can_delete",
+            "delete_block_reason",
             "title",
             "description",
             "date",
@@ -678,6 +682,27 @@ class AgendaSerializer(serializers.ModelSerializer):
         if not answered_surveys:
             return None
         return sum(s.overall_rating for s in answered_surveys if s.overall_rating) / len(answered_surveys)
+
+    def get_can_delete(self, obj):
+        return not bool(self.get_delete_block_reason(obj))
+
+    def get_delete_block_reason(self, obj):
+        blockers = []
+        if obj.technical_reports.exists():
+            blockers.append("relat?rio t?cnico")
+        if hasattr(obj, "event_report"):
+            blockers.append("relat?rio de evento")
+        if obj.satisfaction_surveys.exists():
+            blockers.append("avalia??o de satisfa??o")
+        if not blockers:
+            return ""
+        if len(blockers) == 1:
+            joined = blockers[0]
+        elif len(blockers) == 2:
+            joined = " e ".join(blockers)
+        else:
+            joined = ", ".join(blockers[:-1]) + f" e {blockers[-1]}"
+        return f"Esta solicita??o n?o pode ser exclu?da porque j? possui {joined} vinculado."
 
     def create(self, validated_data):
         materials_data = validated_data.pop("materials", [])

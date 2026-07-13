@@ -18,6 +18,7 @@ def normalize_name(name):
 
 
 from django.db import OperationalError, ProgrammingError, transaction
+from django.db.models.deletion import ProtectedError
 from django.db.models import Avg, Case, Count, F, IntegerField, Q, Sum, Value, When
 from django.db.models.functions import ExtractMonth, ExtractYear, TruncMonth
 from django.core import signing
@@ -622,6 +623,29 @@ class AgendaViewSet(viewsets.ModelViewSet):
             f"Agenda excluida: protocolo {label}.",
             metadata,
         )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            blockers = []
+            if instance.technical_reports.exists():
+                blockers.append("relat?rio t?cnico")
+            if hasattr(instance, "event_report"):
+                blockers.append("relat?rio de evento")
+            if instance.satisfaction_surveys.exists():
+                blockers.append("avalia??o de satisfa??o")
+            if len(blockers) == 1:
+                joined = blockers[0]
+            elif len(blockers) == 2:
+                joined = " e ".join(blockers)
+            else:
+                joined = ", ".join(blockers[:-1]) + f" e {blockers[-1]}" if blockers else "registros vinculados"
+            return response.Response(
+                {"detail": f"Esta solicita??o n?o pode ser exclu?da porque j? possui {joined} vinculado."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     @decorators.action(detail=True, methods=["post"], url_path="send-available-dates")
     def send_available_dates(self, request, pk=None):

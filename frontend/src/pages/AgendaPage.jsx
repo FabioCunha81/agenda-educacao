@@ -734,7 +734,7 @@ export default function AgendaPage() {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (agenda) => {
     if (!canDelete) {
       setMessage("Seu perfil não tem permissão para excluir solicitações.");
       return;
@@ -1005,7 +1005,13 @@ export default function AgendaPage() {
                       <ClipboardCheck size={16} /> Avaliar solicitação
                     </button>
                     {canDelete && (
-                      <button className="secondary" style={{ color: "#d9534f", borderColor: "#d9534f" }} onClick={() => handleDelete(agenda.id)} title="Excluir">
+                      <button
+                        className="secondary"
+                        style={{ color: "#d9534f", borderColor: "#d9534f" }}
+                        onClick={() => handleDelete(agenda)}
+                        title={agenda.can_delete === false ? agenda.delete_block_reason || "N?o ? poss?vel excluir" : "Excluir"}
+                        disabled={agenda.can_delete === false}
+                      >
                         <Trash2 size={16} />
                       </button>
                     )}

@@ -256,6 +256,38 @@ class EducationReportSerializerTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
 
+    def test_agenda_with_technical_report_exposes_delete_block_reason(self):
+        sector = Sector.objects.create(name="EDUCACAO RELATORIOS BLOQUEIO")
+        admin = User.objects.create_user(
+            email="admin-delete@example.com",
+            password="password123",
+            full_name="Admin Delete",
+            role=User.Role.ADMIN,
+            sector=sector,
+        )
+        agenda = Agenda.objects.create(
+            title="Acao educativa",
+            description="Atividade educativa",
+            date=date(2026, 7, 23),
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            location="Escola Municipal",
+            responsible=admin,
+            sector=sector,
+            created_by=admin,
+        )
+        EducationReport.objects.create(
+            agenda=agenda,
+            operation_date=agenda.date,
+            team="Equipe Educacao",
+            created_by=admin,
+        )
+
+        serializer = AgendaSerializer(instance=agenda)
+
+        self.assertFalse(serializer.data["can_delete"])
+        self.assertIn("relat?rio t?cnico", serializer.data["delete_block_reason"].lower())
+
 class AgendaMaterialPersistenceTests(TestCase):
     def test_serializer_persists_dynamic_materials(self):
         sector = Sector.objects.create(name="EDUCACAO")
