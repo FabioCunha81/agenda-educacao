@@ -73,6 +73,21 @@ const fieldLabels = {
   approached_actions: "Número de abordagens",
 };
 
+const streetActionTypeOptions = [
+  "Bares",
+  "Ped?gio",
+  "Esportes",
+  "Praia",
+  "Eventos",
+  "Shopping",
+  "A??o Social",
+  "Outros",
+];
+
+function isStreetActionAgenda(agenda) {
+  return String(agenda?.requester_entity_type || "").toLowerCase().includes("rua");
+}
+
 function nullable(value) {
   return value === "" ? null : value;
 }
@@ -841,12 +856,21 @@ export default function TechnicalReportsPage() {
                   </button>
                 </div>
                 <div className="compact-grid">
-                  <input placeholder="Local da ação" value={action.place_action || ""} onChange={(event) => updateAction(index, "place_action", event.target.value)} readOnly={requestFieldsReadOnly} />
-                  <input placeholder="Tipo da ação" value={action.type_action || ""} onChange={(event) => updateAction(index, "type_action", event.target.value)} readOnly={requestFieldsReadOnly} />
+                  <input placeholder="Local da a??o" value={action.place_action || ""} onChange={(event) => updateAction(index, "place_action", event.target.value)} readOnly={requestFieldsReadOnly} />
+                  {isStreetActionAgenda(selectedAgenda) ? (
+                    <select value={action.type_action || ""} onChange={(event) => updateAction(index, "type_action", event.target.value)} required>
+                      <option value="">Selecione o tipo da a??o</option>
+                      {streetActionTypeOptions.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input placeholder="Tipo da a??o" value={action.type_action || ""} onChange={(event) => updateAction(index, "type_action", event.target.value)} readOnly={requestFieldsReadOnly} />
+                  )}
                 </div>
                 <div className="compact-grid">
-                  <input placeholder="Tipo de público" value={action.type_audience || ""} onChange={(event) => updateAction(index, "type_audience", event.target.value)} readOnly={requestFieldsReadOnly} />
-                  <input placeholder="Instituição" value={action.institution_name || ""} onChange={(event) => updateAction(index, "institution_name", event.target.value)} readOnly={requestFieldsReadOnly} />
+                  <input placeholder="Tipo de p?blico" value={action.type_audience || ""} onChange={(event) => updateAction(index, "type_audience", event.target.value)} />
+                  <input placeholder="Institui??o" value={action.institution_name || ""} onChange={(event) => updateAction(index, "institution_name", event.target.value)} readOnly={requestFieldsReadOnly} />
                 </div>
                 <div className="compact-grid">
                   <input placeholder="Hora inicial" value={action.start_time || ""} onChange={(event) => updateAction(index, "start_time", event.target.value)} readOnly={requestFieldsReadOnly} />

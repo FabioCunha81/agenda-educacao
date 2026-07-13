@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from django.db.models import Q
+import re
+import unicodedata
 
 from .models import (
     ActionType,
@@ -822,6 +824,18 @@ class EventReportSerializer(serializers.ModelSerializer):
         return report_text(obj)
 
 
+ACTION_COUNTER_FIELDS = {
+    "bares": "bars",
+    "pedagio": "tolls",
+    "esportes": "sports",
+    "praia": "beach",
+    "eventos": "events",
+    "shopping": "shopping",
+    "acao social": "social_actions",
+    "outros": "other_actions",
+}
+
+
 class EducationActionSerializer(serializers.ModelSerializer):
     agenda_title = serializers.CharField(source="agenda.title", read_only=True)
 
@@ -879,6 +893,27 @@ class EducationActionSerializer(serializers.ModelSerializer):
 
     def validate_source_id(self, value):
         return value or None
+
+    def validate(self, attrs):
+        action_type = str(attrs.get("type_action") or "").strip()
+        counter_fields = [
+            "educational_actions",
+            "bars",
+            "tolls",
+            "sports",
+            "beach",
+            "events",
+            "shopping",
+            "social_actions",
+            "other_actions",
+        ]
+        for field in counter_fields:
+            attrs[field] = 0
+        mapped_field = ACTION_COUNTER_FIELDS.get(normalize_action_choice(action_type))
+        if mapped_field:
+            attrs["educational_actions"] = 1
+            attrs[mapped_field] = 1
+        return attrs
 
 
 class EducationReportSerializer(serializers.ModelSerializer):
@@ -1050,6 +1085,13 @@ def normalize_block_value(value):
     return " ".join(str(value or "").strip().casefold().split())
 
 
+def normalize_action_choice(value):
+    normalized = unicodedata.normalize("NFKD", str(value or "")).encode("ascii", "ignore").decode("ascii")
+    normalized = normalized.replace("?", "")
+    normalized = re.sub(r"[^a-z0-9]+", " ", normalized.casefold())
+    return " ".join(normalized.split())
+
+
 def find_accessibility_block(attrs):
     institution = normalize_block_value(attrs.get("institution_location"))
     address = normalize_block_value(attrs.get("address"))
@@ -1089,6 +1131,28 @@ LEGACY_PUBLIC_AGE_RANGE_CHOICES = [
 ]
 
 
+PUBLIC_ACTION_TYPE_CHOICES = [
+    "Palestra",
+    "A??o de educa??o/conscientiza??o",
+    "Palestra Empresa",
+    "Palestra Escola",
+    "Palestra Virtual",
+    "A??o educativa (Espa?o interno)",
+    "Palestra bil?ngue (Ingl?s)",
+]
+
+STREET_ACTION_TYPE_CHOICES = [
+    "Bares",
+    "Ped?gio",
+    "Esportes",
+    "Praia",
+    "Eventos",
+    "Shopping",
+    "A??o Social",
+    "Outros",
+]
+
+
 class PublicAgendaRequestSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=180)
     description = serializers.CharField()
@@ -1097,17 +1161,34 @@ class PublicAgendaRequestSerializer(serializers.Serializer):
     end_time = serializers.TimeField()
     time_2 = serializers.TimeField(required=False, allow_null=True)
     time_3 = serializers.TimeField(required=False, allow_null=True)
-    action_type = serializers.ChoiceField(
-        choices=[
-            "Palestra",
-            "Ação de educação/conscientização",
-            "Palestra Empresa",
-            "Palestra Escola",
-            "Palestra Virtual",
-            "Ação educativa (Espaço interno)",
-            "Palestra bilíngue (Inglês)",
-        ]
-    )
+    action_type = serializers.CharField(max_length=160)
+    def validate_action_type(self, value):
+        cleaned = str(value or "").strip()
+        normalized = normalize_action_choice(cleaned)
+        allowed = {
+            normalize_action_choice(option)
+            for option in [
+                "Palestra",
+                "Acao de educacao conscientizacao",
+                "Palestra Empresa",
+                "Palestra Escola",
+                "Palestra Virtual",
+                "Acao educativa espaco interno",
+                "Palestra bilingue ingles",
+                "Bares",
+                "Pedagio",
+                "Esportes",
+                "Praia",
+                "Eventos",
+                "Shopping",
+                "Acao Social",
+                "Outros",
+            ]
+        }
+        if normalized not in allowed:
+            raise serializers.ValidationError("Informe um tipo de a??o v?lido.")
+        return cleaned
+
     institution_location = serializers.CharField(max_length=220)
     actions_count = serializers.IntegerField(min_value=1, max_value=3, required=False, allow_null=True)
     address = serializers.CharField(max_length=220)

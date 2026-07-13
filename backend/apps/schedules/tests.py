@@ -86,6 +86,23 @@ class PublicAgendaRequestSerializerTests(TestCase):
 
         self.assertTrue(serializer.is_valid(), serializer.errors)
 
+    def test_accepts_street_action_type(self):
+        data = self.valid_data()
+        data.update({
+            "action_type": "Praia",
+            "requester_entity_type": "A????o de Rua",
+            "participant_range": "",
+            "age_ranges": "",
+            "accessibility_access": "",
+            "has_accessible_bathrooms": "",
+            "quantity": None,
+            "end_time": "14:00",
+        })
+
+        serializer = PublicAgendaRequestSerializer(data=data)
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
     def test_rejects_multiple_age_ranges(self):
         data = self.valid_data()
         data["age_ranges"] = "05 - 10 anos (ensino fundamental - anos iniciais), 11 - 14 anos (ensino fundamental - anos finais)"
@@ -142,6 +159,37 @@ class PublicCepLookupTests(APITestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("CEP", response.data["detail"])
+
+
+class EducationActionSerializerTests(TestCase):
+    def test_action_serializer_maps_street_action_counter(self):
+        serializer = EducationReportSerializer(data={
+            "agenda": Agenda.objects.create(
+                title="Acao educativa",
+                description="Atividade educativa",
+                date="2026-07-22",
+                start_time="09:00",
+                end_time="10:00",
+                location="Escola",
+                responsible=User.objects.create_user(email="owner@example.com", password="password123", full_name="Owner", role=User.Role.MANAGER, sector=Sector.objects.create(name="SETOR")),
+                sector=Sector.objects.get(name="SETOR"),
+                created_by=User.objects.get(email="owner@example.com"),
+            ).id,
+            "operation_date": "2026-07-22",
+            "team": "Equipe",
+            "status": EducationReport.ReportStatus.DRAFT,
+            "actions": [{
+                "type_action": "Praia",
+                "approached_actions": 10,
+            }],
+        })
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        report = serializer.save(created_by=User.objects.get(email="owner@example.com"))
+        action = report.actions.get()
+        self.assertEqual(action.educational_actions, 1)
+        self.assertEqual(action.beach, 1)
+        self.assertEqual(action.events, 0)
 
 
 class EducationReportSerializerTests(APITestCase):

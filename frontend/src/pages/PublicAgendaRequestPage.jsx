@@ -11,6 +11,17 @@ const actionTypes = [
   "Ação de educação/conscientização",
 ];
 
+const streetActionTypes = [
+  "Bares",
+  "Ped?gio",
+  "Esportes",
+  "Praia",
+  "Eventos",
+  "Shopping",
+  "A??o Social",
+  "Outros",
+];
+
 const ageRangeOptions = [
   "05 - 10 anos (ensino fundamental - anos iniciais)",
   "11 - 14 anos (ensino fundamental - anos finais)",
@@ -124,6 +135,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
           ...current,
           date: data.date || "",
           start_time: String(data.start_time || "").slice(0, 5),
+          end_time: String(data.end_time || "").slice(0, 5),
           actions_count: String(data.actions_count || "1"),
           institution_location: data.institution_location || "",
           external_responsible: data.external_responsible || "",
@@ -217,7 +229,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
           body: JSON.stringify({
             date: form.date,
             start_time: form.start_time,
-            end_time: isAcaoRua ? addHours(form.start_time, 4) : addHours(form.start_time, 1),
+            end_time: isAcaoRua ? form.end_time : addHours(form.start_time, 1),
             actions_count: form.actions_count === "" ? null : Number(form.actions_count),
             time_2: null,
             time_3: null,
@@ -264,15 +276,15 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
           form.image_authorization === "Outro"
             ? form.image_authorization_other
             : form.image_authorization,
-        end_time: isAcaoRua ? addHours(form.start_time, 4) : addHours(form.start_time, 1),
+        end_time: isAcaoRua ? form.end_time : addHours(form.start_time, 1),
         quantity: isAcaoRua ? null : (form.quantity === "" ? null : Number(form.quantity)),
         actions_count: form.actions_count === "" ? null : Number(form.actions_count),
         time_2: null,
         time_3: null,
         age_ranges: isAcaoRua ? "" : form.age_ranges,
         media_equipment: form.media_equipment.join(", "),
-        action_type: isAcaoRua ? "Ação de educação/conscientização" : form.action_type,
-        participant_range: (isAcaoRua && !internalRequest) ? "" : form.participant_range,
+        action_type: form.action_type,
+        participant_range: isAcaoRua ? "" : form.participant_range,
         accessibility_access: isAcaoRua ? "" : form.accessibility_access,
         has_accessible_bathrooms: isAcaoRua ? "" : form.has_accessible_bathrooms,
       };
@@ -415,7 +427,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
                           setForm((current) => ({
                             ...current,
                             requester_entity_kind: option,
-                            ...(isAcaoRua ? { quantity: "", participant_range: "" } : {}),
+                            ...(isAcaoRua ? { quantity: "", participant_range: "", action_type: "", end_time: "" } : {}),
                             ...(isAcaoRua && internalRequest && user ? {
                               external_responsible: user.full_name || "",
                               external_email: user.email || "",
@@ -469,8 +481,8 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
           </div>
 
           <div className="form-section">
-            <h3>Dados da ação</h3>
-            {form.requester_entity_kind !== "Ação de Rua" && (
+            <h3>Dados da a??o</h3>
+            {form.requester_entity_kind !== "A??o de Rua" ? (
               <div className="field-card selection-card">
                 <strong>MODALIDADE PRETENDIDA <b>*</b></strong>
                 <div className="radio-list" role="radiogroup" aria-label="Modalidade pretendida">
@@ -481,7 +493,25 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
                         name="action_type"
                         checked={form.action_type === option}
                         onChange={() => update("action_type", option)}
-                        required={form.requester_entity_kind !== "Ação de Rua"}
+                        required={form.requester_entity_kind !== "A??o de Rua"}
+                      />
+                      <span>{option}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="field-card selection-card">
+                <strong>TIPO DE A??O DE RUA <b>*</b></strong>
+                <div className="radio-list" role="radiogroup" aria-label="Tipo de a??o de rua">
+                  {streetActionTypes.map((option) => (
+                    <label className="radio-option option-tile" key={option}>
+                      <input
+                        type="radio"
+                        name="action_type"
+                        checked={form.action_type === option}
+                        onChange={() => update("action_type", option)}
+                        required
                       />
                       <span>{option}</span>
                     </label>
@@ -491,28 +521,30 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
             )}
             <div className="split">
               <label className="field-label" style={{ flex: 1 }}>
-                <span>{form.requester_entity_kind === "Ação de Rua" ? "DATA" : "DATA PRETENDIDA"} <b>*</b></span>
+                <span>{form.requester_entity_kind === "A??o de Rua" ? "DATA" : "DATA PRETENDIDA"} <b>*</b></span>
                 <input type="date" value={form.date} onChange={(event) => update("date", event.target.value)} required style={{ borderColor: dateMessage ? "var(--red)" : "" }} />
                 {dateMessage && <small style={{ color: "var(--red)", marginTop: "4px", display: "block", fontSize: "11px", fontWeight: "600" }}>{dateMessage}</small>}
               </label>
               <label className="field-label" style={{ flex: 1 }}>
-                <span>HORÁRIO PRETENDIDO / Informar horário pretendido de início <b>*</b></span>
+                <span>HOR?RIO PRETENDIDO / Informar hor?rio pretendido de in?cio <b>*</b></span>
                 <input type="time" value={form.start_time} onChange={(event) => update("start_time", event.target.value)} max={internalRequest ? undefined : "18:00"} required />
               </label>
             </div>
-            {form.requester_entity_kind === "Ação de Rua" && internalRequest && (
-              <div className="field-card" style={{ marginTop: "16px" }}>
-                <strong>Número aproximado de pessoas (para relatório/estatística) <b>*</b></strong>
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="Ex: 50"
-                  value={form.quantity}
-                  onChange={(event) => update("quantity", event.target.value)}
-                  required
-                  style={{ marginTop: "8px", maxWidth: "200px" }}
-                />
-              </div>
+            {form.requester_entity_kind === "A??o de Rua" && (
+              <>
+                <div className="notice-card compact-notice">
+                  <strong>Dura??o de at? 4 horas. Informe manualmente o hor?rio final.</strong>
+                </div>
+                <label className="field-label" style={{ marginTop: "16px", maxWidth: "320px" }}>
+                  <span>HOR?RIO FINAL PRETENDIDO <b>*</b></span>
+                  <input
+                    type="time"
+                    value={form.end_time}
+                    onChange={(event) => update("end_time", event.target.value)}
+                    required
+                  />
+                </label>
+              </>
             )}
           </div>
 
