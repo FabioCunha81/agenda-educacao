@@ -210,8 +210,9 @@ function materialsFromAgenda(agenda) {
   }
   if (agenda.materials?.length) {
     agenda.materials.forEach((item) => {
-      const name = item.kit_name || item.material_name;
-      if (name) rows.push(`${name}${item.quantity ? ` - ${item.quantity}` : ""}`);
+      if (item.dynamic_name) rows.push(`${item.dynamic_name}${item.quantity ? ` - ${item.quantity}` : ""}`);
+      if (item.kit_name) rows.push(`${item.kit_name}${item.quantity ? ` - ${item.quantity}` : ""}`);
+      if (item.material_name) rows.push(`${item.material_name}${item.quantity ? ` - ${item.quantity}` : ""}`);
     });
   }
   return rows.join("\n");
