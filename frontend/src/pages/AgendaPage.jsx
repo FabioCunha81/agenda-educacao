@@ -790,6 +790,25 @@ export default function AgendaPage() {
     }
   };
 
+  const saveWithoutEmail = async () => {
+    if (!editing) return;
+    if (!canManageRequests) {
+      setMessage("Seu perfil pode visualizar solicitações, mas não aprovar ou recusar.");
+      return;
+    }
+    setMessage("");
+    try {
+      await api(`/agendas/${editing}/?skip_email=true`, { method: "PUT", body: JSON.stringify(normalizePayload({ ...form, lookupVehicles: lookups.vehicles })) });
+      setForm(emptyForm);
+      setEditing(null);
+      setIsModalOpen(false);
+      setMessage("OS atualizada com sucesso (sem notificação ao solicitante).");
+      loadAgendas();
+    } catch (err) {
+      setMessage(err.message);
+    }
+  };
+
   const publicRequestLink = `${window.location.origin}/solicitar-agenda`;
   const surveyLink = (agenda) => agenda?.satisfaction_survey_token ? `${window.location.origin}/pesquisa-satisfacao/${agenda.satisfaction_survey_token}` : "";
   const updateFilter = (field, value) => setFilters((current) => ({ ...current, [field]: value }));
@@ -1274,6 +1293,7 @@ export default function AgendaPage() {
                 <div className="review-actions">
                   <button type="button" className="secondary" onClick={() => setReviewStep("summary")}>Voltar</button>
                   <button type="button" className="secondary" onClick={checkAvailableDates}>Verificar datas disponíveis</button>
+                  <button type="button" className="secondary" onClick={saveWithoutEmail} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Save size={16} /> Salvar sem notificar</button>
                   <button type="submit" className="approve-action"><CheckCircle2 size={18} /> Confirmar aprovação</button>
                 </div>
               </form>

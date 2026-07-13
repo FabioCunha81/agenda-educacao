@@ -600,7 +600,8 @@ class AgendaViewSet(viewsets.ModelViewSet):
             audit_description,
             {"agenda_id": agenda.id, "title": agenda.title, "previous_status": previous_status, "status": agenda.status},
         )
-        if previous_status != agenda.status:
+        skip_email = self.request.query_params.get("skip_email", "").lower() == "true"
+        if previous_status != agenda.status and not skip_email:
             transaction.on_commit(lambda: send_agenda_status_email(agenda, agenda.status))
 
     def perform_destroy(self, instance):
