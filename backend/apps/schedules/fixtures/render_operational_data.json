@@ -646,7 +646,7 @@
     "is_active": true,
     "cpf": null,
     "team": 12,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "BARRA DA TIJUCA"
   }
 },
@@ -659,7 +659,7 @@
     "is_active": true,
     "cpf": null,
     "team": 30,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "NITERÓI"
   }
 },
@@ -672,7 +672,7 @@
     "is_active": true,
     "cpf": null,
     "team": 11,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "NOVA IGUAÇU"
   }
 },
@@ -685,7 +685,7 @@
     "is_active": true,
     "cpf": null,
     "team": 13,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "IRAJÁ"
   }
 },
@@ -698,7 +698,7 @@
     "is_active": true,
     "cpf": null,
     "team": 15,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "SÃO GONÇALO"
   }
 },
@@ -711,7 +711,7 @@
     "is_active": true,
     "cpf": null,
     "team": 12,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "DUQUE DE CAXIAS"
   }
 },
@@ -724,7 +724,7 @@
     "is_active": true,
     "cpf": null,
     "team": 11,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "NOVA IGUAÇU"
   }
 },
@@ -737,7 +737,7 @@
     "is_active": true,
     "cpf": null,
     "team": 30,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "MARICÁ"
   }
 },
@@ -750,7 +750,7 @@
     "is_active": true,
     "cpf": null,
     "team": 33,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "ANCHIETA"
   }
 },
@@ -763,7 +763,7 @@
     "is_active": true,
     "cpf": null,
     "team": 14,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "BOTAFOGO"
   }
 },
@@ -776,7 +776,7 @@
     "is_active": true,
     "cpf": null,
     "team": 11,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "NOVA IGUAÇU"
   }
 },
@@ -789,7 +789,7 @@
     "is_active": true,
     "cpf": null,
     "team": 13,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "MADUREIRA"
   }
 },
@@ -802,7 +802,7 @@
     "is_active": true,
     "cpf": null,
     "team": 30,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "ARARUAMA"
   }
 },
@@ -815,7 +815,7 @@
     "is_active": true,
     "cpf": null,
     "team": 31,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "ITABORAÍ"
   }
 },
@@ -828,7 +828,7 @@
     "is_active": true,
     "cpf": null,
     "team": 31,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "TIJUCA"
   }
 },
@@ -841,7 +841,7 @@
     "is_active": true,
     "cpf": null,
     "team": 33,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "SENADOR CAMARÁ"
   }
 },
@@ -854,7 +854,7 @@
     "is_active": true,
     "cpf": null,
     "team": 15,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "SÃO GONÇALO"
   }
 },
@@ -867,7 +867,7 @@
     "is_active": true,
     "cpf": null,
     "team": 15,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "ITABORAÍ"
   }
 },
@@ -880,7 +880,7 @@
     "is_active": true,
     "cpf": null,
     "team": 14,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "ESTÁCIO"
   }
 },
@@ -893,7 +893,7 @@
     "is_active": true,
     "cpf": null,
     "team": 33,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "INHAÚMA"
   }
 },
@@ -906,7 +906,7 @@
     "is_active": true,
     "cpf": null,
     "team": 13,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "ILHA DO GOVERNADOR"
   }
 },
@@ -919,7 +919,7 @@
     "is_active": true,
     "cpf": null,
     "team": 12,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "DUQUE DE CAXIAS"
   }
 },
@@ -932,7 +932,7 @@
     "is_active": true,
     "cpf": null,
     "team": 12,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "MAGÉ"
   }
 },
@@ -945,7 +945,7 @@
     "is_active": true,
     "cpf": null,
     "team": 33,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "VIGÁRIO GERAL"
   }
 },
@@ -958,7 +958,7 @@
     "is_active": true,
     "cpf": null,
     "team": 14,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "BANGU"
   }
 },
@@ -971,7 +971,7 @@
     "is_active": true,
     "cpf": null,
     "team": 31,
-    "role": "AGENTE PCD",
+    "role": "AGENTE",
     "address": "NITERÓI"
   }
 },
