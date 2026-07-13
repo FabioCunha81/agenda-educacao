@@ -56,9 +56,7 @@ const empty = {
   occurrence_observation: "",
   lat: "",
   lng: "",
-  photo_1: null,
-  photo_2: null,
-  no_photo_reason: "",
+
   status: "DRAFT",
   general_observations: "",
   actions: [{ ...emptyAction }],
@@ -626,19 +624,7 @@ export default function TechnicalReportsPage() {
         : await api("/education-reports/", { method: "POST", body: JSON.stringify(payload) });
       setEditing(saved.id);
       
-      if (form.photo_1 || form.photo_2) {
-        const photosData = new FormData();
-        if (form.photo_1 instanceof File) photosData.append("photo_1", form.photo_1);
-        if (form.photo_2 instanceof File) photosData.append("photo_2", form.photo_2);
-        if (form.no_photo_reason) photosData.append("no_photo_reason", form.no_photo_reason);
-        await api(`/education-reports/${saved.id}/`, { method: "PATCH", body: photosData });
-      } else if (form.no_photo_reason) {
-        await api(`/education-reports/${saved.id}/`, { 
-          method: "PATCH", 
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ no_photo_reason: form.no_photo_reason })
-        });
-      }
+
 
       setForm({ ...saved, actions: saved.actions.length ? saved.actions : [{ ...emptyAction, agenda: saved.agenda }] });
       const savedAgenda = agendas.find((agenda) => String(agenda.id) === String(saved.agenda));
@@ -865,20 +851,21 @@ export default function TechnicalReportsPage() {
             <button type="button" className="secondary" onClick={addAction}><Plus size={18} /> Adicionar ação</button>
           </div>
 
-          <div className="form-section">
-            <h3>Frequência da Equipe e Fotos</h3>
-            <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "12px" }}>
-              {reportSchedule ? "Gerencie as presenças, faltas e anexe fotos comprovando a execução do evento." : "Anexe as fotos comprovando a execução do evento (Obrigatório)."}
-            </p>
-            <button 
-              type="button" 
-              className="secondary" 
-              onClick={() => setIsAttendanceModalOpen(true)}
-              style={(!form.photo_1 && !form.photo_2 && !form.no_photo_reason) ? { border: "2px solid #b91c1c" } : {}}
-            >
-              <Clipboard size={18} /> {reportSchedule ? "Gerenciar Frequência e Fotos" : "Anexar Fotos do Evento"}
-            </button>
-          </div>
+          {reportSchedule && (
+            <div className="form-section">
+              <h3>Frequência da Equipe</h3>
+              <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "12px" }}>
+                Gerencie as presenças e faltas do efetivo lançado na escala para este evento.
+              </p>
+              <button 
+                type="button" 
+                className="secondary" 
+                onClick={() => setIsAttendanceModalOpen(true)}
+              >
+                <Clipboard size={18} /> Gerenciar Frequência
+              </button>
+            </div>
+          )}
 
           <div className="form-section">
             <h3>Contato, ocorrências e localização</h3>
@@ -917,7 +904,7 @@ export default function TechnicalReportsPage() {
             <header className="modal-header">
               <h2 style={{ display: "flex", alignItems: "center", gap: "10px", margin: 0 }}>
                 <Clipboard size={20} />
-                {reportSchedule ? `Gerenciar Frequência e Fotos - ${reportSchedule.team}` : "Anexar Fotos do Evento"}
+                Gerenciar Frequência - {reportSchedule?.team}
               </h2>
               <button className="icon-btn" type="button" onClick={() => setIsAttendanceModalOpen(false)}>
                 <X size={20} />
@@ -980,50 +967,7 @@ export default function TechnicalReportsPage() {
                 </div>
               )}
 
-              <div style={{ marginTop: reportSchedule ? "20px" : "0", borderTop: reportSchedule ? "1px solid #ddd" : "none", paddingTop: reportSchedule ? "15px" : "0" }}>
-                <h3 style={{ marginBottom: "10px" }}>Fotos do Evento</h3>
-                <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "10px" }}>
-                  Anexe até 2 fotos para comprovar a execução do evento{reportSchedule ? " e presença da equipe" : ""}. Caso não seja possível enviar fotos, a justificativa é obrigatória.
-                </p>
-                <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-                  <div style={{ flex: 1, border: "1px solid #ddd", borderRadius: "8px", padding: "10px" }}>
-                    <span style={{ display: "block", fontSize: "0.85rem", marginBottom: "4px", fontWeight: "500" }}>Foto 1</span>
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={(e) => update("photo_1", e.target.files?.[0] || null)}
-                      style={{ fontSize: "0.85rem", width: "100%" }}
-                    />
-                    {form.photo_1 && !(form.photo_1 instanceof File) && (
-                      <div style={{ fontSize: "0.8rem", color: "#15803d", marginTop: "4px" }}>✓ Foto já enviada</div>
-                    )}
-                  </div>
-                  <div style={{ flex: 1, border: "1px solid #ddd", borderRadius: "8px", padding: "10px" }}>
-                    <span style={{ display: "block", fontSize: "0.85rem", marginBottom: "4px", fontWeight: "500" }}>Foto 2</span>
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={(e) => update("photo_2", e.target.files?.[0] || null)}
-                      style={{ fontSize: "0.85rem", width: "100%" }}
-                    />
-                    {form.photo_2 && !(form.photo_2 instanceof File) && (
-                      <div style={{ fontSize: "0.8rem", color: "#15803d", marginTop: "4px" }}>✓ Foto já enviada</div>
-                    )}
-                  </div>
-                </div>
-                {!form.photo_1 && !form.photo_2 && (
-                  <label style={{ display: "block" }}>
-                    <span style={{ display: "block", fontSize: "0.85rem", marginBottom: "4px", fontWeight: "bold", color: "#b91c1c" }}>Justificativa por não enviar fotos *</span>
-                    <textarea 
-                      value={form.no_photo_reason || ""}
-                      onChange={(e) => update("no_photo_reason", e.target.value)}
-                      placeholder="Explique o motivo de não anexar fotos..."
-                      style={{ width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px", resize: "vertical" }}
-                      rows={3}
-                    />
-                  </label>
-                )}
-              </div>
+
             </div>
             <div className="modal-footer" style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
               <button type="button" className="secondary" onClick={() => setIsAttendanceModalOpen(false)}>Cancelar</button>
@@ -1031,10 +975,7 @@ export default function TechnicalReportsPage() {
                 type="button"
                 className="primary" 
                 onClick={() => {
-                  if (!form.photo_1 && !form.photo_2 && (!form.no_photo_reason || !form.no_photo_reason.trim())) {
-                    alert("Você deve anexar ao menos uma foto ou fornecer uma justificativa para não anexar fotos.");
-                    return;
-                  }
+
                   setIsAttendanceModalOpen(false);
                 }}
               >
