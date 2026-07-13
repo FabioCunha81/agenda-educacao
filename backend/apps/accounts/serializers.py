@@ -258,6 +258,8 @@ class UserSerializer(serializers.ModelSerializer):
         role = attrs.get("role", getattr(self.instance, "role", User.Role.USER))
         if role in {User.Role.USER, User.Role.SUPPORT, User.Role.SUPERVISOR}:
             team = attrs.get("team") if "team" in attrs else getattr(self.instance, "team", None) if self.instance else None
+            if not team:
+                raise serializers.ValidationError({"team": "Este campo é obrigatório para usuários operacionais."})
             if team and not team.is_active:
                 raise serializers.ValidationError({"team": "Selecione uma equipe ativa."})
         return attrs

@@ -993,17 +993,17 @@ class AgendaViewSet(viewsets.ModelViewSet):
         monthly = qs.filter(date__gte=month_start, date__lte=today).count()
         previous_month = base_qs.filter(date__gte=previous_month_start, date__lte=previous_month_end).count()
 
+        by_team_counter = Counter(
+            (
+                row.get("team_ref__name")
+                or row.get("team_name")
+                or "Sem equipe"
+            ).strip()
+            for row in action_team_queryset().values("team_ref__name", "team_name")
+        )
         by_team_actions = [
-            {
-                "label": row["team_ref__name"] or row["team_name"] or "Sem equipe",
-                "value": row["total"],
-            }
-            for row in (
-                action_team_queryset()
-                .values("team_ref__name", "team_name")
-                .annotate(total=Count("id"))
-                .order_by("-total", "team_ref__name", "team_name")[:8]
-            )
+            {"label": label, "value": value}
+            for label, value in by_team_counter.most_common(8)
         ]
         external_request_filter = (
             Q(created_by__email="solicitacao.publica@agenda.local")
@@ -2718,12 +2718,19 @@ class ReportViewSet(viewsets.ViewSet):
         )
         by_neighborhood = by_neighborhood_counter.most_common(8)
 
-        by_team_actions = list(
-            qs.filter(status__in=[Agenda.Status.APPROVED, Agenda.Status.COMPLETED])
+        by_team_counter = Counter(
+            (
+                row.get("team_ref__name")
+                or row.get("team_name")
+                or "Sem equipe"
+            ).strip()
+            for row in qs.filter(status__in=[Agenda.Status.APPROVED, Agenda.Status.COMPLETED])
             .values("team_ref__name", "team_name")
-            .annotate(total=Count("id"))
-            .order_by("-total", "team_ref__name", "team_name")[:8]
         )
+        by_team_actions = [
+            {"team_ref__name": label, "team_name": "", "total": value}
+            for label, value in by_team_counter.most_common(8)
+        ]
 
         # 4. Set up ReportLab document styles
         styles = getSampleStyleSheet()
@@ -2820,11 +2827,11 @@ class ReportViewSet(viewsets.ViewSet):
             elements.append(make_table(["Bairro", "Agendas"], by_neighborhood, [350, 150]))
             elements.append(Spacer(1, 6))
 
-        # --- Section 5: Ações por Equipe ---
+        # --- Section 5: Agendas por Equipe ---
         if by_team_actions:
-            elements.append(Paragraph("5. Ações por Equipe (Top 8)", section_title_style))
+            elements.append(Paragraph("5. Agendas por Equipe (Top 8)", section_title_style))
             team_rows = [(t["team_ref__name"] or t["team_name"] or "Sem equipe", t["total"]) for t in by_team_actions]
-            elements.append(make_table(["Equipe", "Ações Concluídas"], team_rows, [350, 150]))
+            elements.append(make_table(["Equipe", "Agendas Concluídas"], team_rows, [350, 150]))
             elements.append(Spacer(1, 6))
 
         elements.append(Spacer(1, 10))

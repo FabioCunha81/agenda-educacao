@@ -678,7 +678,7 @@ export default function DashboardPage() {
                 <LineChart data={dashboard?.series?.daily || []} />
               </div>
               <div className="analytics-grid" style={{ display: "grid", gap: "24px" }}>
-                <BarList title="Ações feitas por equipe" data={dashboard?.bars?.by_team_actions || []} />
+                <BarList title="Agendas por equipe" data={dashboard?.bars?.by_team_actions || []} />
                 <BarList title="Agendas por bairro" data={dashboard?.bars?.by_neighborhood || []} />
                 <DonutChart data={dashboard?.donut || []} />
                 <Heatmap data={dashboard?.heatmap || []} />

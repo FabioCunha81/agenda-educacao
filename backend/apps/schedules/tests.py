@@ -161,7 +161,7 @@ class EducationReportSerializerTests(APITestCase):
         agenda = Agenda.objects.create(
             title="Acao educativa",
             description="Atividade educativa",
-            date=date(2026, 6, 22),
+            date=date(2026, 7, 22),
             start_time=time(9, 0),
             end_time=time(10, 0),
             location="Escola Municipal",
@@ -351,7 +351,7 @@ class DashboardMetricsTests(APITestCase):
             agenda = Agenda.objects.create(
                 title=f"Acao {day}",
                 description="Atividade educativa",
-                date=date(2026, 6, day),
+                date=date(2026, 7, day),
                 start_time=time(9, 0),
                 end_time=time(10, 0),
                 location="Escola Municipal",
@@ -376,7 +376,7 @@ class DashboardMetricsTests(APITestCase):
         self.client.force_authenticate(manager)
         response = self.client.get(
             reverse("agendas-dashboard"),
-            {"date_from": "2026-06-01", "date_to": "2026-06-30"},
+            {"date_from": "2026-07-01", "date_to": "2026-07-30"},
         )
 
         self.assertEqual(response.status_code, 200)
