@@ -1,133 +1,31 @@
-# Agenda OLS
+# SIED - Sistema de Informação de Educação (Operação Lei Seca)
 
-Aplicação web responsiva para lançamento e gerenciamento de agendas, com React, Django REST Framework, JWT e PostgreSQL.
+O SIED é o sistema de gestão central da Operação Lei Seca para o controle, agendamento e emissão de relatórios de ações educativas. 
 
-## Recursos implementados
+## Como o Projeto Funciona
+A aplicação possui um backend em **Django (Python)** fornecendo uma API RESTful, um banco de dados **PostgreSQL**, filas e cache gerenciados pelo **Redis**, e um frontend reativo em **React (Vite)**. O tráfego e o roteamento de borda (incluindo SSL) são centralizados via **Nginx**.
 
-- Login por e-mail e senha com JWT.
-- Rotas protegidas no frontend.
-- Perfis: Administrador, Chefe e Agente.
-- CRUD de agendas com validação de conflito por responsável ou local.
-- Controle de acesso no backend:
-  - Administrador acessa e exclui tudo.
-  - Chefe gerencia agendas da própria equipe.
-  - Agente visualiza suas agendas e edita apenas pendentes criadas por ele.
-- Histórico automático a cada criação/alteração de agenda.
-- Dashboard com totais e próximas agendas.
-- Calendário mensal, semanal e diário.
-- Relatórios por período, status, equipe e usuário.
-- Exportação para Excel e PDF.
-- Cadastro administrativo de usuários.
-- Layout responsivo com menu lateral no desktop e menu hambúrguer no mobile.
+Toda a arquitetura roda perfeitamente orquestrada e em contêineres gerenciados pelo **Docker Compose**.
 
-## Estrutura
+## Onde Está a Documentação?
+Para evitar poluição na raiz e manter a organização profissional, **toda a documentação técnica oficial reside na pasta `docs/`**.
+Antes de atuar no projeto, leia os arquivos abaixo na seguinte ordem:
 
-```text
-backend/
-  apps/accounts/       usuários, login e permissões
-  apps/schedules/      equipes, agendas, histórico e relatórios
-  config/              settings, urls, ASGI/WSGI
-frontend/
-  src/api/             cliente HTTP
-  src/components/      layout, filtros e cards
-  src/pages/           telas principais
-docker-compose.yml     PostgreSQL local
-```
+1. `AI_RULES.md` e `CONTRIBUTING.md` (Para conhecer os limites e regras de contribuição)
+2. `docs/PROJECT_CONTEXT.md` (Para entender o domínio de negócio da Operação Lei Seca)
+3. `docs/ARCHITECTURE.md` (Para entender como a malha de containers e o fluxo se comportam)
+4. `docs/DEPLOY.md` (Para entender como o projeto deve ir ao ar)
 
-## Como rodar localmente
-
-### 1. Banco de dados
-
+## Como Rodar e Testar Localmente
+O sistema é encapsulado via Docker.
+1. Garanta que o `.env` esteja configurado na raiz (com `DEBUG=True` para dev, ou `DEBUG=False` para produção).
+2. Construa a malha e levante a orquestração:
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
-
-### 2. Backend
-
+3. Teste se as portas e a estrutura estão íntegras utilizando as ferramentas e comandos prescritos em `docs/HEALTHCHECK.md`.
+4. Os testes unitários oficiais do Django podem ser executados via:
 ```bash
-cd backend
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-copy .env.example .env
-python manage.py makemigrations
-python manage.py migrate
-python manage.py seed_demo
-python manage.py runserver
+docker exec sied_backend python manage.py check
+docker exec sied_backend python manage.py test
 ```
-
-A API ficará em `http://localhost:8000/api/`.
-
-### Configurar e-mail
-
-Por padrão o backend local usa `django.core.mail.backends.console.EmailBackend`, então os e-mails aparecem no terminal do Django. Para disparo real, edite `backend/.env`:
-
-```env
-EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-EMAIL_HOST=smtp.seu-provedor.com
-EMAIL_PORT=587
-EMAIL_HOST_USER=usuario@seu-dominio.com
-EMAIL_HOST_PASSWORD=sua-senha-ou-app-password
-EMAIL_USE_TLS=True
-EMAIL_USE_SSL=False
-DEFAULT_FROM_EMAIL=Agenda Educacao OLS <usuario@seu-dominio.com>
-AGENDA_REPLY_TO_EMAIL=usuario@seu-dominio.com
-```
-
-Depois valide com:
-
-```bash
-cd backend
-python manage.py test_email destino@exemplo.com
-```
-
-### 3. Frontend
-
-```bash
-cd frontend
-npm install
-copy .env.example .env
-npm run dev
-```
-
-O app ficará em `http://localhost:5173/`.
-
-## Usuários iniciais
-
-Depois de executar `python manage.py seed_demo`:
-
-| Perfil | E-mail | Senha |
-| --- | --- | --- |
-| Administrador | admin@agenda.local | Admin@12345 |
-| Chefe | supervisor@agenda.local | Supervisor@12345 |
-| Agente | usuario@agenda.local | Usuario@12345 |
-
-## Importar a planilha existente
-
-Com o PostgreSQL configurado no `backend/.env`, rode:
-
-```bash
-cd backend
-.venv\Scripts\activate
-python manage.py import_agentes_workbook C:\Users\fferreira\Downloads\AGENTES.xlsx
-```
-
-O importador lê as abas auxiliares, cria/atualiza os cadastros normalizados e importa a aba `DADOS` para agendas. Ele usa o campo `ID` da planilha como `source_id`, então pode ser executado novamente sem duplicar as agendas.
-
-## Endpoints principais
-
-- `POST /api/auth/login/`
-- `POST /api/auth/refresh/`
-- `GET/POST /api/users/`
-- `GET/POST /api/sectors/`
-- `GET/POST /api/agendas/`
-- `GET /api/agendas/dashboard/`
-- `GET /api/reports/`
-- `GET /api/reports/export_excel/`
-- `GET /api/reports/export_pdf/`
-
-## Observações para evolução
-
-- A tela de recuperação de senha está preparada no fluxo visual; para produção, conecte `PasswordResetView`/e-mail transacional.
-- Para ambientes reais, troque `SECRET_KEY`, use HTTPS, restrinja `ALLOWED_HOSTS`/CORS e configure backups do PostgreSQL.
-- Os relatórios exportam os dados filtrados pelo mesmo escopo de permissão do usuário autenticado.
