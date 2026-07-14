@@ -8,10 +8,8 @@ def deploy():
     password = "eeX1d3Vnbp#rbN&)"
     
     files_to_upload = [
-        ("frontend/src/pages/AgendaPage.jsx", "/root/agenda-educacao/frontend/src/pages/AgendaPage.jsx"),
-        ("frontend/src/pages/CalendarPage.jsx", "/root/agenda-educacao/frontend/src/pages/CalendarPage.jsx"),
-        ("frontend/src/pages/VisitorCalendarPage.jsx", "/root/agenda-educacao/frontend/src/pages/VisitorCalendarPage.jsx"),
-        ("frontend/src/pages/SetPasswordPage.jsx", "/root/agenda-educacao/frontend/src/pages/SetPasswordPage.jsx")
+        ("frontend/src/pages/TechnicalReportsPage.jsx", "/root/agenda-educacao/frontend/src/pages/TechnicalReportsPage.jsx"),
+        ("frontend/src/pages/UsersPage.jsx", "/root/agenda-educacao/frontend/src/pages/UsersPage.jsx")
     ]
     
     print("Connecting to VPS...")

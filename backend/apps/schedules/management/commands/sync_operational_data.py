@@ -18,7 +18,10 @@ USER_MAP_FILE = FIXTURE_DIR / "render_user_map.json"
 
 
 class Command(BaseCommand):
-    help = "Sincroniza uma vez os dados operacionais locais, preservando os usuarios existentes."
+    help = (
+        "[LEGADO] Sincroniza uma vez os dados operacionais locais, preservando os usuarios existentes.\n"
+        "NOTA: Este comando pertence à antiga infraestrutura Render e não faz mais parte do fluxo de deploy da VPS."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument("--sync-version", required=True, help="Identificador unico desta carga.")

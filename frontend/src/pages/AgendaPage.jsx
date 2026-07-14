@@ -778,7 +778,7 @@ export default function AgendaPage() {
     }
     if (!window.confirm("Tem certeza que deseja excluir esta solicitação permanentemente?")) return;
     try {
-      await api(`/agendas/${id}/`, { method: "DELETE" });
+      await api(`/agendas/${agenda.id}/`, { method: "DELETE" });
       setMessage("Solicitação excluída com sucesso.");
       loadAgendas();
     } catch (err) {

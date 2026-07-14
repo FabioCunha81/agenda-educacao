@@ -21,6 +21,7 @@ if _allowed.strip() == "*":
 else:
     ALLOWED_HOSTS = [h.strip() for h in _allowed.split(",") if h.strip()]
 
+# LEGADO: Código da antiga infraestrutura Render. Preservado por compatibilidade histórica (sem impacto na VPS).
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
@@ -196,7 +197,7 @@ if os.environ.get('CACHE_URL'):
 
 # ── Security headers ────────────────────────────────────────────────
 if not DEBUG:
-    SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
+    SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=False, cast=bool)
     SECURE_HSTS_SECONDS = 31_536_000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
