@@ -1,6 +1,7 @@
 import { Clipboard, MapPin, Plus, Save, Search, Trash2, Eye, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
+import { STREET_ACTION_ID } from "../utils/constants.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { formatDateBR } from "../utils/date.js";
 
@@ -526,7 +527,7 @@ export default function TechnicalReportsPage() {
         agenda.external_email,
       ], current.contact_received),
       occurrence_observation: current.occurrence_observation || agenda.notes || agenda.description || "",
-      actions: (agenda.requester_entity_type?.startsWith("Ação de Rua") && agenda.street_action_details?.length) 
+      actions: (agenda.action_type_ref === STREET_ACTION_ID || agenda.requester_entity_type === STREET_ACTION_ID) && agenda.street_action_details?.length 
         ? agenda.street_action_details.map((detail, idx) => {
             const action = current.actions[idx] || { place_action: "", type_action: "", type_audience: "", institution_name: "", start_time: "", final_hour: "", approach: 0, approached_actions: 0, equipment_materials_removed: "", equipment_materials_distributed: "", distribution_materials_removed: "", distribution_materials_distributed: "" };
             return {

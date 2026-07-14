@@ -648,13 +648,32 @@ class AgendaSerializer(serializers.ModelSerializer):
         start_time = attrs.get("start_time", getattr(instance, "start_time", None))
         end_time = attrs.get("end_time", getattr(instance, "end_time", None))
 
-        if start_time and end_time and start_time == end_time:
-            raise serializers.ValidationError("A hora final não pode ser igual à hora inicial.")
+        STREET_ACTION_ID = "6"
+        
+        action_type_ref = getattr(instance, "action_type_ref_id", None)
+        if "action_type_ref" in attrs:
+            action_type_ref = getattr(attrs["action_type_ref"], "id", None) if attrs["action_type_ref"] else None
+            
+        requester_entity_type = str(attrs.get("requester_entity_type", getattr(instance, "requester_entity_type", "")))
+        
+        is_street_action = (str(action_type_ref) == STREET_ACTION_ID) or (requester_entity_type == STREET_ACTION_ID)
 
-        status = attrs.get("status", getattr(instance, "status", None))
+        if is_street_action and start_time:
+            from datetime import timedelta, datetime
+            # Recalculate end_time automatically to be start_time + 4 hours
+            dt = datetime.combine(datetime.today(), start_time) + timedelta(hours=4)
+            expected_end_time = dt.time()
+            if end_time != expected_end_time:
+                attrs["end_time"] = expected_end_time
+                end_time = expected_end_time
+        else:
+            if start_time and end_time and start_time == end_time:
+                raise serializers.ValidationError({"end_time": "A hora final não pode ser igual à hora inicial."})
+
+        status_field = attrs.get("status", getattr(instance, "status", None))
         cancel_reason = attrs.get("cancel_reason", getattr(instance, "cancel_reason", ""))
-        if status == Agenda.Status.CANCELLED and not str(cancel_reason or "").strip():
-            raise serializers.ValidationError("Informe o motivo do cancelamento.")
+        if status_field == Agenda.Status.CANCELLED and not str(cancel_reason or "").strip():
+            raise serializers.ValidationError({"cancel_reason": "Informe o motivo do cancelamento."})
 
         return attrs
 

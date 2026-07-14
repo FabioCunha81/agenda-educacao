@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
 import Filters from "../components/Filters.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { formatDateBR } from "../utils/date.js";
+import { formatDateBR, normalizeTime, addHoursToTime } from "../utils/date.js";
+import { STREET_ACTION_ID } from "../utils/constants.js";
 import { statusClass, statusLabel } from "../utils/status.js";
 
 const emptyForm = {
@@ -626,7 +627,43 @@ export default function AgendaPage() {
   const submit = async (event) => {
     event.preventDefault();
     setMessage("");
-    const payload = normalizePayload({ ...form, lookupVehicles: lookups.vehicles });
+
+    const isStreetAction =
+      String(form.action_type_ref) === STREET_ACTION_ID ||
+      String(form.requester_entity_type) === STREET_ACTION_ID;
+
+    const normalizedStartTime = normalizeTime(form.start_time);
+    if (!normalizedStartTime && form.start_time) {
+      setMessage("Informe um horário válido no formato HH:mm.");
+      return;
+    }
+
+    let normalizedEndTime = form.end_time;
+    if (normalizedStartTime) {
+      if (isStreetAction) {
+        normalizedEndTime = addHoursToTime(normalizedStartTime, 4);
+        if (!normalizedEndTime) {
+          setMessage("Não foi possível calcular o horário final. Verifique o horário inicial.");
+          return;
+        }
+      } else {
+        if (form.end_time) {
+          normalizedEndTime = normalizeTime(form.end_time);
+          if (!normalizedEndTime) {
+            setMessage("Informe um horário válido no formato HH:mm para a hora final.");
+            return;
+          }
+        }
+      }
+    }
+
+    const payloadForm = {
+      ...form,
+      start_time: normalizedStartTime || form.start_time,
+      end_time: normalizedEndTime || form.end_time,
+    };
+
+    const payload = normalizePayload({ ...payloadForm, lookupVehicles: lookups.vehicles });
     try {
       if (editing) {
         await api(`/agendas/${editing}/`, { method: "PUT", body: JSON.stringify(payload) });
@@ -1411,7 +1448,7 @@ export default function AgendaPage() {
             </div>
             <input placeholder="Público" value={form.audience} onChange={(e) => update("audience", e.target.value)} />
             <input placeholder="Faixa etária" value={form.age_ranges} onChange={(e) => update("age_ranges", e.target.value)} />
-            {(!form.requester_entity_type || !form.requester_entity_type.startsWith("Ação de Rua")) ? (
+            {(!form.requester_entity_type || form.requester_entity_type !== STREET_ACTION_ID) ? (
               <input placeholder="Faixa de participantes" value={form.participant_range} onChange={(e) => update("participant_range", e.target.value)} />
             ) : (
               <div style={{ marginTop: "12px", marginBottom: "12px", border: "1px solid var(--border)", padding: "12px", borderRadius: "8px" }}>

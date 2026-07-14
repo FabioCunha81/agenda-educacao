@@ -1,7 +1,9 @@
 import { CalendarPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { STREET_ACTION_ID } from "../utils/constants.js";
 import { api } from "../api/client.js";
+import { normalizeTime, addHoursToTime } from "../utils/date.js";
 import soprinhoMascot from "../assets/soprinho-transparent.png";
 import leiSecaLogo from "../assets/logo lei seca preto.jpg.jpeg";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -219,7 +221,35 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
 
   const submit = async (event) => {
     event.preventDefault();
-    const isAcaoRua = form.requester_entity_kind === "Ação de Rua";
+    const isAcaoRua = form.requester_entity_kind === STREET_ACTION_ID;
+    
+    const normalizedStartTime = normalizeTime(form.start_time);
+    if (!normalizedStartTime && form.start_time) {
+      setMessage("Informe um horário válido no formato HH:mm.");
+      return;
+    }
+
+    let normalizedEndTime = form.end_time;
+    if (normalizedStartTime) {
+      if (isAcaoRua) {
+        normalizedEndTime = addHoursToTime(normalizedStartTime, 4);
+        if (!normalizedEndTime) {
+          setMessage("Não foi possível calcular o horário final. Verifique o horário inicial.");
+          return;
+        }
+      } else {
+        if (form.end_time) {
+          normalizedEndTime = normalizeTime(form.end_time);
+          if (!normalizedEndTime) {
+            setMessage("Informe um horário válido no formato HH:mm para a hora final.");
+            return;
+          }
+        } else {
+           normalizedEndTime = addHoursToTime(normalizedStartTime, 1);
+        }
+      }
+    }
+
     if (editMode) {
       setLoading(true);
       setMessage("");
@@ -228,8 +258,8 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
           method: "PATCH",
           body: JSON.stringify({
             date: form.date,
-            start_time: form.start_time,
-            end_time: isAcaoRua ? form.end_time : addHours(form.start_time, 1),
+            start_time: normalizedStartTime || form.start_time,
+            end_time: normalizedEndTime || form.end_time,
             actions_count: form.actions_count === "" ? null : Number(form.actions_count),
             time_2: null,
             time_3: null,
@@ -243,17 +273,17 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
       }
       return;
     }
-    if (!form.age_ranges && form.requester_entity_kind !== "Ação de Rua") {
+    if (!form.age_ranges && form.requester_entity_kind !== STREET_ACTION_ID) {
       setMessage("Selecione pelo menos uma faixa etária do público.");
       return;
     }
-    if (form.requester_entity_kind !== "Ação de Rua") {
+    if (form.requester_entity_kind !== STREET_ACTION_ID) {
       if (!form.accessibility_access || !form.has_accessible_bathrooms) {
         setMessage("Responda todas as perguntas sobre acessibilidade do local.");
         return;
       }
     }
-    if (form.requester_entity_kind !== "Ação de Rua" && !form.image_authorization) {
+    if (form.requester_entity_kind !== STREET_ACTION_ID && !form.image_authorization) {
       setMessage("Selecione uma opção de autorização de uso de imagem.");
       return;
     }
@@ -276,7 +306,8 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
           form.image_authorization === "Outro"
             ? form.image_authorization_other
             : form.image_authorization,
-        end_time: isAcaoRua ? form.end_time : addHours(form.start_time, 1),
+        start_time: normalizedStartTime || form.start_time,
+        end_time: normalizedEndTime || form.end_time,
         quantity: isAcaoRua ? null : (form.quantity === "" ? null : Number(form.quantity)),
         actions_count: form.actions_count === "" ? null : Number(form.actions_count),
         time_2: null,
@@ -416,17 +447,22 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
               <div className="field-card" style={{ flex: 1 }}>
                 <strong>Tipo de solicitante: <b>*</b></strong>
                 <div className="radio-list" role="radiogroup" aria-label="Tipo de solicitante">
-                  {["Instituição de Ensino", "Empresa/Órgão", "Organização de evento", "Ação de Rua"].map((option) => (
-                    <label className="radio-option compact-radio option-tile" key={option}>
+                  {[
+                    { id: "Instituição de Ensino", label: "Instituição de Ensino" },
+                    { id: "Empresa/Órgão", label: "Empresa/Órgão" },
+                    { id: "Organização de evento", label: "Organização de evento" },
+                    { id: STREET_ACTION_ID, label: "Ação de Rua" }
+                  ].map((option) => (
+                    <label className="radio-option compact-radio option-tile" key={option.id}>
                       <input
                         type="radio"
                         name="requester_entity_kind"
-                        checked={form.requester_entity_kind === option}
+                        checked={form.requester_entity_kind === option.id}
                         onChange={() => {
-                          const isAcaoRua = option === "Ação de Rua";
+                          const isAcaoRua = option.id === STREET_ACTION_ID;
                           setForm((current) => ({
                             ...current,
-                            requester_entity_kind: option,
+                            requester_entity_kind: option.id,
                             ...(isAcaoRua ? { quantity: "", participant_range: "", action_type: "", end_time: "" } : {}),
                             ...(isAcaoRua && internalRequest && user ? {
                               external_responsible: user.full_name || "",
@@ -439,12 +475,12 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
                         }}
                         required
                       />
-                      <span>{option}</span>
+                      <span>{option.label}</span>
                     </label>
                   ))}
                 </div>
               </div>
-              {form.requester_entity_kind !== "Ação de Rua" ? (
+              {form.requester_entity_kind !== STREET_ACTION_ID ? (
                 <div className="field-card" style={{ flex: 1 }}>
                   <strong>Público ou Privado? <b>*</b></strong>
                   <div className="radio-list" role="radiogroup" aria-label="Natureza da entidade">
@@ -548,7 +584,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
             )}
           </div>
 
-          {form.requester_entity_kind !== "Ação de Rua" && (
+          {form.requester_entity_kind !== STREET_ACTION_ID && (
             <div className="form-section">
               <h3>Sobre a ação pretendida</h3>
               <div className="notice-card compact-notice">
@@ -565,7 +601,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
                         name="age_ranges"
                         checked={form.age_ranges === option}
                         onChange={() => update("age_ranges", option)}
-                        required={form.requester_entity_kind !== "Ação de Rua"}
+                        required={form.requester_entity_kind !== STREET_ACTION_ID}
                       />
                       <span>{option}</span>
                     </label>
@@ -586,7 +622,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
                           participant_range: option.label,
                           quantity: String(option.quantity),
                         }))}
-                        required={form.requester_entity_kind !== "Ação de Rua"}
+                        required={form.requester_entity_kind !== STREET_ACTION_ID}
                       />
                       <span>{option.label}</span>
                     </label>
@@ -659,7 +695,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
               <span>Telefone (com DDD) <b>*</b></span>
               <input value={form.external_responsible_phone} onChange={(event) => update("external_responsible_phone", event.target.value)} required />
             </label>
-            {form.requester_entity_kind !== "Ação de Rua" && (
+            {form.requester_entity_kind !== STREET_ACTION_ID && (
               <label className="field-label">
                 <span>Instituição/Organização <b>*</b></span>
                 <input value={form.institution_location} onChange={(event) => update("institution_location", event.target.value)} required />
@@ -672,7 +708,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
             </label>
           </div>
 
-          {form.requester_entity_kind !== "Ação de Rua" && (
+          {form.requester_entity_kind !== STREET_ACTION_ID && (
             <div className="form-section">
               <h3>Sobre o local</h3>
               <div className="notice-card">
@@ -695,7 +731,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
                             name="accessibility_access"
                             checked={form.accessibility_access === option}
                             onChange={() => update("accessibility_access", option)}
-                            required={form.requester_entity_kind !== "Ação de Rua"}
+                            required={form.requester_entity_kind !== STREET_ACTION_ID}
                           />
                           <span>{option}</span>
                         </label>
@@ -715,7 +751,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
                             name="has_accessible_bathrooms"
                             checked={form.has_accessible_bathrooms === option}
                             onChange={() => update("has_accessible_bathrooms", option)}
-                            required={form.requester_entity_kind !== "Ação de Rua"}
+                            required={form.requester_entity_kind !== STREET_ACTION_ID}
                           />
                           <span>{option}</span>
                         </label>
@@ -727,7 +763,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
             </div>
           )}
 
-          {form.requester_entity_kind !== "Ação de Rua" && (
+          {form.requester_entity_kind !== STREET_ACTION_ID && (
             <div className="form-section">
               <h3>Recursos disponíveis</h3>
               <div className="field-card resource-card">
@@ -751,7 +787,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
                         name="image_authorization"
                         checked={form.image_authorization === option}
                         onChange={() => update("image_authorization", option)}
-                        required={form.requester_entity_kind !== "Ação de Rua"}
+                        required={form.requester_entity_kind !== STREET_ACTION_ID}
                       />
                       <span>{option === "Outro" ? "Outro:" : option}</span>
                       {option === "Outro" && (
