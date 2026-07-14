@@ -354,6 +354,7 @@ class ShiftScheduleSerializer(serializers.ModelSerializer):
             "attendance_reported_at",
             "attendance_approved",
             "attendance_approved_at",
+            "checked_members",
             "created_by",
             "created_by_name",
             "created_at",
@@ -446,10 +447,24 @@ class ShiftScheduleSerializer(serializers.ModelSerializer):
             if not any(m["id"] == item.id for m in supports):
                 supports.append(row(item, is_extra=True, is_absent=item.id in absent_support_ids))
 
+        manual_inclusions = [
+            {
+                "id": m.member_id,
+                "name": m.member_name,
+                "role": "Incluído manualmente",
+                "member_type": m.member_type,
+                "is_manual": True,
+                "is_absent": absence_records.get((m.member_type, m.member_id)) is not None,
+                "absence_reason": absence_records.get((m.member_type, m.member_id)).reason if absence_records.get((m.member_type, m.member_id)) else "",
+            }
+            for m in obj.manual_inclusions.all()
+        ]
+
         members = {
             "chiefs": chiefs,
             "agents": agents,
             "supports": supports,
+            "manual": manual_inclusions,
         }
         for swap in obj.swap_requests.filter(status=ShiftSwapRequest.Status.APPROVED):
             group = {
@@ -1052,7 +1067,7 @@ class EducationReportSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Informe o protocolo da solicitação.")
         status = attrs.get("status", getattr(instance, "status", None))
         accessibility = attrs.get("accessibility_conditions_met", getattr(instance, "accessibility_conditions_met", ""))
-        if status == EducationReport.ReportStatus.SUBMITTED and accessibility not in {"YES", "NO"}:
+        if status == EducationReport.ReportStatus.APPROVED and accessibility not in {"YES", "NO"}:
             raise serializers.ValidationError({
                 "accessibility_conditions_met": "Informe se o local atendeu às condições de acessibilidade para cadeirantes."
             })

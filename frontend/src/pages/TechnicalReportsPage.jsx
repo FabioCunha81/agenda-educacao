@@ -393,6 +393,8 @@ export default function TechnicalReportsPage() {
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [reportSchedule, setReportSchedule] = useState(null);
   const [attendanceForm, setAttendanceForm] = useState({});
+  const [returnModalReportId, setReturnModalReportId] = useState(null);
+  const [returnNotes, setReturnNotes] = useState("");
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN" || user?.role === "MANAGER";
   const requestFieldsReadOnly = Boolean(form.agenda);
@@ -466,8 +468,10 @@ export default function TechnicalReportsPage() {
               if (m.is_extra) staffChanges.push(`Extra: ${m.name}`);
               if (m.is_swap) staffChanges.push(`Troca: ${m.name} (no lugar de ${m.swap_for})`);
               
-              formObj[`${m.type}_${m.id}`] = {
-                is_absent: detailSchedule.attendance_reported ? !!m.is_absent : null,
+              const memberKey = `${m.type}_${m.id}`;
+              const isChecked = detailSchedule.checked_members && detailSchedule.checked_members[memberKey] !== undefined;
+              formObj[memberKey] = {
+                is_absent: isChecked ? !!m.is_absent : null,
                 reason: m.absence_reason || "",
                 attachment: null,
                 member: m
@@ -678,11 +682,21 @@ export default function TechnicalReportsPage() {
         }).filter(Boolean);
         await Promise.all(promises);
         
-        if (status === "SUBMITTED") {
-          const formData = new FormData();
-          formData.append("attendance_reported", "true");
-          await api(`/shift-schedules/${reportSchedule.id}/`, { method: "PATCH", body: formData });
-        }
+        const checkedMembersData = {};
+        Object.entries(attendanceForm).forEach(([key, data]) => {
+          if (data.is_absent !== null) {
+            checkedMembersData[key] = true;
+          }
+        });
+        
+        await api(`/shift-schedules/${reportSchedule.id}/`, { 
+          method: "PATCH", 
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            checked_members: checkedMembersData,
+            ...(status === "SUBMITTED" ? { attendance_reported: true } : {})
+          })
+        });
       }
 
       const payload = normalizePayload({ ...form, status });
@@ -694,6 +708,7 @@ export default function TechnicalReportsPage() {
       setForm(hydrateForm(saved, savedAgenda));
       setProtocolSearch(savedAgenda?.service_order_number ? serviceOrderLabel(savedAgenda) : saved.agenda ? String(saved.agenda) : "");
       load();
+      return saved.id;
     } catch (err) {
       throw err;
     }
@@ -717,8 +732,10 @@ export default function TechnicalReportsPage() {
       return;
     }
     try {
-      await saveReport("SUBMITTED");
-      setMessage("Relatório enviado com sucesso.");
+      const savedId = await saveReport("DRAFT");
+      await api(`/education-reports/${savedId}/submit-for-review/`, { method: "POST" });
+      setMessage("Relatório enviado para conferência com sucesso.");
+      load();
     } catch (err) {
       setMessage(err.message);
     }
@@ -730,6 +747,38 @@ export default function TechnicalReportsPage() {
     setProtocolSearch(reportAgenda?.service_order_number ? serviceOrderLabel(reportAgenda) : report.agenda ? String(report.agenda) : "");
     setForm(hydrateForm(report, reportAgenda));
     setMessage("");
+  };
+
+  const approveReport = async (id) => {
+    try {
+      await api(`/education-reports/${id}/approve/`, { method: "POST" });
+      load();
+    } catch (err) {
+      alert(`Erro ao aprovar: ${err.message}`);
+    }
+  };
+
+  const returnReport = (id) => {
+    setReturnModalReportId(id);
+    setReturnNotes("");
+  };
+
+  const confirmReturn = async () => {
+    if (!returnNotes.trim()) {
+      alert("A justificativa é obrigatória.");
+      return;
+    }
+    try {
+      await api(`/education-reports/${returnModalReportId}/return-for-correction/`, { 
+        method: "POST",
+        body: JSON.stringify({ notes: returnNotes })
+      });
+      setReturnModalReportId(null);
+      setReturnNotes("");
+      load();
+    } catch (err) {
+      alert(`Erro ao devolver: ${err.message}`);
+    }
   };
 
   const reset = () => {
@@ -793,6 +842,11 @@ export default function TechnicalReportsPage() {
                 <strong>{selectedAgenda ? agendaSummary(selectedAgenda) : `#${form.agenda} - ${form.agenda_title}`}</strong>
                 <span>{form.agenda_location || "Local não informado"}</span>
                 <span>Equipe: {form.team || "não informada"}</span>
+                {form.status === "RETURNED" && form.review_notes && (
+                  <div style={{ background: "var(--danger-dim)", color: "var(--danger)", padding: "8px 12px", borderRadius: "6px", marginTop: "8px", fontSize: "13px" }}>
+                    <strong>Devolvido para correção:</strong> {form.review_notes}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -973,8 +1027,12 @@ export default function TechnicalReportsPage() {
 
           {message && <div className="alert">{message}</div>}
           <div className="report-submit-actions">
-            <button type="submit" className="secondary"><Save size={18} /> Salvar rascunho</button>
-            <button type="button" onClick={submitFinal}><Save size={18} /> Enviar relatório</button>
+            {!["PENDING_REVIEW", "APPROVED"].includes(form.status) && (
+              <>
+                <button type="submit" className="secondary"><Save size={18} /> Salvar rascunho</button>
+                <button type="button" onClick={submitFinal}><Save size={18} /> Enviar para conferência</button>
+              </>
+            )}
           </div>
         </form>
       </div>
@@ -1119,20 +1177,34 @@ export default function TechnicalReportsPage() {
                       <td>{formatDateBR(r.operation_date)}</td>
                       <td>
                         <span style={{ 
-                          background: r.status === "SUBMITTED" ? "var(--success)" : "var(--warning)", 
+                          background: r.status === "APPROVED" ? "var(--success)" : 
+                                      r.status === "PENDING_REVIEW" ? "var(--info)" : 
+                                      r.status === "RETURNED" ? "var(--danger)" : "var(--warning)", 
                           color: "#fff", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontWeight: "bold" 
                         }}>
-                          {r.status === "SUBMITTED" ? "ENVIADO" : "RASCUNHO"}
+                          {r.status === "APPROVED" ? "APROVADO" : 
+                           r.status === "PENDING_REVIEW" ? "AGUARDANDO" : 
+                           r.status === "RETURNED" ? "DEVOLVIDO" : "RASCUNHO"}
                         </span>
                       </td>
                       <td>{r.actions_count || r.actions?.length || 0} ações</td>
-                      <td>
-                        <button className="secondary icon-button" style={{ marginRight: 8 }} onClick={() => { setReportsPreviewModal(r); }} title="Visualizar">
+                      <td style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                        <button className="secondary icon-button" onClick={() => { setReportsPreviewModal(r); }} title="Visualizar">
                           <Eye size={16} />
                         </button>
                         <button className="secondary icon-button" onClick={() => { edit(r); setActiveTab("pending"); }} title="Editar">
                           <Clipboard size={16} />
                         </button>
+                        {isAdmin && r.status === "PENDING_REVIEW" && (
+                          <>
+                            <button className="primary icon-button" onClick={() => approveReport(r.id)} title="Aprovar">
+                              <Check size={16} />
+                            </button>
+                            <button className="danger icon-button" onClick={() => returnReport(r.id)} title="Devolver para correção" style={{ background: "var(--danger)", color: "#fff", border: "none" }}>
+                              <X size={16} />
+                            </button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -1150,6 +1222,34 @@ export default function TechnicalReportsPage() {
                 </div>
                 <div className="modal-body-premium">
                   <pre>{buildPreview(reportsPreviewModal)}</pre>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {returnModalReportId && (
+            <div className="modal-overlay" onClick={() => setReturnModalReportId(null)}>
+              <div className="premium-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+                <div className="modal-header-premium">
+                  <h2>Devolver Relatório para Correção</h2>
+                  <button className="secondary icon-button" onClick={() => setReturnModalReportId(null)}><X size={20} /></button>
+                </div>
+                <div className="modal-body-premium" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <p style={{ margin: 0, fontSize: 14 }}>Informe a justificativa detalhada para o chefe responsável corrigir:</p>
+                  <textarea 
+                    value={returnNotes}
+                    onChange={(e) => setReturnNotes(e.target.value)}
+                    placeholder="Digite a justificativa aqui..."
+                    rows={4}
+                    style={{ width: "100%", padding: 12, borderRadius: 6, border: "1px solid var(--line)" }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <small style={{ color: "var(--text-soft)" }}>{returnNotes.length} caracteres</small>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button type="button" className="secondary" onClick={() => setReturnModalReportId(null)}>Cancelar</button>
+                      <button type="button" className="primary" onClick={confirmReturn} disabled={!returnNotes.trim()}>Confirmar</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

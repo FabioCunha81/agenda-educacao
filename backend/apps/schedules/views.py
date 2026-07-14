@@ -315,7 +315,7 @@ class ShiftScheduleViewSet(viewsets.ModelViewSet):
             relation.remove(member)
         else:
             reason = str(request.data.get("reason") or "").strip()
-            if not reason:
+            if not reason or reason.lower() == "falta":
                 return response.Response({"detail": "Informe a justificativa da falta."}, status=status.HTTP_400_BAD_REQUEST)
             absence, _created = ShiftAbsence.objects.update_or_create(
                 schedule=schedule,
@@ -336,6 +336,73 @@ class ShiftScheduleViewSet(viewsets.ModelViewSet):
         schedule.save(update_fields=["updated_by", "updated_at"])
         schedule = self.get_queryset().get(pk=schedule.pk)
         serializer = self.get_serializer(schedule)
+        return response.Response(serializer.data)
+
+    @decorators.action(detail=True, methods=["post"], url_path="add-member")
+    def add_member(self, request, pk=None):
+        schedule = self.get_object()
+        member_type = request.data.get("member_type")
+        member_id = request.data.get("member_id")
+        lookup_model = self._member_model(member_type)
+        if not lookup_model:
+            return response.Response({"detail": "Tipo de integrante inválido."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        member = lookup_model.objects.filter(id=member_id, is_active=True).first()
+        if not member:
+            return response.Response({"detail": "Integrante não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+            
+        with transaction.atomic():
+            from apps.schedules.models import ShiftManualInclusion
+            ShiftManualInclusion.objects.get_or_create(
+                schedule=schedule,
+                member_type=member_type,
+                member_id=member.id,
+                defaults={
+                    "member_name": member.name,
+                    "added_by": request.user
+                }
+            )
+            if member_type == ShiftAbsence.MemberType.CHIEF:
+                schedule.extra_chiefs.add(member)
+                schedule.removed_chiefs.remove(member)
+            elif member_type == ShiftAbsence.MemberType.AGENT:
+                schedule.extra_agents.add(member)
+                schedule.removed_agents.remove(member)
+            elif member_type == ShiftAbsence.MemberType.SUPPORT:
+                schedule.extra_supports.add(member)
+                schedule.removed_supports.remove(member)
+                
+            schedule.updated_by = request.user
+            schedule.save(update_fields=["updated_by", "updated_at"])
+            
+        serializer = self.get_serializer(self.get_queryset().get(pk=schedule.pk))
+        return response.Response(serializer.data)
+
+    @decorators.action(detail=True, methods=["post", "delete"], url_path="remove-member")
+    def remove_member(self, request, pk=None):
+        schedule = self.get_object()
+        member_type = request.data.get("member_type")
+        member_id = request.data.get("member_id")
+        
+        from apps.schedules.models import ShiftManualInclusion
+        inclusion = ShiftManualInclusion.objects.filter(schedule=schedule, member_type=member_type, member_id=member_id).first()
+        
+        if not inclusion:
+            return response.Response({"detail": "Apenas integrantes incluídos manualmente podem ser removidos."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        with transaction.atomic():
+            inclusion.delete()
+            lookup_model = self._member_model(member_type)
+            member = lookup_model.objects.filter(id=member_id).first()
+            if member:
+                if member_type == ShiftAbsence.MemberType.CHIEF:
+                    schedule.extra_chiefs.remove(member)
+                elif member_type == ShiftAbsence.MemberType.AGENT:
+                    schedule.extra_agents.remove(member)
+                elif member_type == ShiftAbsence.MemberType.SUPPORT:
+                    schedule.extra_supports.remove(member)
+                    
+        serializer = self.get_serializer(self.get_queryset().get(pk=schedule.pk))
         return response.Response(serializer.data)
 
     @decorators.action(detail=True, methods=["post"], url_path="report-attendance")
@@ -935,7 +1002,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
         def distributed_materials_summary(scoped):
             action_scope = EducationAction.objects.filter(
                 Q(agenda_id__in=scoped.values("id")) | Q(report__agenda_id__in=scoped.values("id")),
-                report__status=EducationReport.ReportStatus.SUBMITTED,
+                report__status=EducationReport.ReportStatus.APPROVED,
             ).distinct()
             totals = Counter()
             for equipment, distribution in action_scope.values_list(
@@ -951,7 +1018,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
 
         def action_team_queryset():
             scoped = apply_dashboard_filters(unscoped_dashboard_queryset(), ignore_status=True).filter(
-                Q(status=Agenda.Status.COMPLETED) | Q(technical_reports__status="SUBMITTED")
+                Q(status=Agenda.Status.COMPLETED) | Q(technical_reports__status="APPROVED")
             )
             return scoped
 
@@ -1078,7 +1145,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
             for label, value in by_municipality_counter.most_common(8)
         ]
         realized_qs = apply_dashboard_filters(unscoped_dashboard_queryset(), ignore_status=True).filter(
-            Q(status=Agenda.Status.COMPLETED) | Q(technical_reports__status="SUBMITTED")
+            Q(status=Agenda.Status.COMPLETED) | Q(technical_reports__status="APPROVED")
         )
         
         by_neighborhood_counter = Counter(
@@ -1186,7 +1253,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
         distributed_materials = distributed_materials_summary(qs)
         chief_reports = EducationReport.objects.filter(
             agenda_id__in=qs.values("id"),
-            status=EducationReport.ReportStatus.SUBMITTED,
+            status=EducationReport.ReportStatus.APPROVED,
         ).distinct()
         chief_actions = EducationAction.objects.filter(report_id__in=chief_reports.values("id"))
         chief_reported_agendas = qs.filter(id__in=chief_reports.values("agenda_id")).distinct()
@@ -1500,26 +1567,127 @@ class EducationReportViewSet(viewsets.ModelViewSet):
                 raise ValidationError("Já existe um relatório técnico registrado para este protocolo com esta equipe.")
 
             self._validate_agenda_access(agenda)
-            report = serializer.save(created_by=self.request.user)
+            if "status" in serializer.validated_data:
+                del serializer.validated_data["status"]
+            report = serializer.save(created_by=self.request.user, status=EducationReport.ReportStatus.DRAFT)
             SatisfactionSurvey.objects.filter(agenda=report.agenda, report__isnull=True).update(report=report)
-            if report.status == EducationReport.ReportStatus.SUBMITTED:
-                self._register_accessibility_block(report)
-                transaction.on_commit(lambda: send_satisfaction_survey_email(report))
-                transaction.on_commit(lambda: send_report_confirmation_email(report))
 
     def perform_update(self, serializer):
         with transaction.atomic():
-            previous_status = serializer.instance.status
+            if serializer.instance.status in [EducationReport.ReportStatus.PENDING_REVIEW, EducationReport.ReportStatus.APPROVED]:
+                if not self.request.user.is_admin_role:
+                    raise PermissionDenied("Você não pode editar um relatório que já foi enviado para conferência ou aprovado.")
+
+            if "status" in serializer.validated_data:
+                del serializer.validated_data["status"]
+            
             agenda = serializer.validated_data.get("agenda", serializer.instance.agenda)
             self._validate_agenda_access(agenda)
             report = serializer.save()
             SatisfactionSurvey.objects.filter(agenda=report.agenda, report__isnull=True).update(report=report)
-            if previous_status != EducationReport.ReportStatus.SUBMITTED and report.status == EducationReport.ReportStatus.SUBMITTED:
-                self._register_accessibility_block(report)
-                transaction.on_commit(lambda: send_satisfaction_survey_email(report))
-                transaction.on_commit(lambda: send_report_confirmation_email(report))
-            elif report.status == EducationReport.ReportStatus.SUBMITTED:
-                self._register_accessibility_block(report)
+
+    @decorators.action(detail=True, methods=["post"], url_path="submit-for-review")
+    def submit_for_review(self, request, pk=None):
+        report = self.get_object()
+        if report.status not in [EducationReport.ReportStatus.DRAFT, EducationReport.ReportStatus.RETURNED]:
+            return response.Response({"detail": "Apenas relatórios em rascunho ou devolvidos podem ser enviados para conferência."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validação obrigatória da conferência de frequência
+        from apps.schedules.models import ShiftSchedule
+        schedule = ShiftSchedule.objects.filter(date=report.operation_date, team=report.team).first()
+        if schedule:
+            expected_members = set()
+            for c in schedule.team.chiefs.all(): expected_members.add(f"CHIEF_{c.id}")
+            for a in schedule.team.agents.all(): expected_members.add(f"AGENT_{a.id}")
+            for s in schedule.team.supports.all(): expected_members.add(f"SUPPORT_{s.id}")
+            
+            for c in schedule.extra_chiefs.all(): expected_members.add(f"CHIEF_{c.id}")
+            for a in schedule.extra_agents.all(): expected_members.add(f"AGENT_{a.id}")
+            for s in schedule.extra_supports.all(): expected_members.add(f"SUPPORT_{s.id}")
+            
+            for c in schedule.removed_chiefs.all(): expected_members.discard(f"CHIEF_{c.id}")
+            for a in schedule.removed_agents.all(): expected_members.discard(f"AGENT_{a.id}")
+            for s in schedule.removed_supports.all(): expected_members.discard(f"SUPPORT_{s.id}")
+            
+            for m in schedule.manual_inclusions.all(): expected_members.add(f"{m.member_type}_{m.member_id}")
+            
+            checked = set(schedule.checked_members.keys())
+            if not expected_members.issubset(checked):
+                return response.Response({"detail": "Confira a frequência de todos os integrantes antes de enviar o relatório."}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            old_status = report.status
+            report.status = EducationReport.ReportStatus.PENDING_REVIEW
+            report.submitted_for_review_at = timezone.now()
+            report.submitted_for_review_by = request.user
+            report.save(update_fields=["status", "submitted_for_review_at", "submitted_for_review_by", "updated_at"])
+            
+            ReportStatusHistory.objects.create(
+                report=report,
+                old_status=old_status,
+                new_status=report.status,
+                changed_by=request.user
+            )
+
+        return response.Response({"detail": "Enviado para conferência."})
+
+    @decorators.action(detail=True, methods=["post"])
+    def approve(self, request, pk=None):
+        if not request.user.can_manage_requests:
+            raise PermissionDenied("Apenas gestores ou administradores podem aprovar relatórios.")
+            
+        report = self.get_object()
+        if report.status != EducationReport.ReportStatus.PENDING_REVIEW:
+            return response.Response({"detail": "Apenas relatórios aguardando conferência podem ser aprovados."}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            old_status = report.status
+            report.status = EducationReport.ReportStatus.APPROVED
+            report.reviewed_at = timezone.now()
+            report.reviewed_by = request.user
+            report.save(update_fields=["status", "reviewed_at", "reviewed_by", "updated_at"])
+            
+            ReportStatusHistory.objects.create(
+                report=report,
+                old_status=old_status,
+                new_status=report.status,
+                changed_by=request.user
+            )
+        
+        self._register_accessibility_block(report)
+        transaction.on_commit(lambda: send_satisfaction_survey_email(report))
+        transaction.on_commit(lambda: send_report_confirmation_email(report))
+        
+        return response.Response({"detail": "Relatório aprovado com sucesso."})
+
+    @decorators.action(detail=True, methods=["post"], url_path="return-for-correction")
+    def return_for_correction(self, request, pk=None):
+        if not request.user.can_manage_requests:
+            raise PermissionDenied("Apenas gestores ou administradores podem devolver relatórios.")
+            
+        notes = request.data.get("notes", "").strip()
+        if not notes:
+            return response.Response({"detail": "A justificativa é obrigatória."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        report = self.get_object()
+        if report.status != EducationReport.ReportStatus.PENDING_REVIEW:
+            return response.Response({"detail": "Apenas relatórios aguardando conferência podem ser devolvidos."}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            old_status = report.status
+            report.status = EducationReport.ReportStatus.RETURNED
+            report.review_notes = notes
+            report.reviewed_at = timezone.now()
+            report.reviewed_by = request.user
+            report.save(update_fields=["status", "review_notes", "reviewed_at", "reviewed_by", "updated_at"])
+            
+            ReportStatusHistory.objects.create(
+                report=report,
+                old_status=old_status,
+                new_status=report.status,
+                changed_by=request.user,
+                notes=notes
+            )
+            
+        return response.Response({"detail": "Relatório devolvido para correção."})
 
     def _validate_agenda_access(self, agenda):
         user = self.request.user

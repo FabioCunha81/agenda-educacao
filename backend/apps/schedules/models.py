@@ -141,6 +141,7 @@ class ShiftSchedule(models.Model):
     attendance_reported_at = models.DateTimeField(null=True, blank=True)
     attendance_approved = models.BooleanField(default=False)
     attendance_approved_at = models.DateTimeField(null=True, blank=True)
+    checked_members = models.JSONField(default=dict, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -189,6 +190,33 @@ class ShiftAbsence(models.Model):
 
     def __str__(self):
         return f"{self.member_name} - {self.schedule}"
+
+
+class ShiftManualInclusion(models.Model):
+    class MemberType(models.TextChoices):
+        CHIEF = "CHIEF", "Chefe"
+        AGENT = "AGENT", "Agente"
+        SUPPORT = "SUPPORT", "Apoio"
+
+    schedule = models.ForeignKey(ShiftSchedule, on_delete=models.CASCADE, related_name="manual_inclusions")
+    member_type = models.CharField(max_length=16, choices=MemberType.choices)
+    member_id = models.PositiveIntegerField()
+    member_name = models.CharField(max_length=180)
+    added_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="added_manual_inclusions",
+    )
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["member_name"]
+        constraints = [
+            models.UniqueConstraint(fields=["schedule", "member_type", "member_id"], name="unique_shift_inclusion_member"),
+        ]
+
+    def __str__(self):
+        return f"Incluido: {self.member_name} - {self.schedule}"
 
 
 class ShiftSwapRequest(models.Model):
@@ -516,6 +544,9 @@ class EducationReport(models.Model):
 
     class ReportStatus(models.TextChoices):
         DRAFT = "DRAFT", "Rascunho"
+        PENDING_REVIEW = "PENDING_REVIEW", "Aguardando conferência"
+        APPROVED = "APPROVED", "Aprovado"
+        RETURNED = "RETURNED", "Devolvido para correção"
         SUBMITTED = "SUBMITTED", "Enviado"
 
     source = models.CharField(max_length=20, choices=Source.choices, default=Source.LOCAL)
@@ -566,6 +597,23 @@ class EducationReport(models.Model):
         on_delete=models.PROTECT,
         related_name="education_reports",
     )
+    submitted_for_review_at = models.DateTimeField(null=True, blank=True)
+    submitted_for_review_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="submitted_reports",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_reports",
+    )
+    review_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -579,6 +627,21 @@ class EducationReport(models.Model):
     def __str__(self):
         protocol = f"#{self.agenda_id} - " if self.agenda_id else ""
         return f"{protocol}Relatorio - {self.team}"
+
+
+class ReportStatusHistory(models.Model):
+    report = models.ForeignKey(EducationReport, on_delete=models.CASCADE, related_name="status_history")
+    old_status = models.CharField(max_length=20, choices=EducationReport.ReportStatus.choices, null=True, blank=True)
+    new_status = models.CharField(max_length=20, choices=EducationReport.ReportStatus.choices)
+    changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    changed_at = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["changed_at"]
+
+    def __str__(self):
+        return f"{self.report} ({self.old_status} -> {self.new_status})"
 
 
 class AccessibilityBlocklist(models.Model):

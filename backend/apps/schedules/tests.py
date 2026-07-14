@@ -505,7 +505,7 @@ class DashboardMetricsTests(APITestCase):
                 agenda=agenda,
                 operation_date=agenda.date,
                 team=team,
-                status=EducationReport.ReportStatus.SUBMITTED,
+                status=EducationReport.ReportStatus.APPROVED,
                 created_by=manager,
             )
             EducationAction.objects.create(report=report, agenda=agenda, approach=approach)
