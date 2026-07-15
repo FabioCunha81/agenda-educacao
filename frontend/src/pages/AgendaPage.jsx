@@ -1108,7 +1108,7 @@ export default function AgendaPage() {
                         className="secondary"
                         style={{ color: "#d9534f", borderColor: "#d9534f" }}
                         onClick={() => handleDelete(agenda)}
-                        title={agenda.can_delete === false ? agenda.delete_block_reason || "N?o ? poss?vel excluir" : "Excluir"}
+                        title={agenda.can_delete === false ? agenda.delete_block_reason || "Não é possível excluir" : "Excluir"}
                         disabled={agenda.can_delete === false}
                       >
                         <Trash2 size={16} />

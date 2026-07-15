@@ -15,12 +15,12 @@ const actionTypes = [
 
 const streetActionTypes = [
   "Bares",
-  "Ped?gio",
+  "Pedágio",
   "Esportes",
   "Praia",
   "Eventos",
   "Shopping",
-  "A??o Social",
+  "Ação Social",
   "Outros",
 ];
 
@@ -517,8 +517,8 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
           </div>
 
           <div className="form-section">
-            <h3>Dados da a??o</h3>
-            {form.requester_entity_kind !== "A??o de Rua" ? (
+            <h3>Dados da ação</h3>
+            {form.requester_entity_kind !== STREET_ACTION_ID ? (
               <div className="field-card selection-card">
                 <strong>MODALIDADE PRETENDIDA <b>*</b></strong>
                 <div className="radio-list" role="radiogroup" aria-label="Modalidade pretendida">
@@ -529,7 +529,7 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
                         name="action_type"
                         checked={form.action_type === option}
                         onChange={() => update("action_type", option)}
-                        required={form.requester_entity_kind !== "A??o de Rua"}
+                        required={form.requester_entity_kind !== STREET_ACTION_ID}
                       />
                       <span>{option}</span>
                     </label>
@@ -538,8 +538,8 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
               </div>
             ) : (
               <div className="field-card selection-card">
-                <strong>TIPO DE A??O DE RUA <b>*</b></strong>
-                <div className="radio-list" role="radiogroup" aria-label="Tipo de a??o de rua">
+                <strong>TIPO DE AÇÃO DE RUA <b>*</b></strong>
+                <div className="radio-list" role="radiogroup" aria-label="Tipo de ação de rua">
                   {streetActionTypes.map((option) => (
                     <label className="radio-option option-tile" key={option}>
                       <input
@@ -557,22 +557,22 @@ export default function PublicAgendaRequestPage({ internalRequest = false }) {
             )}
             <div className="split">
               <label className="field-label" style={{ flex: 1 }}>
-                <span>{form.requester_entity_kind === "A??o de Rua" ? "DATA" : "DATA PRETENDIDA"} <b>*</b></span>
+                <span>{form.requester_entity_kind === STREET_ACTION_ID ? "DATA" : "DATA PRETENDIDA"} <b>*</b></span>
                 <input type="date" value={form.date} onChange={(event) => update("date", event.target.value)} required style={{ borderColor: dateMessage ? "var(--red)" : "" }} />
                 {dateMessage && <small style={{ color: "var(--red)", marginTop: "4px", display: "block", fontSize: "11px", fontWeight: "600" }}>{dateMessage}</small>}
               </label>
               <label className="field-label" style={{ flex: 1 }}>
-                <span>HOR?RIO PRETENDIDO / Informar hor?rio pretendido de in?cio <b>*</b></span>
+                <span>HORÁRIO PRETENDIDO / Informar horário pretendido de início <b>*</b></span>
                 <input type="time" value={form.start_time} onChange={(event) => update("start_time", event.target.value)} max={internalRequest ? undefined : "18:00"} required />
               </label>
             </div>
-            {form.requester_entity_kind === "A??o de Rua" && (
+            {form.requester_entity_kind === STREET_ACTION_ID && (
               <>
                 <div className="notice-card compact-notice">
-                  <strong>Dura??o de at? 4 horas. Informe manualmente o hor?rio final.</strong>
+                  <strong>Duração de até 4 horas. Informe manualmente o horário final.</strong>
                 </div>
                 <label className="field-label" style={{ marginTop: "16px", maxWidth: "320px" }}>
-                  <span>HOR?RIO FINAL PRETENDIDO <b>*</b></span>
+                  <span>HORÁRIO FINAL PRETENDIDO <b>*</b></span>
                   <input
                     type="time"
                     value={form.end_time}

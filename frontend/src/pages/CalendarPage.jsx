@@ -40,39 +40,7 @@ function cleanText(value) {
     }
   }
 
-  return text
-    .replaceAll("Coordena??o", "Coordenação")
-    .replaceAll("Coordena?o", "Coordenação")
-    .replaceAll("Educa??o", "Educação")
-    .replaceAll("Educa?o", "Educação")
-    .replaceAll("Opera??o", "Operação")
-    .replaceAll("Opera?o", "Operação")
-    .replaceAll("A??o", "Ação")
-    .replaceAll("A?o", "Ação")
-    .replaceAll("a??o", "ação")
-    .replaceAll("a?o", "ação")
-    .replaceAll("Solicita??o", "Solicitação")
-    .replaceAll("Solicita?o", "Solicitação")
-    .replaceAll("Institui??o", "Instituição")
-    .replaceAll("Institui?o", "Instituição")
-    .replaceAll("Munic??pio", "Município")
-    .replaceAll("Munic?pio", "Município")
-    .replaceAll("Respons??vel", "Responsável")
-    .replaceAll("Respons?vel", "Responsável")
-    .replaceAll("P??blico", "Público")
-    .replaceAll("P?blico", "Público")
-    .replaceAll("Et??ria", "Etária")
-    .replaceAll("Et?ria", "Etária")
-    .replaceAll("Fun??o", "Função")
-    .replaceAll("Fun?o", "Função")
-    .replaceAll("Hor??rio", "Horário")
-    .replaceAll("Hor?rio", "Horário")
-    .replaceAll("Endere??o", "Endereço")
-    .replaceAll("Endere?o", "Endereço")
-    .replaceAll("calend??rio", "calendário")
-    .replaceAll("calend?rio", "calendário")
-    .replaceAll("Calend??rio", "Calendário")
-    .replaceAll("Calend?rio", "Calendário");
+  return text;
 }
 
 function DetailItem({ label, children, className = "" }) {
