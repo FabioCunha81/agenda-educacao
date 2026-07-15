@@ -278,12 +278,19 @@ class ShiftScheduleViewSet(viewsets.ModelViewSet):
             source_id = f"user:{user.id}"
             
             q_filter = Q()
-            if user.sector_id:
-                q_filter |= Q(team_id=user.sector_id)
+            if user.sector_id and user.sector and user.sector.name:
+                q_filter |= Q(team__name__iexact=user.sector.name)
+
+            fallback_q = Q()
+            cpf_numeros = "".join(char for char in str(user.cpf or "") if char.isdigit())
+            if cpf_numeros:
+                fallback_q |= Q(cpf=cpf_numeros)
+            elif user.full_name and user.sector_id and user.sector and user.sector.name:
+                fallback_q |= Q(name__iexact=user.full_name, team__name__iexact=user.sector.name)
                 
-            chief_ids = Chief.objects.filter(source_id=source_id).values_list("id", flat=True)
-            agent_ids = Agent.objects.filter(source_id=source_id).values_list("id", flat=True)
-            support_ids = Support.objects.filter(source_id=source_id).values_list("id", flat=True)
+            chief_ids = list(Chief.objects.filter(Q(source_id=source_id) | fallback_q).values_list("id", flat=True)) if (source_id or fallback_q) else []
+            agent_ids = list(Agent.objects.filter(Q(source_id=source_id) | fallback_q).values_list("id", flat=True)) if (source_id or fallback_q) else []
+            support_ids = list(Support.objects.filter(Q(source_id=source_id) | fallback_q).values_list("id", flat=True)) if (source_id or fallback_q) else []
             
             if chief_ids:
                 q_filter |= Q(extra_chiefs__in=chief_ids)
@@ -291,6 +298,9 @@ class ShiftScheduleViewSet(viewsets.ModelViewSet):
                 q_filter |= Q(extra_agents__in=agent_ids)
             if support_ids:
                 q_filter |= Q(extra_supports__in=support_ids)
+                
+            if not q_filter:
+                return queryset.none()
                 
             queryset = queryset.filter(q_filter).distinct()
             

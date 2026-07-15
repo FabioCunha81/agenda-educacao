@@ -24,7 +24,9 @@ async function loadAll(path) {
   const rows = [];
   while (nextPath) {
     const data = await api(nextPath);
-    rows.push(...(data.results || data));
+    if (!data) break;
+    const items = Array.isArray(data.results) ? data.results : Array.isArray(data) ? data : [];
+    rows.push(...items);
     nextPath = data.next ? `${new URL(data.next).pathname.replace("/api", "")}?${new URL(data.next).searchParams.toString()}` : "";
   }
   return rows;
@@ -203,15 +205,20 @@ export default function ShiftSchedulePage() {
     return teamChief ? teamChief.name : "Chefe não cadastrado";
   }, [chiefs, reportTeam]);
   const loadSchedules = async () => {
-    const params = new URLSearchParams({
-      date_from: formatLocalISODate(days[0]),
-      date_to: formatLocalISODate(days[days.length - 1]),
-    }).toString();
-    const seq = requestSeq.current + 1;
-    requestSeq.current = seq;
-    const data = await loadAll(`/shift-schedules/?${params}`);
-    if (seq === requestSeq.current) {
-      setSchedules(data);
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        date_from: formatLocalISODate(days[0]),
+        date_to: formatLocalISODate(days[days.length - 1]),
+      }).toString();
+      const seq = requestSeq.current + 1;
+      requestSeq.current = seq;
+      const data = await loadAll(`/shift-schedules/?${params}`);
+      if (seq === requestSeq.current) {
+        setSchedules(data);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -227,6 +234,9 @@ export default function ShiftSchedulePage() {
       setChiefs(chiefRows.filter(fromUsers));
       setAgents(agentRows.filter(fromUsers));
       setSupports(supportRows.filter(fromUsers));
+    }).catch((err) => {
+      console.error("Erro ao carregar dados auxiliares:", err);
+      setMessage("Erro de comunicação ao carregar equipes e efetivo. Tente recarregar a página.");
     });
   }, []);
 
@@ -571,6 +581,12 @@ export default function ShiftSchedulePage() {
       </div>
 
       {message && <div className="alert">{message}</div>}
+      
+      {!loading && schedules.length === 0 && !message && (
+        <div className="alert alert-info" style={{ marginTop: "10px" }}>
+          Nenhuma escala encontrada para este usuário no período selecionado.
+        </div>
+      )}
 
       <div className="calendar-grid shift-calendar-grid">
         {days.map((day) => {
@@ -940,7 +956,7 @@ export default function ShiftSchedulePage() {
               <h3>Solicitações desta escala</h3>
               {(swapSchedule?.swap_requests || []).length ? (
                 swapSchedule.swap_requests.map((swap) => (
-                  <article key={swap.id} className={`swap-card ${swap.status.toLowerCase()}`}>
+                  <article key={swap.id} className={`swap-card ${(swap.status || "").toLowerCase()}`}>
                     <div>
                       <strong>{swap.from_member_name} por {swap.to_member_name}</strong>
                       <span>{swap.member_type === "CHIEF" ? "Chefe" : swap.member_type === "SUPPORT" ? "Apoio" : "Agente"} | {formatTeamName(swap.schedule_team_name)} para {formatTeamName(swap.target_team_name)}</span>
