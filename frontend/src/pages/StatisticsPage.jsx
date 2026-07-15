@@ -2,6 +2,7 @@ import { TrendingUp, TrendingDown, Minus, BarChart3, CalendarDays, Activity, Fil
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
 import { DonutChart, HorizontalBarChart } from "../components/Charts.jsx";
+import { formatLocalISODate } from "../utils/date.js";
 
 function formatNumber(value) {
   return Number(value || 0).toLocaleString("pt-BR");
@@ -95,7 +96,7 @@ function getDefaultFilters() {
   const year = today.getFullYear();
   return {
     date_from: `${year}-01-01`,
-    date_to: today.toISOString().slice(0, 10),
+    date_to: formatLocalISODate(today),
   };
 }
 
@@ -106,15 +107,15 @@ function getMonthRange(dateStr) {
   const first = new Date(y, m, 1);
   const last = new Date(y, m + 1, 0);
   return {
-    from: first.toISOString().slice(0, 10),
-    to: last.toISOString().slice(0, 10),
+    from: formatLocalISODate(first),
+    to: formatLocalISODate(last),
   };
 }
 
 function shiftYear(dateStr, delta) {
   const d = new Date(dateStr + "T00:00:00");
   d.setFullYear(d.getFullYear() + delta);
-  return d.toISOString().slice(0, 10);
+  return formatLocalISODate(d);
 }
 
 export default function StatisticsPage() {

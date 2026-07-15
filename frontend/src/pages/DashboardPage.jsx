@@ -17,10 +17,12 @@ import { api } from "../api/client.js";
 import { formatDateBR } from "../utils/date.js";
 import { statusLabel } from "../utils/status.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { formatLocalISODate } from "../utils/date.js";
+import { downloadUrl, getToken } from "../api/client.js";
 
 const today = new Date();
-const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split("T")[0];
-const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split("T")[0];
+const firstDay = formatLocalISODate(new Date(today.getFullYear(), today.getMonth(), 1));
+const lastDay = formatLocalISODate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
 
 const emptyFilters = {
   q: "",

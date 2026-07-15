@@ -5,6 +5,12 @@ export function formatDateBR(value) {
   return `${day}/${month}/${year}`;
 }
 
+export function formatLocalISODate(date) {
+  if (!date) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 export function normalizeTime(value) {
   if (typeof value !== "string") return "";
 

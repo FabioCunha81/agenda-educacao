@@ -144,6 +144,29 @@ function valueForPayload(value) {
   return value === "" ? null : value;
 }
 
+function getDiffPayload(payload, original) {
+  if (!original) return payload;
+  const changes = {};
+  for (const key of Object.keys(payload)) {
+    let oldVal = original[key];
+    let newVal = payload[key];
+    if (oldVal === null || oldVal === undefined) oldVal = "";
+    if (newVal === null || newVal === undefined) newVal = "";
+    
+    // Normalize time for comparison (e.g., "12:00:00" vs "12:00")
+    if ((key === "start_time" || key === "end_time" || key === "time_2" || key === "time_3") && oldVal.length === 8 && newVal.length === 5) {
+      oldVal = oldVal.slice(0, 5);
+    }
+    
+    if (key === "materials") {
+      changes[key] = payload[key]; // Always send materials on update to be safe
+    } else if (String(oldVal) !== String(newVal)) {
+      changes[key] = payload[key];
+    }
+  }
+  return changes;
+}
+
 function normalizePayload(form) {
   const payload = { ...form };
   payload.materials = normalizeMaterialRows(form.materials).map((item, index) => ({
@@ -666,7 +689,9 @@ export default function AgendaPage() {
     const payload = normalizePayload({ ...payloadForm, lookupVehicles: lookups.vehicles });
     try {
       if (editing) {
-        await api(`/agendas/${editing}/`, { method: "PUT", body: JSON.stringify(payload) });
+        const original = agendas.find((a) => String(a.id) === String(editing));
+        const diffPayload = getDiffPayload(payload, original);
+        await api(`/agendas/${editing}/`, { method: "PATCH", body: JSON.stringify(diffPayload) });
       } else {
         await api("/agendas/", { method: "POST", body: JSON.stringify(payload) });
       }
@@ -816,7 +841,12 @@ export default function AgendaPage() {
       nextForm.cancel_reason = reason;
     }
     try {
-      await api(`/agendas/${editing}/`, { method: "PUT", body: JSON.stringify(normalizePayload({ ...nextForm, lookupVehicles: lookups.vehicles })) });
+      const payload = normalizePayload({ ...nextForm, lookupVehicles: lookups.vehicles });
+      const original = agendas.find((a) => String(a.id) === String(editing));
+      const diffPayload = getDiffPayload(payload, original);
+      if (nextForm.status) diffPayload.status = nextForm.status; // Ensure status is sent
+      if (nextForm.cancel_reason !== undefined) diffPayload.cancel_reason = nextForm.cancel_reason;
+      await api(`/agendas/${editing}/`, { method: "PATCH", body: JSON.stringify(diffPayload) });
       setForm(emptyForm);
       setEditing(null);
       setIsModalOpen(false);
@@ -835,7 +865,10 @@ export default function AgendaPage() {
     }
     setMessage("");
     try {
-      await api(`/agendas/${editing}/?skip_email=true`, { method: "PUT", body: JSON.stringify(normalizePayload({ ...form, lookupVehicles: lookups.vehicles })) });
+      const payload = normalizePayload({ ...form, lookupVehicles: lookups.vehicles });
+      const original = agendas.find((a) => String(a.id) === String(editing));
+      const diffPayload = getDiffPayload(payload, original);
+      await api(`/agendas/${editing}/?skip_email=true`, { method: "PATCH", body: JSON.stringify(diffPayload) });
       setForm(emptyForm);
       setEditing(null);
       setIsModalOpen(false);
@@ -1205,6 +1238,18 @@ export default function AgendaPage() {
               >
                 <div className="form-section">
                   <h3>Ordem de serviço</h3>
+                  {(!agendas.find((a) => String(a.id) === String(editing))?.description) && (
+                    <label className="field-label" style={{ marginBottom: "16px" }}>
+                      <span style={{ color: "var(--color-danger)", fontWeight: "bold" }}>Descrição ausente (Preenchimento obrigatório)</span>
+                      <textarea 
+                        rows="3" 
+                        value={form.description || ""} 
+                        onChange={(e) => update("description", e.target.value)} 
+                        placeholder="Esta agenda não possui descrição. Por favor, informe uma descrição detalhada para prosseguir com a aprovação." 
+                        required 
+                      />
+                    </label>
+                  )}
                   <div className="compact-grid">
                     <label className="field-label">
                       <span>Data</span>

@@ -2,12 +2,8 @@ import { ChevronLeft, ChevronRight, Mail, MapPin, Navigation, Phone, UserRound }
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client.js";
 import Filters from "../components/Filters.jsx";
-import { formatDateBR } from "../utils/date.js";
+import { formatDateBR, formatLocalISODate } from "../utils/date.js";
 import { statusClass, statusLabel } from "../utils/status.js";
-
-function toISO(date) {
-  return date.toISOString().slice(0, 10);
-}
 
 function requestLocation(agenda) {
   return agenda.institution_location || agenda.location || "Local nao informado";
@@ -75,8 +71,8 @@ export default function VisitorCalendarPage() {
     delete scopedFilters.date;
     const params = new URLSearchParams({
       ...scopedFilters,
-      date_from: toISO(days[0]),
-      date_to: toISO(days[days.length - 1]),
+      date_from: formatLocalISODate(days[0]),
+      date_to: formatLocalISODate(days[days.length - 1]),
     }).toString();
     const seq = requestSeq.current + 1;
     requestSeq.current = seq;
@@ -116,7 +112,7 @@ export default function VisitorCalendarPage() {
         <input
           className="jump-date"
           type="date"
-          value={toISO(cursor)}
+          value={formatLocalISODate(cursor)}
           onChange={(event) => setCursor(new Date(`${event.target.value}T12:00:00`))}
         />
       </div>
@@ -127,9 +123,9 @@ export default function VisitorCalendarPage() {
       </div>
       <div className={`calendar-grid ${view}`}>
         {days.map((day) => {
-          const dayAgendas = agendas.filter((agenda) => agenda.date === toISO(day));
+          const dayAgendas = agendas.filter((agenda) => agenda.date === formatLocalISODate(day));
           return (
-            <article key={day.toISOString()} className="day-cell">
+            <article key={formatLocalISODate(day)} className="day-cell">
               <span>{day.getDate()}</span>
               {dayAgendas.map((agenda) => (
                 <button key={agenda.id} className={`event-pill ${statusClass[agenda.status]}`} onClick={() => setSelected(agenda)}>

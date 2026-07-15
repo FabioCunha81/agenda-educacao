@@ -3,12 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client.js";
 import Filters from "../components/Filters.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { formatDateBR } from "../utils/date.js";
+import { formatDateBR, formatLocalISODate } from "../utils/date.js";
 import { statusClass, statusLabel } from "../utils/status.js";
-
-function toISO(date) {
-  return date.toISOString().slice(0, 10);
-}
 
 function serviceTeamLabel(agenda) {
   return agenda.team_name || agenda.sector_name || "Equipe não definida";
@@ -145,8 +141,8 @@ export default function CalendarPage() {
     delete scopedFilters.date;
     const params = new URLSearchParams({
       ...scopedFilters,
-      date_from: toISO(days[0]),
-      date_to: toISO(days[days.length - 1]),
+      date_from: formatLocalISODate(days[0]),
+      date_to: formatLocalISODate(days[days.length - 1]),
     }).toString();
     const seq = requestSeq.current + 1;
     requestSeq.current = seq;
@@ -186,7 +182,7 @@ export default function CalendarPage() {
         <input
           className="jump-date"
           type="date"
-          value={toISO(cursor)}
+          value={formatLocalISODate(cursor)}
           onChange={(event) => setCursor(new Date(`${event.target.value}T12:00:00`))}
         />
       </div>
@@ -197,9 +193,9 @@ export default function CalendarPage() {
       </div>
       <div className={`calendar-grid ${view}`}>
         {days.map((day) => {
-          const dayAgendas = agendas.filter((agenda) => agenda.date === toISO(day));
+          const dayAgendas = agendas.filter((agenda) => agenda.date === formatLocalISODate(day));
           return (
-            <article key={day.toISOString()} className="day-cell">
+            <article key={formatLocalISODate(day)} className="day-cell">
               <span>{day.getDate()}</span>
               {dayAgendas.map((agenda) => (
                 <button key={agenda.id} className={`event-pill ${statusClass[agenda.status]}`} onClick={() => setSelected(agenda)}>

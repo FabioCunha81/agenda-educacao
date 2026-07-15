@@ -2,11 +2,7 @@ import { AlertTriangle, CalendarDays, Check, ChevronLeft, ChevronRight, Papercli
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
-import { formatDateBR } from "../utils/date.js";
-
-function toISO(date) {
-  return date.toISOString().slice(0, 10);
-}
+import { formatDateBR, formatLocalISODate } from "../utils/date.js";
 
 function memberRows(members = {}) {
   return [
@@ -208,8 +204,8 @@ export default function ShiftSchedulePage() {
   }, [chiefs, reportTeam]);
   const loadSchedules = async () => {
     const params = new URLSearchParams({
-      date_from: toISO(days[0]),
-      date_to: toISO(days[days.length - 1]),
+      date_from: formatLocalISODate(days[0]),
+      date_to: formatLocalISODate(days[days.length - 1]),
     }).toString();
     const seq = requestSeq.current + 1;
     requestSeq.current = seq;
@@ -240,7 +236,7 @@ export default function ShiftSchedulePage() {
 
   const openDay = (date) => {
     if (!canApprove) return;
-    const iso = toISO(date);
+    const iso = formatLocalISODate(date);
     const daySchedules = schedules.filter((item) => item.date === iso);
     setSelectedDate(iso);
     setSelectedTeamIds(daySchedules.map((item) => String(item.team)));
@@ -569,7 +565,7 @@ export default function ShiftSchedulePage() {
         <button className="icon-button" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} aria-label="Mês anterior"><ChevronLeft size={18} /></button>
         <strong>{cursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</strong>
         <button className="icon-button" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} aria-label="Próximo mês"><ChevronRight size={18} /></button>
-        <input className="jump-date" type="date" value={toISO(cursor)} onChange={(event) => setCursor(new Date(`${event.target.value}T12:00:00`))} />
+        <input className="jump-date" type="date" value={formatLocalISODate(cursor)} onChange={(event) => setCursor(new Date(`${event.target.value}T12:00:00`))} />
         <button type="button" className="secondary" onClick={() => openSwapModal()}><Repeat2 size={17} /> Solicitar troca</button>
         <button type="button" className="secondary" onClick={() => openReportModal()} style={{ marginLeft: 8 }}><CalendarDays size={17} /> Relatório RH</button>
       </div>
@@ -578,7 +574,7 @@ export default function ShiftSchedulePage() {
 
       <div className="calendar-grid shift-calendar-grid">
         {days.map((day) => {
-          const iso = toISO(day);
+          const iso = formatLocalISODate(day);
           const daySchedules = schedules.filter((item) => item.date === iso);
           return (
             <article key={iso} className="day-cell shift-day-cell" onClick={() => openDay(day)}>
