@@ -1081,12 +1081,9 @@ class AgendaViewSet(viewsets.ModelViewSet):
                 report__status=EducationReport.ReportStatus.APPROVED,
             ).distinct()
             totals = Counter()
-            for equipment, distribution in action_scope.values_list(
-                "equipment_materials_distributed",
-                "distribution_materials_distributed",
+            for distribution in action_scope.values_list(
+                "distribution_materials_distributed", flat=True
             ):
-                for name, quantity in parse_material_distribution(equipment):
-                    totals[name] += quantity
                 for name, quantity in parse_material_distribution(distribution):
                     totals[name] += quantity
             items = [{"label": label, "value": value} for label, value in totals.most_common(8)]
