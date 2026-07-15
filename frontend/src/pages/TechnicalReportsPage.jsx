@@ -1005,12 +1005,8 @@ export default function TechnicalReportsPage() {
                   </div>
                 </div>
                 <div className="report-material-grid" style={{ marginTop: '1rem' }}>
-                  <div className="field-label report-text-box">
-                    <span>Material retirado</span>
-                    <MaterialSummary value={action.distribution_materials_removed || ""} />
-                  </div>
-                  <div className="field-label report-text-box">
-                    <span>Material devolvido</span>
+                  <div className="field-label report-text-box" style={{ gridColumn: '1 / -1' }}>
+                    <span>Material distribuído</span>
                     <MaterialQuantityEditor value={action.distribution_materials_distributed || ""} onChange={(value) => updateAction(index, "distribution_materials_distributed", value)} />
                   </div>
                 </div>

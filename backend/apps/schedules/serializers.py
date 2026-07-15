@@ -957,6 +957,39 @@ class EducationActionSerializer(serializers.ModelSerializer):
     def validate_source_id(self, value):
         return value or None
 
+    def validate_distribution_materials_distributed(self, value):
+        if not value:
+            return value
+
+        import re
+        from apps.schedules.models import Kit
+
+        for line in value.splitlines():
+            text = line.strip()
+            if not text:
+                continue
+            text = re.sub(r"\[\s*\]", "| 0", text)
+            if "|" in text:
+                name_part, quantity_part = [part.strip() for part in text.rsplit("|", 1)]
+                name = name_part
+                quantity = quantity_part
+            else:
+                match = re.match(r"^(?P<name>.+?)\s+-\s*(?P<quantity>\d+)\s*$", text)
+                if not match:
+                    continue
+                name = match.group("name").strip()
+                quantity = match.group("quantity")
+            
+            quantity_match = re.search(r"\d+", str(quantity))
+            if not name or not quantity_match:
+                continue
+
+            if not Kit.objects.filter(name__iexact=name).exists():
+                raise serializers.ValidationError(
+                    f"O material '{name}' não pertence à categoria Material para Distribuição."
+                )
+        return value
+
     def validate(self, attrs):
         action_type = str(attrs.get("type_action") or "").strip()
         counter_fields = [
