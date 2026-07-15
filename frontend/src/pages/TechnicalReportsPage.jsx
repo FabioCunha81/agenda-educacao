@@ -395,6 +395,7 @@ export default function TechnicalReportsPage() {
   const [attendanceForm, setAttendanceForm] = useState({});
   const [returnModalReportId, setReturnModalReportId] = useState(null);
   const [returnNotes, setReturnNotes] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN" || user?.role === "MANAGER";
   const requestFieldsReadOnly = Boolean(form.agenda);
@@ -700,9 +701,26 @@ export default function TechnicalReportsPage() {
       }
 
       const payload = normalizePayload({ ...form, status });
-      const saved = editing
-        ? await api(`/education-reports/${editing}/`, { method: "PUT", body: JSON.stringify(payload) })
-        : await api("/education-reports/", { method: "POST", body: JSON.stringify(payload) });
+      let saved;
+      try {
+        saved = editing
+          ? await api(`/education-reports/${editing}/`, { method: "PUT", body: JSON.stringify(payload) })
+          : await api("/education-reports/", { method: "POST", body: JSON.stringify(payload) });
+      } catch (err) {
+        if (!editing && err.message?.includes("Já existe um relatório técnico")) {
+          const existing = await api(`/education-reports/?agenda=${payload.agenda}&team=${payload.team}`);
+          const existingReport = existing.results ? existing.results[0] : (existing[0] || null);
+          if (existingReport && (existingReport.status === "DRAFT" || existingReport.status === "RETURNED")) {
+            saved = await api(`/education-reports/${existingReport.id}/`, { method: "PUT", body: JSON.stringify(payload) });
+          } else if (existingReport) {
+            throw new Error("Já existe um relatório aguardando conferência ou já aprovado para este protocolo e equipe.");
+          } else {
+            throw err;
+          }
+        } else {
+          throw err;
+        }
+      }
       setEditing(saved.id);
       const savedAgenda = agendas.find((agenda) => String(agenda.id) === String(saved.agenda));
       setForm(hydrateForm(saved, savedAgenda));
@@ -716,21 +734,27 @@ export default function TechnicalReportsPage() {
 
   const submit = async (event) => {
     event.preventDefault();
+    if (isSaving) return;
+    setIsSaving(true);
     setMessage("");
     try {
       await saveReport("DRAFT");
       setMessage("Rascunho salvo com sucesso.");
     } catch (err) {
       setMessage(err.message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const submitFinal = async () => {
+    if (isSaving) return;
     setMessage("");
     if (reportSchedule && Object.values(attendanceForm).some((d) => d.is_absent === null)) {
       setMessage("É obrigatório gerenciar a frequência de toda a equipe antes de enviar o relatório final.");
       return;
     }
+    setIsSaving(true);
     try {
       const savedId = await saveReport("DRAFT");
       await api(`/education-reports/${savedId}/submit-for-review/`, { method: "POST" });
@@ -738,6 +762,8 @@ export default function TechnicalReportsPage() {
       load();
     } catch (err) {
       setMessage(err.message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -1029,8 +1055,8 @@ export default function TechnicalReportsPage() {
           <div className="report-submit-actions">
             {!["PENDING_REVIEW", "APPROVED"].includes(form.status) && (
               <>
-                <button type="submit" className="secondary"><Save size={18} /> Salvar rascunho</button>
-                <button type="button" onClick={submitFinal}><Save size={18} /> Enviar para conferência</button>
+                <button type="submit" className="secondary" disabled={isSaving}><Save size={18} /> Salvar rascunho</button>
+                <button type="button" onClick={submitFinal} disabled={isSaving}><Save size={18} /> Enviar para conferência</button>
               </>
             )}
           </div>

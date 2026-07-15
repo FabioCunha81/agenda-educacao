@@ -8,11 +8,14 @@ User = get_user_model()
 class EducationReportWorkflowTests(APITestCase):
     def setUp(self):
         # Create users
-        self.admin = User.objects.create_user(username="admin@teste.com", password="pwd", role=User.Role.ADMIN)
-        self.manager = User.objects.create_user(username="manager@teste.com", password="pwd", role=User.Role.MANAGER)
-        self.chief = User.objects.create_user(username="chief@teste.com", password="pwd", role=User.Role.CHIEF)
-        self.agent = User.objects.create_user(username="agent@teste.com", password="pwd", role=User.Role.AGENT)
-        self.visitor = User.objects.create_user(username="visitor@teste.com", password="pwd", role=User.Role.VISITOR)
+        self.admin = User.objects.create_user(email="admin@teste.com", password="pwd", role=User.Role.ADMIN)
+        self.manager = User.objects.create_user(email="manager@teste.com", password="pwd", role=User.Role.MANAGER)
+        self.chief = User.objects.create_user(email="chief@teste.com", password="pwd", role=User.Role.SUPERVISOR)
+        self.agent = User.objects.create_user(email="agent@teste.com", password="pwd", role=User.Role.USER)
+        self.visitor = User.objects.create_user(email="visitor@teste.com", password="pwd", role=User.Role.VISITOR)
+
+        from apps.schedules.models import Sector
+        self.sector = Sector.objects.create(name="Test Sector")
 
         # Create agenda
         self.agenda = Agenda.objects.create(
@@ -20,6 +23,11 @@ class EducationReportWorkflowTests(APITestCase):
             status=Agenda.Status.COMPLETED,
             chief_name="Chief Test",
             date="2026-07-01",
+            start_time="08:00:00",
+            end_time="12:00:00",
+            created_by=self.admin,
+            responsible=self.manager,
+            sector=self.sector,
         )
 
         # Create report as draft
@@ -28,6 +36,7 @@ class EducationReportWorkflowTests(APITestCase):
             created_by=self.chief,
             status=EducationReport.ReportStatus.DRAFT,
             team="Team A",
+            operation_date="2026-07-01",
         )
 
     def test_chief_cannot_approve_or_return(self):
@@ -69,7 +78,7 @@ class EducationReportWorkflowTests(APITestCase):
         self.assertEqual(self.report.status, EducationReport.ReportStatus.APPROVED)
 
     def test_cannot_edit_approved_report_via_put_or_patch(self):
-        self.client.force_authenticate(user=self.chief)
+        self.client.force_authenticate(user=self.admin)
         self.report.status = EducationReport.ReportStatus.APPROVED
         self.report.save()
 
@@ -88,12 +97,13 @@ class EducationReportWorkflowTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_status_cannot_be_changed_via_payload(self):
-        self.client.force_authenticate(user=self.chief)
+        self.client.force_authenticate(user=self.admin)
         
         # Try to create directly as APPROVED
         response = self.client.post("/api/education-reports/", {
             "agenda": self.agenda.id,
             "team": "Team D",
+            "operation_date": "2026-07-01",
             "status": "APPROVED",
             "actions": []
         }, format="json")
@@ -108,3 +118,85 @@ class EducationReportWorkflowTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         new_report.refresh_from_db()
         self.assertEqual(new_report.status, EducationReport.ReportStatus.DRAFT)
+
+    def test_create_draft_and_submit(self):
+        self.client.force_authenticate(user=self.admin)
+        
+        response = self.client.post("/api/education-reports/", {
+            "agenda": self.agenda.id,
+            "team": "Team E",
+            "operation_date": "2026-07-01",
+            "actions": []
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        report_id = response.data["id"]
+        
+        response = self.client.post(f"/api/education-reports/{report_id}/submit-for-review/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        report = EducationReport.objects.get(id=report_id)
+        self.assertEqual(report.status, EducationReport.ReportStatus.PENDING_REVIEW)
+        
+    def test_prevent_duplicate_reports_same_agenda_and_team(self):
+        self.client.force_authenticate(user=self.admin)
+        
+        response1 = self.client.post("/api/education-reports/", {
+            "agenda": self.agenda.id,
+            "team": "Team F",
+            "operation_date": "2026-07-01",
+            "actions": []
+        }, format="json")
+        self.assertEqual(response1.status_code, status.HTTP_201_CREATED)
+        
+        response2 = self.client.post("/api/education-reports/", {
+            "agenda": self.agenda.id,
+            "team": "Team F",
+            "operation_date": "2026-07-01",
+            "actions": []
+        }, format="json")
+        self.assertEqual(response2.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Já existe um relatório técnico", str(response2.data))
+        
+    def test_update_own_report_without_duplication_error(self):
+        self.client.force_authenticate(user=self.admin)
+        
+        response = self.client.post("/api/education-reports/", {
+            "agenda": self.agenda.id,
+            "team": "Team G",
+            "operation_date": "2026-07-01",
+            "actions": []
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        report_id = response.data["id"]
+        
+        response = self.client.patch(f"/api/education-reports/{report_id}/", {
+            "team": "Team G",
+            "general_observations": "Updated"
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["general_observations"], "Updated")
+        
+    def test_return_correct_and_resubmit(self):
+        self.client.force_authenticate(user=self.manager)
+        
+        report = EducationReport.objects.create(
+            agenda=self.agenda,
+            created_by=self.chief,
+            status=EducationReport.ReportStatus.PENDING_REVIEW,
+            team="Team H",
+            operation_date="2026-07-01",
+        )
+        
+        response = self.client.post(f"/api/education-reports/{report.id}/return-for-correction/", {"notes": "fix"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.patch(f"/api/education-reports/{report.id}/", {
+            "general_observations": "Fixed"
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        response = self.client.post(f"/api/education-reports/{report.id}/submit-for-review/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        report.refresh_from_db()
+        self.assertEqual(report.status, EducationReport.ReportStatus.PENDING_REVIEW)

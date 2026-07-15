@@ -1650,7 +1650,7 @@ class EducationReportViewSet(viewsets.ModelViewSet):
 
     @decorators.action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
-        if not request.user.can_manage_requests:
+        if not request.user.is_admin_role:
             raise PermissionDenied("Apenas gestores ou administradores podem aprovar relatórios.")
             
         report = self.get_object()
@@ -1678,7 +1678,7 @@ class EducationReportViewSet(viewsets.ModelViewSet):
 
     @decorators.action(detail=True, methods=["post"], url_path="return-for-correction")
     def return_for_correction(self, request, pk=None):
-        if not request.user.can_manage_requests:
+        if not request.user.is_admin_role:
             raise PermissionDenied("Apenas gestores ou administradores podem devolver relatórios.")
             
         notes = request.data.get("notes", "").strip()
