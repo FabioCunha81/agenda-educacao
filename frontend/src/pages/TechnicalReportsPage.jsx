@@ -155,7 +155,10 @@ function parseMaterialRows(value = "") {
 function serializeMaterialRows(rows = []) {
   return rows
     .filter((item) => item.name)
-    .map((item) => `${item.name} | ${Number(item.quantity || 0)}`)
+    .map((item) => {
+      const q = item.quantity !== "" && item.quantity !== undefined && item.quantity !== null ? item.quantity : "";
+      return `${item.name} | ${q}`;
+    })
     .join("\n");
 }
 
@@ -173,7 +176,7 @@ function MaterialSummary({ title, value }) {
         {rows.length ? rows.map((row, rowIndex) => (
           <div className="material-entry-row" key={`${row.name}-${rowIndex}`}>
             <strong>{row.name}</strong>
-            <span>{row.quantity || "-"}</span>
+            <span>{row.quantity || "Quantidade não informada na OS"}</span>
           </div>
         )) : <p>Nenhum material vinculado.</p>}
       </div>
@@ -245,20 +248,31 @@ function extractMaterialCategories(agenda) {
   const supports = [];
   const kits = [];
 
-  const add = (list, name) => {
-    if (name && !list.includes(name)) list.push(name);
+  const add = (list, name, quantity) => {
+    if (!name) return;
+    const normalizedName = String(name).trim();
+    if (!normalizedName) return;
+    
+    const existing = list.find(item => String(item.name).trim().toLowerCase() === normalizedName.toLowerCase());
+    const validQuantity = quantity !== null && quantity !== undefined && quantity !== "" ? Number(quantity) : "";
+    
+    if (!existing) {
+      list.push({ name: normalizedName, quantity: validQuantity });
+    } else if (validQuantity !== "" && existing.quantity === "") {
+      existing.quantity = validQuantity;
+    }
   };
 
   for (let index = 1; index <= 7; index += 1) {
-    add(kits, safeAgenda[`kit_${index}`]);
-    add(supports, safeAgenda[`material_${index}`]);
+    add(kits, safeAgenda[`kit_${index}`], safeAgenda[`kit_${index}_quantity`]);
+    add(supports, safeAgenda[`material_${index}`], "");
   }
 
   if (safeAgenda.materials?.length) {
     safeAgenda.materials.forEach((item) => {
-      add(dynamics, item.dynamic_name);
-      add(kits, item.kit_name);
-      add(supports, item.material_name);
+      add(dynamics, item.dynamic_name, item.quantity);
+      add(kits, item.kit_name, item.quantity);
+      add(supports, item.material_name, item.quantity);
     });
   }
 
@@ -495,8 +509,8 @@ export default function TechnicalReportsPage() {
   const applyAgenda = (agenda) => {
     const details = protocolDetails(agenda);
     const selectedMaterials = extractMaterialCategories(agenda);
-    const initialEquipment = [...selectedMaterials.dynamics, ...selectedMaterials.supports].join("\n");
-    const initialKits = selectedMaterials.kits.join("\n");
+    const initialEquipment = serializeMaterialRows([...selectedMaterials.dynamics, ...selectedMaterials.supports]);
+    const initialKits = serializeMaterialRows(selectedMaterials.kits);
     setForm((current) => ({
       ...current,
       agenda: agenda.id,
@@ -1038,11 +1052,11 @@ export default function TechnicalReportsPage() {
                       <div className="report-material-grid">
                         <div className="field-label report-text-box">
                           <span>Dinâmica retirada</span>
-                          <MaterialSummary value={dynRem || cats.dynamics.join("\n")} />
+                          <MaterialSummary value={dynRem || serializeMaterialRows(cats.dynamics)} />
                         </div>
                         <div className="field-label report-text-box">
                           <span>Dinâmica devolvida</span>
-                          <MaterialQuantityEditor value={dynDist || cats.dynamics.join("\n")} onChange={handleDynDist} />
+                          <MaterialQuantityEditor value={dynDist || serializeMaterialRows(cats.dynamics)} onChange={handleDynDist} />
                         </div>
                       </div>
                       )}
@@ -1050,20 +1064,26 @@ export default function TechnicalReportsPage() {
                       <div className="report-material-grid" style={{ marginTop: cats.dynamics.length > 0 ? '1rem' : 0 }}>
                         <div className="field-label report-text-box">
                           <span>Material de Apoio retirado</span>
-                          <MaterialSummary value={supRem || cats.supports.join("\n")} />
+                          <MaterialSummary value={supRem || serializeMaterialRows(cats.supports)} />
                         </div>
                         <div className="field-label report-text-box">
                           <span>Material de Apoio devolvido</span>
-                          <MaterialQuantityEditor value={supDist || cats.supports.join("\n")} onChange={handleSupDist} />
+                          <MaterialQuantityEditor value={supDist || serializeMaterialRows(cats.supports)} onChange={handleSupDist} />
                         </div>
                       </div>
                       )}
+                      {cats.kits.length > 0 && (
                       <div className="report-material-grid" style={{ marginTop: '1rem' }}>
-                        <div className="field-label report-text-box" style={{ gridColumn: '1 / -1' }}>
+                        <div className="field-label report-text-box">
+                          <span>Material para Distribuição retirado</span>
+                          <MaterialSummary value={action.distribution_materials_removed || serializeMaterialRows(cats.kits)} />
+                        </div>
+                        <div className="field-label report-text-box">
                           <span>Material distribuído</span>
-                          <MaterialQuantityEditor value={action.distribution_materials_distributed || cats.kits.join("\n")} onChange={(value) => updateAction(index, "distribution_materials_distributed", value)} />
+                          <MaterialQuantityEditor value={action.distribution_materials_distributed || serializeMaterialRows(cats.kits)} onChange={(value) => updateAction(index, "distribution_materials_distributed", value)} />
                         </div>
                       </div>
+                      )}
                     </>
                   );
                 })()}
