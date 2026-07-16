@@ -738,8 +738,32 @@ export default function TechnicalReportsPage() {
   const submitFinal = async () => {
     if (isSaving) return;
     setMessage("");
+    const missingFields = [];
+
+    if (!form.operation_date) missingFields.push({ name: "Data da Operação", id: "input-operation-date" });
+    if (!form.team) missingFields.push({ name: "Equipe Executora", id: "input-team" });
+    
+    form.actions.forEach((action, idx) => {
+      if (!action.type_action) missingFields.push({ name: `Ação ${idx + 1}: Ação Definida pelo Chefe`, id: `select-type-action-${idx}` });
+    });
+
+    if (!form.accessibility_conditions_met) missingFields.push({ name: "Condições de Acessibilidade", id: "select-accessibility" });
+
     if (reportSchedule && Object.values(attendanceForm).some((d) => d.is_absent === null)) {
-      setMessage("⚠ Não foi possível enviar o relatório\n\nMotivo:\nÉ obrigatório gerenciar a frequência de toda a equipe antes de enviar o relatório final.");
+      missingFields.push({ name: "Frequência da Equipe", id: "attendance-block" }); // assume attendance has this id or similar, I will add it
+    }
+
+    if (missingFields.length > 0) {
+      setMessage(`⚠ Não foi possível enviar o relatório\n\nMotivo:\nExistem campos obrigatórios não preenchidos:\n${missingFields.map(f => `- ${f.name}`).join('\n')}`);
+      
+      const firstMissingId = missingFields[0].id;
+      const el = document.getElementById(firstMissingId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus();
+        el.classList.add("highlight-error");
+        setTimeout(() => el.classList.remove("highlight-error"), 3000);
+      }
       return;
     }
     setIsSaving(true);
@@ -874,11 +898,11 @@ export default function TechnicalReportsPage() {
               </label>
               <label className="field-label">
                 <span>Data</span>
-                <input type="date" value={form.operation_date} onChange={(event) => update("operation_date", event.target.value)} readOnly={requestFieldsReadOnly} required />
+                <input id="input-operation-date" type="date" value={form.operation_date} onChange={(event) => update("operation_date", event.target.value)} readOnly={requestFieldsReadOnly} required />
               </label>
               <label className="field-label">
                 <span>Equipe</span>
-                <input value={form.team} onChange={(event) => update("team", event.target.value)} readOnly={requestFieldsReadOnly} required />
+                <input id="input-team" value={form.team} onChange={(event) => update("team", event.target.value)} readOnly={requestFieldsReadOnly} required />
               </label>
             </div>
           </div>
@@ -932,16 +956,20 @@ export default function TechnicalReportsPage() {
                 </div>
                 <div className="compact-grid">
                   <input placeholder="Local da ação" value={action.place_action || ""} onChange={(event) => updateAction(index, "place_action", event.target.value)} readOnly={requestFieldsReadOnly} />
-                  {isStreetActionAgenda(selectedAgenda) ? (
-                    <select value={action.type_action || ""} onChange={(event) => updateAction(index, "type_action", event.target.value)} required>
-                      <option value="">Selecione o tipo da ação</option>
-                      {streetActionTypeOptions.map((option) => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input placeholder="Tipo da ação" value={action.type_action || ""} onChange={(event) => updateAction(index, "type_action", event.target.value)} readOnly={requestFieldsReadOnly} />
-                  )}
+                  <select
+                    id={`select-type-action-${index}`}
+                    value={action.type_action || ""}
+                    onChange={(event) => updateAction(index, "type_action", event.target.value)}
+                    required
+                  >
+                    <option value="">Ação Definida pelo Chefe</option>
+                    {streetActionTypeOptions.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                    {action.type_action && !streetActionTypeOptions.includes(action.type_action) && (
+                      <option value={action.type_action}>{action.type_action}</option>
+                    )}
+                  </select>
                 </div>
                 <div className="compact-grid">
                   <input placeholder="Tipo de público" value={action.type_audience || ""} onChange={(event) => updateAction(index, "type_audience", event.target.value)} />
@@ -970,6 +998,7 @@ export default function TechnicalReportsPage() {
                     <label className="field-label">
                       <span>O local atendeu às condições de acessibilidade para cadeirantes?</span>
                       <select
+                        id="select-accessibility"
                         value={form.accessibility_conditions_met || ""}
                         onChange={(event) => update("accessibility_conditions_met", event.target.value)}
                         required
@@ -1050,6 +1079,7 @@ export default function TechnicalReportsPage() {
                 Gerencie as presenças e faltas do efetivo lançado na escala para este evento.
               </p>
               <button 
+                id="attendance-block"
                 type="button" 
                 className="secondary" 
                 onClick={() => setIsAttendanceModalOpen(true)}
@@ -1079,7 +1109,7 @@ export default function TechnicalReportsPage() {
           <div className="report-submit-actions">
             {!["PENDING_REVIEW", "APPROVED"].includes(form.status) && (
               <>
-                <button type="submit" className="secondary" disabled={isSaving}><Save size={18} /> Salvar rascunho</button>
+                <button type="submit" formNoValidate className="secondary" disabled={isSaving}><Save size={18} /> Salvar rascunho</button>
                 <button type="button" onClick={submitFinal} disabled={isSaving}><Save size={18} /> Enviar para conferência</button>
               </>
             )}

@@ -4902,3 +4902,4 @@ button.stat-card.active {
     animation: none !important;
   }
 }
+.highlight-error { border: 2px solid #ef6b5a !important; box-shadow: 0 0 8px rgba(239, 107, 90, 0.6) !important; transition: all 0.3s ease; }
