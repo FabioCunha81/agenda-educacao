@@ -324,6 +324,48 @@ class ShiftScheduleViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save(updated_by=self.request.user)
 
+    def _detach_agendas_from_schedule(self, schedule):
+        agendas = list(
+            Agenda.objects.filter(
+                date=schedule.date,
+                team_ref_id=schedule.team_id,
+            )
+            .exclude(status__in=[Agenda.Status.COMPLETED, Agenda.Status.CANCELLED])
+            .prefetch_related("agents_ref")
+        )
+        for agenda in agendas:
+            agenda.team_name = ""
+            agenda.team_ref = None
+            agenda.chief_name = ""
+            agenda.chief_ref = None
+            agenda.team_phone = ""
+            agenda.agents = ""
+            agenda.support_1 = ""
+            agenda.support_1_ref = None
+            agenda.support_2 = ""
+            agenda.support_2_ref = None
+            agenda.save(
+                update_fields=[
+                    "team_name",
+                    "team_ref",
+                    "chief_name",
+                    "chief_ref",
+                    "team_phone",
+                    "agents",
+                    "support_1",
+                    "support_1_ref",
+                    "support_2",
+                    "support_2_ref",
+                    "updated_at",
+                ]
+            )
+            agenda.agents_ref.clear()
+
+    def perform_destroy(self, instance):
+        with transaction.atomic():
+            self._detach_agendas_from_schedule(instance)
+            super().perform_destroy(instance)
+
     def _member_model(self, member_type):
         return {
             ShiftAbsence.MemberType.CHIEF: Chief,

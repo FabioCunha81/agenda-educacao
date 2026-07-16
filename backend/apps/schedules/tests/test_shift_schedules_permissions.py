@@ -1,10 +1,10 @@
-from datetime import date
+from datetime import date, time
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APIClient
+from rest_framework.test import APIClient, APITestCase
 from apps.accounts.models import User
-from apps.schedules.models import ShiftSchedule, Team, Agent, Chief
+from apps.schedules.models import ShiftSchedule, Team, Agent, Chief, Agenda, Sector
 
 class ShiftSchedulePermissionsTest(TestCase):
     def setUp(self):
@@ -98,3 +98,93 @@ class ShiftSchedulePermissionsTest(TestCase):
         # Mas o fallback do agent_ids também vai rolar porque name e team_id batem
         self.assertEqual(len(res.data['results']), 1)
         self.assertEqual(res.data['results'][0]['team_name'], "BRAVO")
+
+
+class ShiftScheduleDeleteSyncTests(APITestCase):
+    def setUp(self):
+        self.team, _ = Team.objects.get_or_create(name="HOTEL")
+        self.team_sector, _ = Sector.objects.get_or_create(name="HOTEL")
+        self.request_sector, _ = Sector.objects.get_or_create(name="Solicitacoes internas")
+        self.admin = User.objects.create_user(
+            email="admin-scale@test.com",
+            password="pwd",
+            role=User.Role.ADMIN,
+            full_name="Admin Escala",
+        )
+        self.chief_user = User.objects.create_user(
+            email="chefe-hotel@test.com",
+            password="pwd",
+            role=User.Role.SUPERVISOR,
+            full_name="Chefe Hotel",
+            cpf="12345678901",
+            sector=self.team_sector,
+        )
+        self.chief = Chief.objects.create(
+            name="Chefe Hotel",
+            cpf="12345678901",
+            team=self.team,
+            is_active=True,
+            source_id=f"user:{self.chief_user.id}",
+        )
+        self.agent = Agent.objects.create(
+            name="Agente Hotel",
+            cpf="10987654321",
+            team=self.team,
+            is_active=True,
+        )
+        self.schedule = ShiftSchedule.objects.create(
+            date=date(2026, 7, 18),
+            team=self.team,
+            created_by=self.admin,
+        )
+        self.agenda = Agenda.objects.create(
+            title="Acao de teste",
+            description="Agenda aprovada",
+            date=date(2026, 7, 18),
+            start_time=time(10, 0),
+            end_time=time(12, 0),
+            location="Centro",
+            team_name=self.team.name,
+            team_ref=self.team,
+            chief_name=self.chief.name,
+            chief_ref=self.chief,
+            team_phone="21999999999",
+            agents="Agente Hotel",
+            responsible=self.admin,
+            sector=self.request_sector,
+            created_by=self.admin,
+            status=Agenda.Status.APPROVED,
+        )
+        self.agenda.agents_ref.add(self.agent)
+
+    def test_deleting_schedule_clears_agenda_assignment_and_removes_chief_calendar_visibility(self):
+        self.client.force_authenticate(self.chief_user)
+        before = self.client.get(
+            reverse("agendas-list"),
+            {"date_from": "2026-07-01", "date_to": "2026-07-31"},
+        )
+        self.assertEqual(before.status_code, status.HTTP_200_OK)
+        before_rows = before.data["results"] if "results" in before.data else before.data
+        self.assertEqual([row["id"] for row in before_rows], [self.agenda.id])
+
+        self.client.force_authenticate(self.admin)
+        delete_response = self.client.delete(reverse("shift-schedules-detail", args=[self.schedule.id]))
+        self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
+
+        self.agenda.refresh_from_db()
+        self.assertEqual(self.agenda.team_name, "")
+        self.assertIsNone(self.agenda.team_ref)
+        self.assertEqual(self.agenda.chief_name, "")
+        self.assertIsNone(self.agenda.chief_ref)
+        self.assertEqual(self.agenda.team_phone, "")
+        self.assertEqual(self.agenda.agents, "")
+        self.assertFalse(self.agenda.agents_ref.exists())
+
+        self.client.force_authenticate(self.chief_user)
+        after = self.client.get(
+            reverse("agendas-list"),
+            {"date_from": "2026-07-01", "date_to": "2026-07-31"},
+        )
+        self.assertEqual(after.status_code, status.HTTP_200_OK)
+        after_rows = after.data["results"] if "results" in after.data else after.data
+        self.assertEqual(after_rows, [])
