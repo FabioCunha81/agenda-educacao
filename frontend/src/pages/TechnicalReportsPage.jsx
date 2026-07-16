@@ -154,6 +154,13 @@ function serializeMaterialRows(rows = []) {
     .join("\n");
 }
 
+function serializeBlankMaterialRows(rows = []) {
+  return rows
+    .filter((item) => item.name)
+    .map((item) => `${item.name} | `)
+    .join("\n");
+}
+
 function MaterialSummary({ title, value }) {
   const rows = parseMaterialRows(value);
   return (
@@ -503,6 +510,7 @@ export default function TechnicalReportsPage() {
     const selectedMaterials = extractMaterialCategories(agenda);
     const initialEquipment = serializeMaterialRows([...selectedMaterials.dynamics, ...selectedMaterials.supports]);
     const initialKits = serializeMaterialRows(selectedMaterials.kits);
+    const blankKits = serializeBlankMaterialRows(selectedMaterials.kits);
     setForm((current) => ({
       ...current,
       agenda: agenda.id,
@@ -541,7 +549,7 @@ export default function TechnicalReportsPage() {
               equipment_materials_removed: action.equipment_materials_removed || initialEquipment,
               equipment_materials_distributed: action.equipment_materials_distributed || initialEquipment,
               distribution_materials_removed: action.distribution_materials_removed || initialKits,
-              distribution_materials_distributed: action.distribution_materials_distributed || initialKits,
+              distribution_materials_distributed: action.distribution_materials_distributed || blankKits,
             };
           })
         : current.actions.map((action) => ({
@@ -558,7 +566,7 @@ export default function TechnicalReportsPage() {
             equipment_materials_removed: action.equipment_materials_removed || initialEquipment,
             equipment_materials_distributed: action.equipment_materials_distributed || initialEquipment,
             distribution_materials_removed: action.distribution_materials_removed || initialKits,
-            distribution_materials_distributed: action.distribution_materials_distributed || initialKits,
+            distribution_materials_distributed: action.distribution_materials_distributed || blankKits,
           })),
     }));
 
@@ -636,11 +644,30 @@ export default function TechnicalReportsPage() {
     }));
   };
 
-  const addAction = () => {
+  const updateAllActionsField = (field, value) => {
     setForm((current) => ({
       ...current,
-      actions: [...current.actions, { ...emptyAction, agenda: current.agenda }],
+      actions: current.actions.map((action) => ({ ...action, [field]: value })),
     }));
+  };
+
+  const addAction = () => {
+    setForm((current) => {
+      const baseAction = current.actions[0] || emptyAction;
+      return {
+        ...current,
+        actions: [...current.actions, {
+          ...emptyAction,
+          agenda: current.agenda,
+          approach: baseAction.approach || "",
+          approached_actions: baseAction.approached_actions || "",
+          equipment_materials_removed: baseAction.equipment_materials_removed || "",
+          equipment_materials_distributed: baseAction.equipment_materials_distributed || "",
+          distribution_materials_removed: baseAction.distribution_materials_removed || "",
+          distribution_materials_distributed: baseAction.distribution_materials_distributed || "",
+        }],
+      };
+    });
   };
 
   const removeAction = (index) => {
@@ -950,138 +977,127 @@ export default function TechnicalReportsPage() {
             </label>
           </div>
 
-          <div className="form-section">
-            <h3>Ações</h3>
-            {form.actions.map((action, index) => (
-              <div className="horus-action-card" key={index}>
-                <div className="action-card-header">
-                  <strong>Ação {index + 1}</strong>
-                  <button type="button" className="secondary icon-button" onClick={() => removeAction(index)} aria-label="Remover ação">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-                <div className="compact-grid">
-                  <input placeholder="Local da ação" value={action.place_action || ""} onChange={(event) => updateAction(index, "place_action", event.target.value)} readOnly={requestFieldsReadOnly} />
+          <div className="form-section chief-flow-section">
+            <div className="chief-required-block chief-required-block-standalone">
+              <h4>PREENCHIMENTO OBRIGATÓRIO</h4>
+              <div className="compact-grid horus-count-grid">
+                {numberFields.map((field) => (
+                  <label className="field-label" key={field}>
+                    <span>{fieldLabels[field]}</span>
+                    <input
+                      type="number"
+                      value={(form.actions[0] || emptyAction)[field] ?? ""}
+                      className={field === "approach" ? "read-only-field" : ""}
+                      readOnly={field === "approach"}
+                      title={field === "approach" ? "Preenchido automaticamente a partir da solicitação" : ""}
+                      onChange={(e) => updateAllActionsField(field, e.target.value)}
+                    />
+                  </label>
+                ))}
+                <label className="field-label">
+                  <span>O local atendeu às condições de acessibilidade para cadeirantes?</span>
                   <select
-                    id={`select-type-action-${index}`}
-                    value={action.type_action || ""}
-                    onChange={(event) => updateAction(index, "type_action", event.target.value)}
+                    id="select-accessibility"
+                    value={form.accessibility_conditions_met || ""}
+                    onChange={(event) => update("accessibility_conditions_met", event.target.value)}
                     required
                   >
-                    <option value="">Ação Definida pelo Chefe</option>
-                    {streetActionTypeOptions.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                    {action.type_action && !streetActionTypeOptions.includes(action.type_action) && (
-                      <option value={action.type_action}>{action.type_action}</option>
-                    )}
+                    <option value="">Selecione</option>
+                    <option value="YES">Sim</option>
+                    <option value="NO">Não</option>
                   </select>
-                </div>
-                <div className="compact-grid">
-                  <input placeholder="Tipo de público" value={action.type_audience || ""} onChange={(event) => updateAction(index, "type_audience", event.target.value)} />
-                  <input placeholder="Instituição" value={action.institution_name || ""} onChange={(event) => updateAction(index, "institution_name", event.target.value)} readOnly={requestFieldsReadOnly} />
-                </div>
-                <div className="compact-grid">
-                  <input placeholder="Hora inicial" value={action.start_time || ""} onChange={(event) => updateAction(index, "start_time", event.target.value)} readOnly={requestFieldsReadOnly} />
-                  <input placeholder="Hora final" value={action.final_hour || ""} onChange={(event) => updateAction(index, "final_hour", event.target.value)} readOnly={requestFieldsReadOnly} />
-                </div>
-                <div className="chief-required-block">
-                  <h4>PREENCHIMENTO OBRIGATÓRIO</h4>
-                  <div className="compact-grid horus-count-grid">
-                    {numberFields.map((field) => (
-                      <label className="field-label" key={field}>
-                        <span>{fieldLabels[field]}</span>
-                        <input 
-                          type="number" 
-                          value={action[field] ?? ""} 
-                          className={field === "approach" ? "read-only-field" : ""} 
-                          readOnly={field === "approach"} 
-                          title={field === "approach" ? "Preenchido automaticamente a partir da solicitação" : ""} 
-                          onChange={(e) => updateAction(index, field, e.target.value)} 
-                        />
-                      </label>
-                    ))}
-                    <label className="field-label">
-                      <span>O local atendeu às condições de acessibilidade para cadeirantes?</span>
-                      <select
-                        id="select-accessibility"
-                        value={form.accessibility_conditions_met || ""}
-                        onChange={(event) => update("accessibility_conditions_met", event.target.value)}
-                        required
-                      >
-                        <option value="">Selecione</option>
-                        <option value="YES">Sim</option>
-                        <option value="NO">Não</option>
-                      </select>
-                    </label>
-                  </div>
-                  <small>Bloco de preenchimento obrigatório pelo chefe. Se a resposta for não, a instituição ou solicitante entrará na lista de restrição para novas solicitações.</small>
-                </div>
-                {(() => {
-                  const safeAgenda = selectedAgenda || {};
-                  const cats = extractMaterialCategories(safeAgenda);
-                  const allEqRem = parseMaterialRows(action.equipment_materials_removed || "");
-                  const allEqDist = parseMaterialRows(action.equipment_materials_distributed || "");
-                  
-                  const dynRem = serializeMaterialRows(allEqRem.filter(r => cats.dynamics.includes(r.name)));
-                  const supRem = serializeMaterialRows(allEqRem.filter(r => cats.supports.includes(r.name)));
-                  
-                  const dynDist = serializeMaterialRows(allEqDist.filter(r => cats.dynamics.includes(r.name)));
-                  const supDist = serializeMaterialRows(allEqDist.filter(r => cats.supports.includes(r.name)));
-
-                  const handleDynDist = (val) => {
-                    const combined = [val, supDist].filter(Boolean).join("\n");
-                    updateAction(index, "equipment_materials_distributed", combined);
-                  };
-                  const handleSupDist = (val) => {
-                    const combined = [dynDist, val].filter(Boolean).join("\n");
-                    updateAction(index, "equipment_materials_distributed", combined);
-                  };
-
-                  return (
-                    <>
-                      {cats.dynamics.length > 0 && (
-                      <div className="report-material-grid">
-                        <div className="field-label report-text-box">
-                          <span>Dinâmica retirada</span>
-                          <MaterialSummary value={dynRem || serializeMaterialRows(cats.dynamics)} />
-                        </div>
-                        <div className="field-label report-text-box">
-                          <span>Dinâmica devolvida</span>
-                          <MaterialQuantityEditor value={dynDist || serializeMaterialRows(cats.dynamics)} onChange={handleDynDist} />
-                        </div>
-                      </div>
-                      )}
-                      {cats.supports.length > 0 && (
-                      <div className="report-material-grid" style={{ marginTop: cats.dynamics.length > 0 ? '1rem' : 0 }}>
-                        <div className="field-label report-text-box">
-                          <span>Material de Apoio retirado</span>
-                          <MaterialSummary value={supRem || serializeMaterialRows(cats.supports)} />
-                        </div>
-                        <div className="field-label report-text-box">
-                          <span>Material de Apoio devolvido</span>
-                          <MaterialQuantityEditor value={supDist || serializeMaterialRows(cats.supports)} onChange={handleSupDist} />
-                        </div>
-                      </div>
-                      )}
-                      {cats.kits.length > 0 && (
-                      <div className="report-material-grid" style={{ marginTop: '1rem' }}>
-                        <div className="field-label report-text-box">
-                          <span>Material para Distribuição retirado</span>
-                          <MaterialSummary value={action.distribution_materials_removed || serializeMaterialRows(cats.kits)} />
-                        </div>
-                        <div className="field-label report-text-box">
-                          <span>Material distribuído</span>
-                          <MaterialQuantityEditor value={action.distribution_materials_distributed || serializeMaterialRows(cats.kits)} onChange={(value) => updateAction(index, "distribution_materials_distributed", value)} />
-                        </div>
-                      </div>
-                      )}
-                    </>
-                  );
-                })()}
+                </label>
               </div>
-            ))}
-            <button type="button" className="secondary" onClick={addAction}><Plus size={18} /> Adicionar ação</button>
+              <small>Bloco de preenchimento obrigatório pelo chefe. Se a resposta for não, a instituição ou solicitante entrará na lista de restrição para novas solicitações.</small>
+
+              <div className="chief-flow-group">
+                <div className="chief-flow-header">
+                  <div>
+                    <h5>Ações Definidas pelo Chefe</h5>
+                    <p>Organize as ações realizadas em cards mais compactos e objetivos.</p>
+                  </div>
+                  <button type="button" className="secondary" onClick={addAction}><Plus size={18} /> Adicionar ação</button>
+                </div>
+                <div className="chief-actions-stack">
+                  {form.actions.map((action, index) => (
+                    <div className="horus-action-card chief-flow-action-card" key={index}>
+                      <div className="action-card-header">
+                        <strong>{`Ação ${index + 1}`}</strong>
+                        <button type="button" className="secondary icon-button" onClick={() => removeAction(index)} aria-label="Remover ação">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                      <div className="compact-grid chief-action-grid">
+                        <label className="field-label">
+                          <span>Local da ação</span>
+                          <input value={action.place_action || ""} onChange={(event) => updateAction(index, "place_action", event.target.value)} readOnly={requestFieldsReadOnly} />
+                        </label>
+                        <label className="field-label">
+                          <span>Tipo de público</span>
+                          <input value={action.type_audience || ""} onChange={(event) => updateAction(index, "type_audience", event.target.value)} />
+                        </label>
+                        <label className="field-label">
+                          <span>Horário inicial</span>
+                          <input value={action.start_time || ""} onChange={(event) => updateAction(index, "start_time", event.target.value)} readOnly={requestFieldsReadOnly} />
+                        </label>
+                        <label className="field-label">
+                          <span>Horário final</span>
+                          <input value={action.final_hour || ""} onChange={(event) => updateAction(index, "final_hour", event.target.value)} readOnly={requestFieldsReadOnly} />
+                        </label>
+                        <label className="field-label chief-action-select">
+                          <span>Ação Definida pelo Chefe</span>
+                          <select
+                            id={`select-type-action-${index}`}
+                            value={action.type_action || ""}
+                            onChange={(event) => updateAction(index, "type_action", event.target.value)}
+                            required
+                          >
+                            <option value="">Selecione</option>
+                            {streetActionTypeOptions.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                            {action.type_action && !streetActionTypeOptions.includes(action.type_action) && (
+                              <option value={action.type_action}>{action.type_action}</option>
+                            )}
+                          </select>
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {(() => {
+                const safeAgenda = selectedAgenda || {};
+                const cats = extractMaterialCategories(safeAgenda);
+                const baseAction = form.actions[0] || emptyAction;
+                const removedValue = baseAction.distribution_materials_removed || serializeMaterialRows(cats.kits);
+                const distributedValue = baseAction.distribution_materials_distributed || serializeBlankMaterialRows(cats.kits);
+
+                if (!cats.kits.length) return null;
+
+                return (
+                  <div className="chief-flow-group">
+                    <div className="chief-flow-header chief-flow-header-inline">
+                      <div>
+                        <h5>Materiais para Distribuição</h5>
+                        <p>Os itens retirados seguem a Ordem de Serviço. Informe apenas o que foi realmente distribuído.</p>
+                      </div>
+                    </div>
+                    <div className="report-material-grid chief-material-grid">
+                      <div className="field-label report-text-box">
+                        <span>Material para Distribuição retirado</span>
+                        <MaterialSummary value={removedValue} />
+                      </div>
+                      <div className="field-label report-text-box">
+                        <span>Material distribuído</span>
+                        <MaterialQuantityEditor value={distributedValue} onChange={(value) => updateAllActionsField("distribution_materials_distributed", value)} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
 
           {reportSchedule && (
