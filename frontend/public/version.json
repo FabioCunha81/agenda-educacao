@@ -1,13 +1,21 @@
 {
-    "version": "2.5.0",
-    "releaseDate": "15/07/2026",
+    "version": "2.5.1",
+    "releaseDate": "16/07/2026",
     "notes": [
-        "Correção do calendário mobile",
-        "Reabertura de solicitações canceladas",
-        "Correção da sincronização de equipes",
-        "Melhorias na aprovação das solicitações"
+        "Novas Ações Definidas pelo Chefe no Relatório Técnico",
+        "Validação inteligente e foco automático em campos pendentes no Relatório",
+        "Correção: Perfil Chefe não exige mais equipe obrigatória no cadastro"
     ],
     "history": [
+        {
+            "version": "2.5.1",
+            "releaseDate": "16/07/2026",
+            "notes": [
+                "Novas Ações Definidas pelo Chefe no Relatório Técnico",
+                "Validação inteligente e foco automático em campos pendentes no Relatório",
+                "Correção: Perfil Chefe não exige mais equipe obrigatória no cadastro"
+            ]
+        },
         {
             "version": "2.5.0",
             "releaseDate": "15/07/2026",
