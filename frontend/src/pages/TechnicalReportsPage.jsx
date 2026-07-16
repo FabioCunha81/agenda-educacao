@@ -408,6 +408,19 @@ export default function TechnicalReportsPage() {
     [form.street_action_details]
   );
   const shouldChooseStreetActionType = isStreetActionSelectedAgenda && predefinedStreetActionTypes.length > 1;
+  const normalizeTypeLabel = (value) => String(value || "").trim().toLocaleLowerCase("pt-BR");
+  const originalTypeActionForIndex = (index) => {
+    if (!selectedAgenda) return "";
+    if (isStreetActionSelectedAgenda) {
+      return form.street_action_details?.[index]?.type || selectedAgenda.street_action_details?.[index]?.type || selectedAgenda.action_type || selectedAgenda.action_type_ref_name || "";
+    }
+    return selectedAgenda.action_type || selectedAgenda.action_type_ref_name || "";
+  };
+  const shouldHighlightChiefTypeAction = (action, index) => {
+    const originalType = originalTypeActionForIndex(index);
+    if (!originalType) return false;
+    return normalizeTypeLabel(action?.type_action) !== normalizeTypeLabel(originalType);
+  };
   const preview = useMemo(() => buildPreview(form), [form]);
 
   const completedAgendaIds = useMemo(() => new Set(reports.map(r => String(r.agenda))), [reports]);
@@ -1066,10 +1079,6 @@ export default function TechnicalReportsPage() {
                           <span>Local da ação</span>
                           <input value={action.place_action || ""} onChange={(event) => updateAction(index, "place_action", event.target.value)} readOnly={requestFieldsReadOnly} />
                         </label>
-                        <label className="field-label chief-highlight-field">
-                          <span>Tipo de público</span>
-                          <input value={action.type_audience || ""} onChange={(event) => updateAction(index, "type_audience", event.target.value)} />
-                        </label>
                         <label className={`field-label ${requestFieldsReadOnly ? "" : "chief-highlight-field"}`.trim()}>
                           <span>Horário inicial</span>
                           <input value={action.start_time || ""} onChange={(event) => updateAction(index, "start_time", event.target.value)} readOnly={requestFieldsReadOnly} />
@@ -1080,7 +1089,7 @@ export default function TechnicalReportsPage() {
                         </label>
                         {isStreetActionSelectedAgenda ? (
                           shouldChooseStreetActionType ? (
-                            <label className="field-label chief-action-select chief-highlight-field">
+                            <label className={`field-label chief-action-select ${shouldHighlightChiefTypeAction(action, index) ? "chief-highlight-field" : ""}`.trim()}>
                               <span>A??o Definida pelo Chefe</span>
                               <select
                                 id={`select-type-action-${index}`}
@@ -1096,7 +1105,7 @@ export default function TechnicalReportsPage() {
                             </label>
                           ) : null
                         ) : (
-                          <label className="field-label chief-action-select chief-highlight-field">
+                          <label className={`field-label chief-action-select ${shouldHighlightChiefTypeAction(action, index) ? "chief-highlight-field" : ""}`.trim()}>
                             <span>A??o Definida pelo Chefe</span>
                             <select
                               id={`select-type-action-${index}`}
@@ -1154,7 +1163,7 @@ export default function TechnicalReportsPage() {
           </div>
 
           {reportSchedule && (
-            <div className="form-section">
+            <div className="form-section attendance-highlight-section">
               <h3>Frequência da Equipe</h3>
               <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "12px" }}>
                 Gerencie as presenças e faltas do efetivo lançado na escala para este evento.
@@ -1162,7 +1171,7 @@ export default function TechnicalReportsPage() {
               <button 
                 id="attendance-block"
                 type="button" 
-                className="secondary" 
+                className="secondary attendance-highlight-button" 
                 onClick={() => setIsAttendanceModalOpen(true)}
               >
                 <Clipboard size={18} /> Gerenciar Frequência

@@ -3212,6 +3212,38 @@ button.stat-card.active {
   margin-top: 20px;
 }
 
+.attendance-highlight-section {
+  background: linear-gradient(180deg, #fff9e8 0%, #fffdf5 100%);
+  border: 2px solid #ffd978;
+  box-shadow: 0 14px 30px rgba(255, 191, 0, 0.16);
+}
+
+.attendance-highlight-section h3 {
+  color: #7a5200;
+}
+
+.attendance-highlight-button {
+  align-items: center;
+  background: linear-gradient(135deg, #f7b500 0%, #ffcc4d 100%);
+  border: 0;
+  box-shadow: 0 12px 24px rgba(247, 181, 0, 0.28);
+  color: #3d2a00;
+  display: inline-flex;
+  font-size: 15px;
+  font-weight: 900;
+  gap: 10px;
+  justify-content: center;
+}
+
+.attendance-highlight-button:hover {
+  background: linear-gradient(135deg, #f0ad00 0%, #ffc83d 100%);
+  color: #2f2000;
+}
+
+.attendance-highlight-button svg {
+  flex-shrink: 0;
+}
+
 .report-filters {
   border-left: 0;
   border-right: 0;
