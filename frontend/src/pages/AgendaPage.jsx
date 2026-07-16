@@ -756,6 +756,12 @@ export default function AgendaPage() {
     setMessage("");
   };
 
+  const editServiceOrder = (agenda) => {
+    edit(agenda);
+    setReviewStep("schedule");
+    setMessage("");
+  };
+
   const openNew = () => {
     if (!canManageRequests) return;
     setEditing(null);
@@ -1100,10 +1106,15 @@ export default function AgendaPage() {
                       </span>
                     )}
                   </td>
-                  <td className="row-actions" style={{ display: "flex", gap: "8px" }}>
+                  <td className="row-actions" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     <button className="secondary" onClick={() => reviewAndSchedule(agenda)}>
-                      <ClipboardCheck size={16} /> Avaliar solicitação
+                      <ClipboardCheck size={16} /> Avaliar solicita??o
                     </button>
+                    {canManageRequests && agenda.status === "APPROVED" && (
+                      <button className="secondary" onClick={() => editServiceOrder(agenda)}>
+                        <Edit size={16} /> Editar OS
+                      </button>
+                    )}
                     {canDelete && (
                       <button
                         className="secondary"
