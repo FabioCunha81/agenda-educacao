@@ -132,23 +132,23 @@ def snapshot_for(agenda):
 
 
 def chief_agenda_filter(user, prefix=""):
-    field = f"{prefix}chief_name"
-    chief_ref_field = f"{prefix}chief_ref__name"
+    chief_ref_source = f"{prefix}chief_ref__source_id"
     chief_ref_cpf_field = f"{prefix}chief_ref__cpf"
-    chief_ref_team_field = f"{prefix}chief_ref__team__name"
     responsible_field = f"{prefix}responsible"
-    query = (
-        Q(**{f"{field}__iexact": user.full_name})
-        | Q(**{f"{chief_ref_field}__iexact": user.full_name})
-        | Q(**{responsible_field: user})
-    )
+    
+    query = Q(**{responsible_field: user})
+    
+    source_id = f"user:{user.id}"
+    query |= Q(**{chief_ref_source: source_id})
+    
     cpf = "".join(char for char in str(user.cpf or "") if char.isdigit())
-    if cpf:
+    if cpf and len(cpf) == 11:
+        formatted_cpf = f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
+        query |= Q(**{chief_ref_cpf_field: cpf}) | Q(**{chief_ref_cpf_field: formatted_cpf})
+    elif cpf:
         query |= Q(**{chief_ref_cpf_field: cpf})
-    if user.sector_id and user.sector and user.sector.name:
-        query |= Q(**{f"{chief_ref_team_field}__iexact": user.sector.name})
+        
     return query
-
 
 class SectorViewSet(viewsets.ModelViewSet):
     serializer_class = SectorSerializer
@@ -284,16 +284,25 @@ class ShiftScheduleViewSet(viewsets.ModelViewSet):
             if user.sector_id and user.sector and user.sector.name:
                 q_filter |= Q(team__name__iexact=user.sector.name)
 
-            fallback_q = Q()
+            chief_fallback_q = Q()
             cpf_numeros = "".join(char for char in str(user.cpf or "") if char.isdigit())
-            if cpf_numeros:
-                fallback_q |= Q(cpf=cpf_numeros)
-            elif user.full_name and user.sector_id and user.sector and user.sector.name:
-                fallback_q |= Q(name__iexact=user.full_name, team__name__iexact=user.sector.name)
+            if cpf_numeros and len(cpf_numeros) == 11:
+                formatted_cpf = f"{cpf_numeros[:3]}.{cpf_numeros[3:6]}.{cpf_numeros[6:9]}-{cpf_numeros[9:]}"
+                chief_fallback_q |= Q(cpf=cpf_numeros) | Q(cpf=formatted_cpf)
+            elif cpf_numeros:
+                chief_fallback_q |= Q(cpf=cpf_numeros)
                 
-            chief_ids = list(Chief.objects.filter(Q(source_id=source_id) | fallback_q).values_list("id", flat=True)) if (source_id or fallback_q) else []
-            agent_ids = list(Agent.objects.filter(Q(source_id=source_id) | fallback_q).values_list("id", flat=True)) if (source_id or fallback_q) else []
-            support_ids = list(Support.objects.filter(Q(source_id=source_id) | fallback_q).values_list("id", flat=True)) if (source_id or fallback_q) else []
+            agent_support_fallback_q = Q()
+            if cpf_numeros and len(cpf_numeros) == 11:
+                agent_support_fallback_q |= Q(cpf=cpf_numeros) | Q(cpf=formatted_cpf)
+            elif cpf_numeros:
+                agent_support_fallback_q |= Q(cpf=cpf_numeros)
+            if user.full_name and user.sector_id and user.sector and user.sector.name:
+                agent_support_fallback_q |= Q(name__iexact=user.full_name, team__name__iexact=user.sector.name)
+                
+            chief_ids = list(Chief.objects.filter(Q(source_id=source_id) | chief_fallback_q).values_list("id", flat=True)) if (source_id or chief_fallback_q) else []
+            agent_ids = list(Agent.objects.filter(Q(source_id=source_id) | agent_support_fallback_q).values_list("id", flat=True)) if (source_id or agent_support_fallback_q) else []
+            support_ids = list(Support.objects.filter(Q(source_id=source_id) | agent_support_fallback_q).values_list("id", flat=True)) if (source_id or agent_support_fallback_q) else []
             
             if chief_ids:
                 q_filter |= Q(extra_chiefs__in=chief_ids)

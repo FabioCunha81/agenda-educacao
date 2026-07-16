@@ -76,8 +76,11 @@ class ShiftSchedulePermission(BasePermission):
                 pass
             else:
                 return False
-        if view.__class__.__name__ == "ShiftScheduleViewSet" and view.action in {"create", "update", "partial_update", "destroy", "absence"}:
-            return self._can_manage_shift_schedule(request.user)
+        if view.__class__.__name__ == "ShiftScheduleViewSet":
+            if view.action in {"create", "update", "partial_update", "destroy"}:
+                return self._can_manage_shift_schedule(request.user)
+            if view.action == "absence":
+                return self._can_manage_shift_schedule(request.user) or request.user.role == User.Role.SUPERVISOR
         if view.action in {"approve", "reject", "destroy"}:
             return self._can_manage_shift_schedule(request.user)
         return True
@@ -90,8 +93,38 @@ class ShiftSchedulePermission(BasePermission):
                 pass
             else:
                 return False
-        if view.__class__.__name__ == "ShiftScheduleViewSet" and view.action in {"update", "partial_update", "destroy", "absence"}:
-            return self._can_manage_shift_schedule(request.user)
+        if view.__class__.__name__ == "ShiftScheduleViewSet":
+            if view.action in {"update", "partial_update", "destroy"}:
+                return self._can_manage_shift_schedule(request.user)
+            if view.action == "absence":
+                if self._can_manage_shift_schedule(request.user):
+                    return True
+                
+                if request.user.role != User.Role.SUPERVISOR:
+                    self.message = "Somente o chefe escalado, Gestor ou Administrador pode gerenciar a frequência desta equipe."
+                    return False
+                    
+                user_id_str = f"user:{request.user.id}"
+                cpf = "".join(c for c in (request.user.cpf or "") if c.isdigit())
+                formatted_cpf = f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}" if len(cpf) == 11 else cpf
+                
+                def match_chief(chief):
+                    if chief.source_id == user_id_str: return True
+                    if cpf and chief.cpf and (chief.cpf == cpf or chief.cpf == formatted_cpf): return True
+                    return False
+
+                if obj.team:
+                    removed_ids = set(obj.removed_chiefs.values_list("id", flat=True))
+                    for chief in obj.team.chiefs.all():
+                        if chief.id not in removed_ids and match_chief(chief): 
+                            return True
+                
+                for chief in obj.extra_chiefs.all():
+                    if match_chief(chief): 
+                        return True
+                    
+                self.message = "Somente o chefe escalado, Gestor ou Administrador pode gerenciar a frequência desta equipe."
+                return False
         if view.action in {"approve", "reject", "destroy"}:
             return self._can_manage_shift_schedule(request.user)
         return True
