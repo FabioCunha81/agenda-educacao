@@ -2995,6 +2995,53 @@ button.stat-card.active {
   font-weight: 800;
 }
 
+.chief-highlight-field {
+  background: linear-gradient(180deg, #fff9e8 0%, #fffdf5 100%);
+  border: 1px solid #ffd978;
+  border-radius: 16px;
+  box-shadow: 0 10px 24px rgba(255, 191, 0, 0.14);
+  padding: 12px;
+}
+
+.chief-highlight-field span {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.chief-highlight-field span::after {
+  background: #ffcf4d;
+  border-radius: 999px;
+  color: #7a5200;
+  content: "Preencher";
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.chief-highlight-field input:not(.read-only-field),
+.chief-highlight-field select,
+.chief-highlight-field textarea,
+.chief-highlight-input {
+  background: #ffffff;
+  border: 2px solid #ffc83d;
+  box-shadow: 0 0 0 4px rgba(255, 200, 61, 0.14);
+}
+
+.chief-highlight-field input:not(.read-only-field):focus,
+.chief-highlight-field select:focus,
+.chief-highlight-field textarea:focus,
+.chief-highlight-input:focus {
+  border-color: #f0a400;
+  box-shadow: 0 0 0 4px rgba(240, 164, 0, 0.2);
+}
+
+.chief-highlight-input {
+  border-radius: 16px;
+}
+
 .chief-required-block small {
   color: var(--text-soft);
   font-size: 12px;
@@ -3064,6 +3111,105 @@ button.stat-card.active {
 
 .chief-material-grid {
   margin-top: 0;
+}
+
+.street-action-summary-list {
+  display: grid;
+  gap: 10px;
+}
+
+.street-action-summary-card {
+  align-items: center;
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+
+.street-action-summary-card strong {
+  color: #102a52;
+  display: block;
+}
+
+.street-action-summary-card small {
+  color: var(--text-soft);
+  display: block;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.attendance-modal {
+  display: flex;
+  flex-direction: column;
+  max-width: 95%;
+  padding: 20px;
+  width: 600px;
+}
+
+.attendance-modal-header {
+  align-items: center;
+}
+
+.attendance-modal-body {
+  flex: 1;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+.attendance-modal-list {
+  display: grid;
+  gap: 10px;
+}
+
+.attendance-member-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  margin-bottom: 0;
+  padding: 12px;
+}
+
+.attendance-member-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.attendance-member-name {
+  font-weight: 600;
+}
+
+.attendance-member-options {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: flex-end;
+}
+
+.attendance-option {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 5px;
+}
+
+.attendance-absence-box {
+  background: #f9fafb;
+  border-radius: 8px;
+  margin-top: 10px;
+  padding: 10px;
+}
+
+.attendance-modal-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
 }
 
 .report-filters {
@@ -4577,6 +4723,50 @@ button.stat-card.active {
 
   .chief-action-grid {
     grid-template-columns: 1fr;
+  }
+
+  .street-action-summary-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .attendance-modal {
+    max-height: 92vh;
+    padding: 14px;
+    width: min(100%, 420px);
+  }
+
+  .attendance-modal-header {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .attendance-modal-header h2 {
+    font-size: 18px;
+    line-height: 1.2;
+    padding-right: 8px;
+  }
+
+  .attendance-member-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .attendance-member-options {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .attendance-option {
+    width: 100%;
+  }
+
+  .attendance-modal-footer {
+    flex-direction: column;
+  }
+
+  .attendance-modal-footer button {
+    width: 100%;
   }
 
   .login-panel {

@@ -629,7 +629,7 @@ export default function ShiftSchedulePage() {
       {selectedDate && (
         <div className="modal-backdrop" onClick={() => setSelectedDate(null)}>
           <article className="modal shift-modal shift-team-modal" onClick={(event) => event.stopPropagation()}>
-            <header className="modal-header">
+            <header className="modal-header attendance-modal-header">
               <div>
                 <h2>Escala de {formatDateBR(selectedDate)}</h2>
                 <p>Marque as equipes que estarão de serviço neste dia.</p>
@@ -796,7 +796,7 @@ export default function ShiftSchedulePage() {
 
       {attendanceTarget && (
         <div className="modal-backdrop" onClick={() => setAttendanceTarget(null)}>
-          <article className="modal shift-modal" onClick={(event) => event.stopPropagation()} style={{ maxWidth: "800px" }}>
+          <article className="modal shift-modal attendance-modal" onClick={(event) => event.stopPropagation()}>
             <header className="modal-header">
               <div>
                 <h2>Gerenciar Frequência - {formatTeamName(attendanceTarget.team_name)}</h2>
@@ -808,15 +808,15 @@ export default function ShiftSchedulePage() {
               <button className="icon-button" type="button" onClick={() => setAttendanceTarget(null)} aria-label="Fechar"><X size={18} /></button>
             </header>
 
-            <section className="attendance-manager-list" style={{ maxHeight: "60vh", overflowY: "auto", padding: "10px" }}>
+            <section className="attendance-manager-list attendance-modal-body attendance-modal-list">
               {Object.entries(attendanceForm).map(([key, data]) => (
-                <div key={key} style={{ border: "1px solid #ddd", borderRadius: "8px", padding: "12px", marginBottom: "10px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                    <div style={{ fontWeight: 500, fontSize: "1.1rem" }}>
+                <div key={key} className="attendance-member-card">
+                  <div className="attendance-member-head">
+                    <div className="attendance-member-name">
                       {data.member.name} <small style={{ color: "var(--text-soft)" }}>({data.member.typeLabel})</small>
                     </div>
-                    <div style={{ display: "flex", gap: "15px" }}>
-                      <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                    <div className="attendance-member-options">
+                      <label className="attendance-option">
                         <input
                           type="radio"
                           name={`status_${key}`}
@@ -825,7 +825,7 @@ export default function ShiftSchedulePage() {
                         />
                         <span style={{ color: !data.is_absent ? "#15803d" : "inherit", fontWeight: !data.is_absent ? "bold" : "normal" }}>Presente</span>
                       </label>
-                      <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                      <label className="attendance-option">
                         <input
                           type="radio"
                           name={`status_${key}`}
@@ -837,7 +837,7 @@ export default function ShiftSchedulePage() {
                     </div>
                   </div>
                   {data.is_absent && (
-                    <div style={{ background: "#f9fafb", padding: "10px", borderRadius: "4px", marginTop: "10px" }}>
+                    <div className="attendance-absence-box">
                       <label style={{ display: "block", marginBottom: "10px" }}>
                         <span style={{ display: "block", fontSize: "0.85rem", marginBottom: "4px" }}>Justificativa</span>
                         <input

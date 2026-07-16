@@ -402,6 +402,12 @@ export default function TechnicalReportsPage() {
     () => agendas.find((agenda) => String(agenda.id) === String(form.agenda)),
     [agendas, form.agenda]
   );
+  const isStreetActionSelectedAgenda = Boolean(selectedAgenda && (selectedAgenda.action_type_ref === STREET_ACTION_ID || selectedAgenda.requester_entity_type === STREET_ACTION_ID));
+  const predefinedStreetActionTypes = useMemo(
+    () => [...new Set((form.street_action_details || []).map((detail) => String(detail?.type || "").trim()).filter(Boolean))],
+    [form.street_action_details]
+  );
+  const shouldChooseStreetActionType = isStreetActionSelectedAgenda && predefinedStreetActionTypes.length > 1;
   const preview = useMemo(() => buildPreview(form), [form]);
 
   const completedAgendaIds = useMemo(() => new Set(reports.map(r => String(r.agenda))), [reports]);
@@ -539,7 +545,7 @@ export default function TechnicalReportsPage() {
             return {
               ...action,
               agenda: agenda.id,
-              place_action: action.place_action || detail.type || agenda.institution_location || agenda.location || "",
+              place_action: action.place_action || "",
               type_action: action.type_action || detail.type || agenda.action_type || agenda.action_type_ref_name || "",
               type_audience: action.type_audience || agenda.audience || "",
               start_time: action.start_time || agenda.start_time?.slice(0, 5) || "",
@@ -555,7 +561,7 @@ export default function TechnicalReportsPage() {
         : current.actions.map((action) => ({
             ...action,
             agenda: agenda.id,
-            place_action: action.place_action || agenda.institution_location || agenda.location || "",
+            place_action: action.place_action || ((agenda.action_type_ref === STREET_ACTION_ID || agenda.requester_entity_type === STREET_ACTION_ID) ? "" : (agenda.institution_location || agenda.location || "")),
             institution_name: action.institution_name || agenda.institution_location || "",
             type_action: action.type_action || agenda.action_type || agenda.action_type_ref_name || "",
             type_audience: action.type_audience || agenda.audience || "",
@@ -977,61 +983,30 @@ export default function TechnicalReportsPage() {
             </label>
           </div>
 
-          {selectedAgenda && (selectedAgenda.action_type_ref === STREET_ACTION_ID || selectedAgenda.requester_entity_type === STREET_ACTION_ID) && (
+          {isStreetActionSelectedAgenda && (
             <div className="form-section">
-              <h3>Detalhes da Ação de Rua</h3>
+              <h3>Detalhes da A??o de Rua</h3>
               <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "12px" }}>
-                Preencha os tipos de locais abordados e a respectiva estimativa de público.
+                Tipos definidos na Ordem de Servi?o para refer?ncia do chefe durante o relat?rio.
               </p>
-              <div className="street-action-list">
-                {(form.street_action_details || []).map((detail, idx) => (
-                  <div key={idx} style={{ display: "flex", gap: "8px", marginBottom: "8px", alignItems: "center" }}>
-                    <select
-                      style={{ flex: 1 }}
-                      value={detail.type}
-                      onChange={(e) => {
-                        const newDetails = [...(form.street_action_details || [])];
-                        newDetails[idx].type = e.target.value;
-                        update("street_action_details", newDetails);
-                      }}
-                      required
-                    >
-                      <option value="">Selecione o tipo</option>
-                      {streetActionTypeOptions.map((option) => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
-                    <input
-                      style={{ flex: 1 }}
-                      type="number"
-                      placeholder="Quantidade de público"
-                      value={detail.public}
-                      onChange={(e) => {
-                        const newDetails = [...(form.street_action_details || [])];
-                        newDetails[idx].public = e.target.value ? Number(e.target.value) : "";
-                        update("street_action_details", newDetails);
-                      }}
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="danger icon-only"
-                      onClick={() => {
-                        const newDetails = (form.street_action_details || []).filter((_, i) => i !== idx);
-                        update("street_action_details", newDetails);
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+              <div className="street-action-list street-action-summary-list">
+                {(form.street_action_details || []).length ? (
+                  (form.street_action_details || []).map((detail, idx) => (
+                    <div key={idx} className="street-action-summary-card">
+                      <div>
+                        <strong>{detail.type || `A??o ${idx + 1}`}</strong>
+                        <small>{detail.public ? `P?blico estimado: ${detail.public}` : "P?blico estimado n?o informado"}</small>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="street-action-summary-card">
+                    <div>
+                      <strong>Nenhum tipo de a??o cadastrado na OS</strong>
+                      <small>O chefe seguir? apenas com o preenchimento do relat?rio t?cnico.</small>
+                    </div>
                   </div>
-                ))}
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => update("street_action_details", [...(form.street_action_details || []), { type: "", public: "" }])}
-                >
-                  <Plus size={18} /> Adicionar Tipo de Ação
-                </button>
+                )}
               </div>
             </div>
           )}
@@ -1041,7 +1016,7 @@ export default function TechnicalReportsPage() {
               <h4>PREENCHIMENTO OBRIGATÓRIO</h4>
               <div className="compact-grid horus-count-grid">
                 {numberFields.map((field) => (
-                  <label className="field-label" key={field}>
+                  <label className={`field-label ${field === "approach" ? "" : "chief-highlight-field"}`.trim()} key={field}>
                     <span>{fieldLabels[field]}</span>
                     <input
                       type="number"
@@ -1053,7 +1028,7 @@ export default function TechnicalReportsPage() {
                     />
                   </label>
                 ))}
-                <label className="field-label">
+                <label className="field-label chief-highlight-field">
                   <span>O local atendeu às condições de acessibilidade para cadeirantes?</span>
                   <select
                     id="select-accessibility"
@@ -1087,39 +1062,58 @@ export default function TechnicalReportsPage() {
                         </button>
                       </div>
                       <div className="compact-grid chief-action-grid">
-                        <label className="field-label">
+                        <label className={`field-label ${requestFieldsReadOnly ? "" : "chief-highlight-field"}`.trim()}>
                           <span>Local da ação</span>
                           <input value={action.place_action || ""} onChange={(event) => updateAction(index, "place_action", event.target.value)} readOnly={requestFieldsReadOnly} />
                         </label>
-                        <label className="field-label">
+                        <label className="field-label chief-highlight-field">
                           <span>Tipo de público</span>
                           <input value={action.type_audience || ""} onChange={(event) => updateAction(index, "type_audience", event.target.value)} />
                         </label>
-                        <label className="field-label">
+                        <label className={`field-label ${requestFieldsReadOnly ? "" : "chief-highlight-field"}`.trim()}>
                           <span>Horário inicial</span>
                           <input value={action.start_time || ""} onChange={(event) => updateAction(index, "start_time", event.target.value)} readOnly={requestFieldsReadOnly} />
                         </label>
-                        <label className="field-label">
+                        <label className={`field-label ${requestFieldsReadOnly ? "" : "chief-highlight-field"}`.trim()}>
                           <span>Horário final</span>
                           <input value={action.final_hour || ""} onChange={(event) => updateAction(index, "final_hour", event.target.value)} readOnly={requestFieldsReadOnly} />
                         </label>
-                        <label className="field-label chief-action-select">
-                          <span>Ação Definida pelo Chefe</span>
-                          <select
-                            id={`select-type-action-${index}`}
-                            value={action.type_action || ""}
-                            onChange={(event) => updateAction(index, "type_action", event.target.value)}
-                            required
-                          >
-                            <option value="">Selecione</option>
-                            {streetActionTypeOptions.map((option) => (
-                              <option key={option} value={option}>{option}</option>
-                            ))}
-                            {action.type_action && !streetActionTypeOptions.includes(action.type_action) && (
-                              <option value={action.type_action}>{action.type_action}</option>
-                            )}
-                          </select>
-                        </label>
+                        {isStreetActionSelectedAgenda ? (
+                          shouldChooseStreetActionType ? (
+                            <label className="field-label chief-action-select chief-highlight-field">
+                              <span>A??o Definida pelo Chefe</span>
+                              <select
+                                id={`select-type-action-${index}`}
+                                value={action.type_action || ""}
+                                onChange={(event) => updateAction(index, "type_action", event.target.value)}
+                                required
+                              >
+                                <option value="">Selecione</option>
+                                {predefinedStreetActionTypes.map((option) => (
+                                  <option key={option} value={option}>{option}</option>
+                                ))}
+                              </select>
+                            </label>
+                          ) : null
+                        ) : (
+                          <label className="field-label chief-action-select chief-highlight-field">
+                            <span>A??o Definida pelo Chefe</span>
+                            <select
+                              id={`select-type-action-${index}`}
+                              value={action.type_action || ""}
+                              onChange={(event) => updateAction(index, "type_action", event.target.value)}
+                              required
+                            >
+                              <option value="">Selecione</option>
+                              {streetActionTypeOptions.map((option) => (
+                                <option key={option} value={option}>{option}</option>
+                              ))}
+                              {action.type_action && !streetActionTypeOptions.includes(action.type_action) && (
+                                <option value={action.type_action}>{action.type_action}</option>
+                              )}
+                            </select>
+                          </label>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1148,7 +1142,7 @@ export default function TechnicalReportsPage() {
                         <span>Material para Distribuição retirado</span>
                         <MaterialSummary value={removedValue} />
                       </div>
-                      <div className="field-label report-text-box">
+                      <div className="field-label report-text-box chief-highlight-field">
                         <span>Material distribuído</span>
                         <MaterialQuantityEditor value={distributedValue} onChange={(value) => updateAllActionsField("distribution_materials_distributed", value)} />
                       </div>
@@ -1188,8 +1182,8 @@ export default function TechnicalReportsPage() {
               onBlur={(event) => update("contact_received", formatContactValue(event.target.value))}
               readOnly={requestFieldsReadOnly}
             />
-            <textarea placeholder="Dados e Observações" value={form.general_observations || ""} onChange={(event) => update("general_observations", event.target.value)} />
-            <textarea placeholder="Observação de ocorrência" value={form.occurrence_observation || ""} onChange={(event) => update("occurrence_observation", event.target.value)} />
+            <textarea className="chief-highlight-input" placeholder="Dados e Observa??es" value={form.general_observations || ""} onChange={(event) => update("general_observations", event.target.value)} />
+            <textarea className="chief-highlight-input" placeholder="Observa??o de ocorr?ncia" value={form.occurrence_observation || ""} onChange={(event) => update("occurrence_observation", event.target.value)} />
           </div>
 
           {message && <div className="alert" style={{ whiteSpace: "pre-wrap" }}>{message}</div>}
@@ -1207,8 +1201,8 @@ export default function TechnicalReportsPage() {
 
       {isAttendanceModalOpen && (
         <div className="modal-backdrop" style={{ zIndex: 9999 }}>
-          <article className="modal" style={{ width: "600px", maxWidth: "95%", display: "flex", flexDirection: "column", padding: "20px" }} onClick={(e) => e.stopPropagation()}>
-            <header className="modal-header">
+          <article className="modal attendance-modal" onClick={(e) => e.stopPropagation()}>
+            <header className="modal-header attendance-modal-header">
               <h2 style={{ display: "flex", alignItems: "center", gap: "10px", margin: 0 }}>
                 <Clipboard size={20} />
                 Gerenciar Frequência - {reportSchedule?.team}
@@ -1217,17 +1211,17 @@ export default function TechnicalReportsPage() {
                 <X size={20} />
               </button>
             </header>
-            <div className="modal-body" style={{ maxHeight: "65vh", overflowY: "auto", flex: 1 }}>
+            <div className="modal-body attendance-modal-body">
               {reportSchedule && (
-                <div className="attendance-manager-list">
+                <div className="attendance-manager-list attendance-modal-list">
                   {Object.entries(attendanceForm).map(([key, data]) => (
-                    <div key={key} style={{ border: "1px solid #ddd", borderRadius: "8px", padding: "12px", marginBottom: "10px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div style={{ fontWeight: 500 }}>
+                    <div key={key} className="attendance-member-card">
+                      <div className="attendance-member-head">
+                        <div className="attendance-member-name">
                           {data.member.name} <small style={{ color: "var(--text-soft)" }}>({data.member.typeLabel})</small>
                         </div>
-                        <div style={{ display: "flex", gap: "15px" }}>
-                          <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                        <div className="attendance-member-options">
+                          <label className="attendance-option">
                             <input
                               type="radio"
                               name={`modal_status_${key}`}
@@ -1236,7 +1230,7 @@ export default function TechnicalReportsPage() {
                             />
                             <span style={{ color: data.is_absent === false ? "#15803d" : "inherit", fontWeight: data.is_absent === false ? "bold" : "normal" }}>Presente</span>
                           </label>
-                          <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                          <label className="attendance-option">
                             <input
                               type="radio"
                               name={`modal_status_${key}`}
@@ -1248,7 +1242,7 @@ export default function TechnicalReportsPage() {
                         </div>
                       </div>
                       {data.is_absent && (
-                        <div style={{ background: "#f9fafb", padding: "10px", borderRadius: "4px", marginTop: "10px" }}>
+                        <div className="attendance-absence-box">
                           <label style={{ display: "block", marginBottom: "10px" }}>
                             <span style={{ display: "block", fontSize: "0.85rem", marginBottom: "4px" }}>Justificativa</span>
                             <input
@@ -1276,7 +1270,7 @@ export default function TechnicalReportsPage() {
 
 
             </div>
-            <div className="modal-footer" style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
+            <div className="modal-footer attendance-modal-footer">
               <button type="button" className="secondary" onClick={() => setIsAttendanceModalOpen(false)}>Cancelar</button>
               <button 
                 type="button"
@@ -1410,7 +1404,7 @@ export default function TechnicalReportsPage() {
                     rows={4}
                     style={{ width: "100%", padding: 12, borderRadius: 6, border: "1px solid var(--line)" }}
                   />
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div className="attendance-member-head">
                     <small style={{ color: "var(--text-soft)" }}>{returnNotes.length} caracteres</small>
                     <div style={{ display: "flex", gap: 8 }}>
                       <button type="button" className="secondary" onClick={() => setReturnModalReportId(null)}>Cancelar</button>
