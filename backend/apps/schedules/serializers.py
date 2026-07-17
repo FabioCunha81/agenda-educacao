@@ -597,11 +597,11 @@ class AgendaSerializer(serializers.ModelSerializer):
     def get_delete_block_reason(self, obj):
         blockers = []
         if obj.technical_reports.exists():
-            blockers.append("relat?rio t?cnico")
+            blockers.append("relatório técnico")
         if hasattr(obj, "event_report"):
-            blockers.append("relat?rio de evento")
+            blockers.append("relatório de evento")
         if obj.satisfaction_surveys.exists():
-            blockers.append("avalia??o de satisfa??o")
+            blockers.append("avaliação de satisfação")
         if not blockers:
             return ""
         if len(blockers) == 1:
@@ -610,7 +610,7 @@ class AgendaSerializer(serializers.ModelSerializer):
             joined = " e ".join(blockers)
         else:
             joined = ", ".join(blockers[:-1]) + f" e {blockers[-1]}"
-        return f"Esta solicita??o n?o pode ser exclu?da porque j? possui {joined} vinculado."
+        return f"Esta solicitação não pode ser excluída porque já possui {joined} vinculado."
 
     def create(self, validated_data):
         materials_data = validated_data.pop("materials", [])
@@ -1104,23 +1104,23 @@ LEGACY_PUBLIC_AGE_RANGE_CHOICES = [
 
 PUBLIC_ACTION_TYPE_CHOICES = [
     "Palestra",
-    "A??o de educa??o/conscientiza??o",
+    "Ação de educação/conscientização",
     "Palestra Empresa",
     "Palestra Escola",
     "Palestra Virtual",
-    "A??o educativa (Espa?o interno)",
-    "Palestra bil?ngue (Ingl?s)",
+    "Ação educativa (Espaço interno)",
+    "Palestra bilíngue (Inglês)",
 ]
 
 STREET_ACTION_TYPE_CHOICES = [
     "Bares",
-    "Ped?gio",
+    "Pedágio",
     "Esportes",
     "Praia",
     "Eventos",
     "Shopping",
-    "A??o Social",
-    "A??o conjunta com a fiscaliza??o",
+    "Ação Social",
+    "Ação conjunta com a fiscalização",
     "Outros",
 ]
 
@@ -1159,7 +1159,7 @@ class PublicAgendaRequestSerializer(serializers.Serializer):
             ]
         }
         if normalized not in allowed:
-            raise serializers.ValidationError("Informe um tipo de a??o v?lido.")
+            raise serializers.ValidationError("Informe um tipo de ação válido.")
         return cleaned
 
     institution_location = serializers.CharField(max_length=220)

@@ -998,25 +998,25 @@ export default function TechnicalReportsPage() {
 
           {isStreetActionSelectedAgenda && (
             <div className="form-section">
-              <h3>Detalhes da A??o de Rua</h3>
+              <h3>Detalhes da Ação de Rua</h3>
               <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "12px" }}>
-                Tipos definidos na Ordem de Servi?o para refer?ncia do chefe durante o relat?rio.
+                Tipos definidos na Ordem de Serviço para referência do chefe durante o relatório.
               </p>
               <div className="street-action-list street-action-summary-list">
                 {(form.street_action_details || []).length ? (
                   (form.street_action_details || []).map((detail, idx) => (
                     <div key={idx} className="street-action-summary-card">
                       <div>
-                        <strong>{detail.type || `A??o ${idx + 1}`}</strong>
-                        <small>{detail.public ? `P?blico estimado: ${detail.public}` : "P?blico estimado n?o informado"}</small>
+                        <strong>{detail.type || `Ação ${idx + 1}`}</strong>
+                        <small>{detail.public ? `Público estimado: ${detail.public}` : "Público estimado não informado"}</small>
                       </div>
                     </div>
                   ))
                 ) : (
                   <div className="street-action-summary-card">
                     <div>
-                      <strong>Nenhum tipo de a??o cadastrado na OS</strong>
-                      <small>O chefe seguir? apenas com o preenchimento do relat?rio t?cnico.</small>
+                      <strong>Nenhum tipo de ação cadastrado na OS</strong>
+                      <small>O chefe seguirá apenas com o preenchimento do relatório técnico.</small>
                     </div>
                   </div>
                 )}
@@ -1089,7 +1089,7 @@ export default function TechnicalReportsPage() {
                         </label>
                         {isStreetActionSelectedAgenda && shouldChooseStreetActionType ? (
                           <label className={`field-label chief-action-select ${shouldHighlightChiefTypeAction(action, index) ? "chief-highlight-field" : ""}`.trim()}>
-                            <span>A??o Definida pelo Chefe</span>
+                            <span>Ação Definida pelo Chefe</span>
                             <select
                               id={`select-type-action-${index}`}
                               value={action.type_action || ""}
@@ -1171,8 +1171,8 @@ export default function TechnicalReportsPage() {
               onBlur={(event) => update("contact_received", formatContactValue(event.target.value))}
               readOnly={requestFieldsReadOnly}
             />
-            <textarea className="chief-highlight-input" placeholder="Dados e Observa??es" value={form.general_observations || ""} onChange={(event) => update("general_observations", event.target.value)} />
-            <textarea className="chief-highlight-input" placeholder="Observa??o de ocorr?ncia" value={form.occurrence_observation || ""} onChange={(event) => update("occurrence_observation", event.target.value)} />
+            <textarea className="chief-highlight-input" placeholder="Dados e Observações" value={form.general_observations || ""} onChange={(event) => update("general_observations", event.target.value)} />
+            <textarea className="chief-highlight-input" placeholder="Observação de ocorrência" value={form.occurrence_observation || ""} onChange={(event) => update("occurrence_observation", event.target.value)} />
           </div>
 
           {message && <div className="alert" style={{ whiteSpace: "pre-wrap" }}>{message}</div>}

@@ -815,11 +815,11 @@ class AgendaViewSet(viewsets.ModelViewSet):
         except ProtectedError:
             blockers = []
             if instance.technical_reports.exists():
-                blockers.append("relat?rio t?cnico")
+                blockers.append("relatório técnico")
             if hasattr(instance, "event_report"):
-                blockers.append("relat?rio de evento")
+                blockers.append("relatório de evento")
             if instance.satisfaction_surveys.exists():
-                blockers.append("avalia??o de satisfa??o")
+                blockers.append("avaliação de satisfação")
             if len(blockers) == 1:
                 joined = blockers[0]
             elif len(blockers) == 2:
@@ -827,7 +827,7 @@ class AgendaViewSet(viewsets.ModelViewSet):
             else:
                 joined = ", ".join(blockers[:-1]) + f" e {blockers[-1]}" if blockers else "registros vinculados"
             return response.Response(
-                {"detail": f"Esta solicita??o n?o pode ser exclu?da porque j? possui {joined} vinculado."},
+                {"detail": f"Esta solicitação não pode ser excluída porque já possui {joined} vinculado."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -2286,7 +2286,7 @@ class EducationReportViewSet(viewsets.ModelViewSet):
                 "key": "approach", "label": "1 - ABORDADOS", "section": True,
                 "children": [
                     {"key": "approached_lectures", "label": "1.1 - ABORDADOS PALESTRAS"},
-                    {"key": "approached_actions", "label": "1.2 - ABORDADOS AÃƒâ€¡Ãƒâ€¢ES"},
+                    {"key": "approached_actions", "label": "1.2 - ABORDADOS AÇÕES"},
                 ],
             },
             {
@@ -2298,21 +2298,21 @@ class EducationReportViewSet(viewsets.ModelViewSet):
                 ],
             },
             {
-                "key": "educational_actions", "label": "3 - AÃƒâ€¡Ãƒâ€¢ES", "section": True,
+                "key": "educational_actions", "label": "3 - AÇÕES", "section": True,
                 "children": [
                     {"key": "bars", "label": "3.1 - BAR/RESTAURANTE"},
-                    {"key": "tolls", "label": "3.2 - PEDÀGIO"},
-                    {"key": "sports", "label": "3.3 - PRAÃƒâ€¡A ESPORTIVA"},
+                    {"key": "tolls", "label": "3.2 - PEDÁGIO"},
+                    {"key": "sports", "label": "3.3 - PRAÇA ESPORTIVA"},
                     {"key": "beach", "label": "3.4 - PRAIA"},
                     {"key": "events", "label": "3.5 - EVENTO"},
                     {"key": "shopping", "label": "3.6 - SHOPPING"},
-                    {"key": "social_actions", "label": "3.7 - A\u00c7\u00c3O SOCIAL"},
-                    {"key": "joint_inspections", "label": "3.8 - A\u00c7\u00c3O CONJUNTA COM A FISCALIZA\u00c7\u00c3O"},
+                    {"key": "social_actions", "label": "3.7 - AÇÃO SOCIAL"},
+                    {"key": "joint_inspections", "label": "3.8 - AÇÃO CONJUNTA COM A FISCALIZAÇÃO"},
                     {"key": "other_actions", "label": "3.9 - OUTROS"},
                 ],
             },
             {
-                "key": "publicity_materials", "label": "4 - MATERIAIS DE DIVULGAÃƒâ€¡ÃƒÆ’O", "section": True,
+                "key": "publicity_materials", "label": "4 - MATERIAIS DE DIVULGAÇÃO", "section": True,
                 "children": [
                     {"key": "distributed_certificates", "label": "4.1 - CERTIFICADOS ENTREGUES"},
                     {"key": "gibis", "label": '4.2 - KIT "Escolinha Nota 10"'},

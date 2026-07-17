@@ -1108,7 +1108,7 @@ export default function AgendaPage() {
                   </td>
                   <td className="row-actions" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     <button className="secondary" onClick={() => reviewAndSchedule(agenda)}>
-                      <ClipboardCheck size={16} /> Avaliar solicita??o
+                      <ClipboardCheck size={16} /> Avaliar solicitação
                     </button>
                     {canManageRequests && agenda.status === "APPROVED" && (
                       <button className="secondary" onClick={() => editServiceOrder(agenda)}>

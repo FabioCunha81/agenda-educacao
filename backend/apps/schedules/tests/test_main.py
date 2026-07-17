@@ -90,7 +90,7 @@ class PublicAgendaRequestSerializerTests(TestCase):
         data = self.valid_data()
         data.update({
             "action_type": "Praia",
-            "requester_entity_type": "A????o de Rua",
+            "requester_entity_type": "Ação de Rua",
             "participant_range": "",
             "age_ranges": "",
             "accessibility_access": "",
@@ -367,7 +367,7 @@ class EducationReportSerializerTests(APITestCase):
         serializer = AgendaSerializer(instance=agenda)
 
         self.assertFalse(serializer.data["can_delete"])
-        self.assertIn("relat?rio t?cnico", serializer.data["delete_block_reason"].lower())
+        self.assertIn("relatório técnico", serializer.data["delete_block_reason"].lower())
 
 class AgendaMaterialPersistenceTests(TestCase):
     def test_serializer_persists_dynamic_materials(self):

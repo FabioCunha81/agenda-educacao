@@ -113,8 +113,8 @@ class Command(BaseCommand):
             action = "seriam removidas" if options["dry_run"] else "removidas"
             self.stdout.write(
                 self.style.WARNING(
-                    f"{summary['deleted']} solicita??es p?blicas {action} antes da importa??o"
-                    f" (bloqueadas por relat?rio t?cnico: {summary['protected']})."
+                    f"{summary['deleted']} solicitações públicas {action} antes da importação"
+                    f" (bloqueadas por relatório técnico: {summary['protected']})."
                 )
             )
 
