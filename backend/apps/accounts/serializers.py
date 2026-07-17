@@ -59,7 +59,7 @@ def user_lookup_source_id(user):
 def get_safe_lookup_query(user):
     source_id = user_lookup_source_id(user)
     cpf = only_digits(getattr(user, "cpf", ""))
-    
+
     q = Q(source_id=source_id)
     if cpf:
         q |= Q(cpf=cpf)
@@ -76,10 +76,91 @@ def deactivate_other_user_lookups(user, active_model=None):
         model.objects.filter(q).update(is_active=False)
 
 
+def find_unlinked_legacy_candidate(model, cpf, name):
+    # 1. Procurar por CPF legado livre (source_id vazio/nulo)
+    cpf_digits = only_digits(cpf)
+    if cpf_digits:
+        legacy = model.objects.filter(
+            Q(cpf=cpf_digits) & (Q(source_id="") | Q(source_id__isnull=True))
+        ).first()
+        if legacy:
+            return legacy
+
+    # 2. Procurar por nome legado livre e único, sem CPF
+    if name:
+        candidates = model.objects.filter(
+            Q(name__iexact=name) & (Q(source_id="") | Q(source_id__isnull=True))
+        )
+        if candidates.count() == 1:
+            candidate = candidates.first()
+            if not candidate.cpf:
+                return candidate
+
+    return None
+
+
+def find_bound_conflict(model, cpf, name, excluding_source_id, excluding_id=None):
+    cpf_digits = only_digits(cpf)
+    q_base = Q()
+    if excluding_id:
+        q_base &= ~Q(id=excluding_id)
+
+    # 1. Conflito por CPF com outro usuário
+    if cpf_digits:
+        conflict = model.objects.filter(
+            q_base & Q(cpf=cpf_digits)
+        ).exclude(source_id=excluding_source_id).exclude(source_id="").exclude(source_id__isnull=True).first()
+        if conflict:
+            return conflict, "CPF vinculado a outro usuário"
+
+    # 2. Conflito por Nome
+    if name:
+        # Vinculado a outro usuário
+        conflict = model.objects.filter(
+            q_base & Q(name__iexact=name)
+        ).exclude(source_id=excluding_source_id).exclude(source_id="").exclude(source_id__isnull=True).first()
+        if conflict:
+            return conflict, "nome vinculado a outro usuário"
+
+        # Ambiguidade (múltiplos registros legados com o mesmo nome)
+        legacy_count = model.objects.filter(
+            q_base & Q(name__iexact=name) & (Q(source_id="") | Q(source_id__isnull=True))
+        ).count()
+        if legacy_count > 1:
+            first_legacy = model.objects.filter(
+                q_base & Q(name__iexact=name) & (Q(source_id="") | Q(source_id__isnull=True))
+            ).first()
+            return first_legacy, "nome ambíguo (múltiplos registros legados)"
+
+    return None, None
+
+
+def safe_save_lookup(lookup, *, user, model_name):
+    try:
+        with transaction.atomic():
+            lookup.save()
+        return lookup
+    except IntegrityError:
+        logger.exception(
+            "Falha ao sincronizar lookup operacional devido a erro de integridade inesperado",
+            extra={
+                "user_id": user.id,
+                "email": user.email,
+                "lookup_model": model_name,
+                "lookup_id": getattr(lookup, "id", None),
+            },
+        )
+        return None
+
+
 def upsert_user_lookup(model, user, role_label, extra_defaults=None):
-    lookup = model.objects.filter(source_id=user_lookup_source_id(user)).first() or find_lookup(model, user)
+    expected_source_id = user_lookup_source_id(user)
+
+    # 1. Procurar por source_id
+    lookup = model.objects.filter(source_id=expected_source_id).first()
+
     defaults = {
-        "source_id": user_lookup_source_id(user),
+        "source_id": expected_source_id,
         "name": user.full_name,
         "cpf": only_digits(user.cpf) or None,
         "role": role_label,
@@ -89,13 +170,80 @@ def upsert_user_lookup(model, user, role_label, extra_defaults=None):
     }
     if extra_defaults:
         defaults.update(extra_defaults)
-    if lookup:
-        for field, value in defaults.items():
-            setattr(lookup, field, value)
-        lookup.save()
+
+    if lookup is None:
+        # Se não existe lookup para este usuário, procuramos candidato legado (sem vínculo)
+        legacy_candidate = find_unlinked_legacy_candidate(
+            model=model,
+            cpf=user.cpf,
+            name=user.full_name,
+        )
+        if legacy_candidate:
+            lookup = legacy_candidate
+        else:
+            # Não há candidato legado. Verificamos se há conflito com outro usuário ou ambiguidade
+            conflict, reason = find_bound_conflict(
+                model=model,
+                cpf=user.cpf,
+                name=user.full_name,
+                excluding_source_id=expected_source_id,
+            )
+            if conflict:
+                logger.warning(
+                    "Lookup operacional não sincronizado por conflito (%s)",
+                    reason,
+                    extra={
+                        "user_id": user.id,
+                        "conflicting_lookup_id": conflict.id,
+                        "conflicting_source_id": conflict.source_id,
+                        "model": model.__name__,
+                    },
+                )
+                return None
+
+            # Sem conflitos, criamos um novo
+            lookup = model()
     else:
-        lookup = model.objects.create(**defaults)
-    return lookup
+        # Se o lookup existe, mas o nome ou CPF mudou, verificamos se há conflito com outro registro
+        # 1. Verificamos se há conflito com outro usuário ou ambiguidade
+        conflict, reason = find_bound_conflict(
+            model=model,
+            cpf=user.cpf,
+            name=user.full_name,
+            excluding_source_id=expected_source_id,
+            excluding_id=lookup.id,
+        )
+        if conflict:
+            logger.warning(
+                "Lookup operacional existente não atualizado por conflito com outro registro (%s)",
+                reason,
+                extra={
+                    "user_id": user.id,
+                    "conflicting_lookup_id": conflict.id,
+                    "conflicting_source_id": conflict.source_id,
+                    "model": model.__name__,
+                },
+            )
+            return None
+
+        # 2. Verificamos se há um registro legado (sem vínculo) com o novo CPF/nome
+        legacy_candidate = find_unlinked_legacy_candidate(
+            model=model,
+            cpf=user.cpf,
+            name=user.full_name,
+        )
+        if legacy_candidate and legacy_candidate.id != lookup.id:
+            # Desvincula o lookup antigo
+            lookup.source_id = ""
+            lookup.is_active = False
+            safe_save_lookup(lookup, user=user, model_name=model.__name__)
+            # Reutiliza o legado candidate
+            lookup = legacy_candidate
+
+    for field, value in defaults.items():
+        setattr(lookup, field, value)
+
+    return safe_save_lookup(lookup, user=user, model_name=model.__name__)
 
 
 def lookup_for_user(user):
@@ -136,6 +284,8 @@ def sync_user_lookup(user, team=None, clear_team=False):
             "CHEFE",
             {"phone": phone, "team": selected_team},
         )
+        if not lookup:
+            return
         deactivate_other_user_lookups(user, Chief)
         sector = sector_for_team(lookup.team)
         sector_id = sector.id if sector else None
@@ -154,6 +304,8 @@ def sync_user_lookup(user, team=None, clear_team=False):
         existing = Agent.objects.filter(source_id=user_lookup_source_id(user)).first() or find_lookup(Agent, user)
         selected_team = None if clear_team else (team or (existing.team if existing and existing.team_id else None) or fallback_team_for_user(user))
         lookup = upsert_user_lookup(Agent, user, "AGENTE", {"team": selected_team})
+        if not lookup:
+            return
         deactivate_other_user_lookups(user, Agent)
         sector = sector_for_team(lookup.team)
         sector_id = sector.id if sector else None
@@ -166,6 +318,8 @@ def sync_user_lookup(user, team=None, clear_team=False):
         existing = Support.objects.filter(source_id=user_lookup_source_id(user)).first() or find_lookup(Support, user)
         selected_team = None if clear_team else (team or (existing.team if existing and existing.team_id else None) or fallback_team_for_user(user))
         lookup = upsert_user_lookup(Support, user, "APOIO", {"team": selected_team})
+        if not lookup:
+            return
         deactivate_other_user_lookups(user, Support)
         sector = sector_for_team(lookup.team)
         sector_id = sector.id if sector else None
