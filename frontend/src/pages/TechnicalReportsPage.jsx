@@ -264,8 +264,8 @@ function extractMaterialCategories(agenda) {
   };
 
   for (let index = 1; index <= 7; index += 1) {
-    add(kits, safeAgenda[`kit_${index}`], safeAgenda[`kit_${index}_quantity`]);
-    add(supports, safeAgenda[`material_${index}`], "");
+    add(supports, safeAgenda[`kit_${index}`], safeAgenda[`kit_${index}_quantity`]);
+    add(kits, safeAgenda[`material_${index}`], "");
   }
 
   if (safeAgenda.materials?.length) {
