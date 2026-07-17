@@ -1281,10 +1281,16 @@ export default function AgendaPage() {
               <span><b>E-mail</b>{form.external_email || "-"}</span>
               <span><b>Telefone</b>{form.external_responsible_phone || "-"}</span>
               <span><b>Instituição</b>{form.institution_location || "-"}</span>
-              <span><b>Tipo de entidade</b>{form.requester_entity_type || "-"}</span>
+              <span><b>Tipo de entidade</b>{String(form.requester_entity_type) === STREET_ACTION_ID ? "Ação de Rua" : (form.requester_entity_type || "-")}</span>
               <span><b>Modalidade</b>{form.action_type || "-"}</span>
               <span><b>Data e horário</b>{form.date ? formatDateBR(form.date) : "-"} às {form.start_time || "-"}</span>
-              <span><b>Ações</b>{form.actions_count || "-"}</span>
+              <span><b>Ações</b>{
+                (String(form.requester_entity_type) === STREET_ACTION_ID || String(form.action_type_ref) === STREET_ACTION_ID)
+                  ? (form.street_action_details?.length > 0
+                      ? form.street_action_details.map(d => d.type).filter(Boolean).join(", ")
+                      : "-")
+                  : (form.actions_count || "-")
+              }</span>
               <span><b>Participantes</b>{form.participant_range || form.quantity || "-"}</span>
               <span><b>Faixa etária</b>{form.age_ranges || "-"}</span>
               <span><b>Endereço</b>{[form.address, form.neighborhood, form.city, form.state].filter(Boolean).join(", ") || "-"}</span>
