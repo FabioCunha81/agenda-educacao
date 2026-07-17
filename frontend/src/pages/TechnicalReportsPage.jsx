@@ -420,6 +420,7 @@ export default function TechnicalReportsPage() {
     () => [...new Set((form.street_action_details || []).map((detail) => String(detail?.type || "").trim()).filter(Boolean))],
     [form.street_action_details]
   );
+  const isStreetAction = Boolean(isStreetActionSelectedAgenda || predefinedStreetActionTypes.length > 0);
   const shouldChooseStreetActionType = isStreetActionSelectedAgenda && predefinedStreetActionTypes.length > 1;
   const normalizeTypeLabel = (value) => String(value || "").trim().toLocaleLowerCase("pt-BR");
   const originalTypeActionForIndex = (index) => {
@@ -1037,7 +1038,7 @@ export default function TechnicalReportsPage() {
             </label>
           </div>
 
-          {isStreetActionSelectedAgenda && (
+          {isStreetAction && (
             <div className="form-section">
               <h3>Detalhes da Ação de Rua</h3>
               <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "12px" }}>
@@ -1128,7 +1129,7 @@ export default function TechnicalReportsPage() {
                           <span>Horário final</span>
                           <input value={action.final_hour || ""} onChange={(event) => updateAction(index, "final_hour", event.target.value)} readOnly={requestFieldsReadOnly && !action.__userCreated} />
                         </label>
-                        {isStreetActionSelectedAgenda ? (
+                        {isStreetAction ? (
                           <label className={`field-label chief-action-select ${shouldHighlightChiefTypeAction(action, index) ? "chief-highlight-field" : ""}`.trim()}>
                             <span>Ação Definida pelo Chefe</span>
                             <select
