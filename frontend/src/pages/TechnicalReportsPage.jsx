@@ -1,4 +1,4 @@
-﻿import { Clipboard, MapPin, Plus, Save, Search, Trash2, Eye, X, Check } from "lucide-react";
+import { Clipboard, MapPin, Plus, Save, Search, Trash2, Eye, X, Check } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
 import { STREET_ACTION_ID } from "../utils/constants.js";
@@ -252,10 +252,10 @@ function extractMaterialCategories(agenda) {
     if (!name) return;
     const normalizedName = String(name).trim();
     if (!normalizedName) return;
-    
+
     const existing = list.find(item => String(item.name).trim().toLowerCase() === normalizedName.toLowerCase());
     const validQuantity = quantity !== null && quantity !== undefined && quantity !== "" ? Number(quantity) : "";
-    
+
     if (!existing) {
       list.push({ name: normalizedName, quantity: validQuantity });
     } else if (validQuantity !== "" && existing.quantity === "") {
@@ -400,6 +400,7 @@ export default function TechnicalReportsPage() {
   const [returnNotes, setReturnNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingAttendance, setIsSavingAttendance] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN" || user?.role === "MANAGER";
   const requestFieldsReadOnly = Boolean(form.agenda);
@@ -510,8 +511,8 @@ export default function TechnicalReportsPage() {
     if (form.operation_date && form.team) {
       api(`/shift-schedules/?date=${form.operation_date}`).then(res => {
         const schedules = res.results || res;
-        const scheduleInfo = schedules.find(s => 
-          String(s.team) === String(form.team) || 
+        const scheduleInfo = schedules.find(s =>
+          String(s.team) === String(form.team) ||
           String(s.team_name) === String(form.team) ||
           (selectedAgenda && String(s.team) === String(selectedAgenda.team_ref)) ||
           (selectedAgenda && String(s.team_name) === String(selectedAgenda.sector_name))
@@ -820,7 +821,7 @@ export default function TechnicalReportsPage() {
 
     if (!form.operation_date) missingFields.push({ name: "Data da Operação", id: "input-operation-date" });
     if (!form.team) missingFields.push({ name: "Equipe Executora", id: "input-team" });
-    
+
     getValidatableActions(form.actions).forEach(({ action, index }) => {
       if (!action.type_action) missingFields.push({ name: `Ação ${index + 1}: Ação Definida pelo Chefe`, id: `select-type-action-${index}` });
     });
@@ -833,7 +834,7 @@ export default function TechnicalReportsPage() {
 
     if (missingFields.length > 0) {
       setMessage(`⚠ Não foi possível enviar o relatório\n\nMotivo:\nExistem campos obrigatórios não preenchidos:\n${missingFields.map(f => `- ${f.name}`).join('\n')}`);
-      
+
       const firstMissingId = missingFields[0].id;
       const el = document.getElementById(firstMissingId);
       if (el) {
@@ -866,11 +867,15 @@ export default function TechnicalReportsPage() {
   };
 
   const approveReport = async (id) => {
+    if (isApproving) return;
+    setIsApproving(true);
     try {
       await api(`/education-reports/${id}/approve/`, { method: "POST" });
       load();
     } catch (err) {
       alert(`Erro ao aprovar: ${err.message}`);
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -885,7 +890,7 @@ export default function TechnicalReportsPage() {
       return;
     }
     try {
-      await api(`/education-reports/${returnModalReportId}/return-for-correction/`, { 
+      await api(`/education-reports/${returnModalReportId}/return-for-correction/`, {
         method: "POST",
         body: JSON.stringify({ notes: returnNotes })
       });
@@ -1174,10 +1179,10 @@ export default function TechnicalReportsPage() {
               <p style={{ fontSize: "0.85rem", color: "var(--text-soft)", marginBottom: "12px" }}>
                 Gerencie as presenças e faltas do efetivo lançado na escala para este evento.
               </p>
-              <button 
+              <button
                 id="attendance-block"
-                type="button" 
-                className="secondary attendance-highlight-button" 
+                type="button"
+                className="secondary attendance-highlight-button"
                 onClick={() => setIsAttendanceModalOpen(true)}
               >
                 <Clipboard size={18} /> Gerenciar Frequência
@@ -1286,9 +1291,9 @@ export default function TechnicalReportsPage() {
             </div>
             <div className="modal-footer attendance-modal-footer">
               <button type="button" className="secondary" onClick={() => setIsAttendanceModalOpen(false)}>Cancelar</button>
-              <button 
+              <button
                 type="button"
-                className="primary" 
+                className="primary"
                 onClick={async () => {
                   try {
                     await saveAttendance({ markReported: true, successMessage: "Presenças enviadas para validação." });
@@ -1357,14 +1362,14 @@ export default function TechnicalReportsPage() {
                       <td>{reportName(r)}</td>
                       <td>{formatDateBR(r.operation_date)}</td>
                       <td>
-                        <span style={{ 
-                          background: r.status === "APPROVED" ? "var(--success)" : 
-                                      r.status === "PENDING_REVIEW" ? "var(--info)" : 
-                                      r.status === "RETURNED" ? "var(--danger)" : "var(--warning)", 
-                          color: "#fff", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontWeight: "bold" 
+                        <span style={{
+                          background: r.status === "APPROVED" ? "var(--success)" :
+                                      r.status === "PENDING_REVIEW" ? "var(--info)" :
+                                      r.status === "RETURNED" ? "var(--danger)" : "var(--warning)",
+                          color: "#fff", padding: "4px 8px", borderRadius: 4, fontSize: 11, fontWeight: "bold"
                         }}>
-                          {r.status === "APPROVED" ? "APROVADO" : 
-                           r.status === "PENDING_REVIEW" ? "AGUARDANDO" : 
+                          {r.status === "APPROVED" ? "APROVADO" :
+                           r.status === "PENDING_REVIEW" ? "AGUARDANDO" :
                            r.status === "RETURNED" ? "DEVOLVIDO" : "RASCUNHO"}
                         </span>
                       </td>
@@ -1378,10 +1383,10 @@ export default function TechnicalReportsPage() {
                         </button>
                         {isAdmin && r.status === "PENDING_REVIEW" && (
                           <>
-                            <button className="primary icon-button" onClick={() => approveReport(r.id)} title="Aprovar">
+                            <button className="primary icon-button" onClick={() => approveReport(r.id)} title="Aprovar" disabled={isApproving}>
                               <Check size={16} />
                             </button>
-                            <button className="danger icon-button" onClick={() => returnReport(r.id)} title="Devolver para correção" style={{ background: "var(--danger)", color: "#fff", border: "none" }}>
+                            <button className="danger icon-button" onClick={() => returnReport(r.id)} title="Devolver para correção" style={{ background: "var(--danger)", color: "#fff", border: "none" }} disabled={isApproving}>
                               <X size={16} />
                             </button>
                           </>
@@ -1393,7 +1398,7 @@ export default function TechnicalReportsPage() {
               </table>
             </div>
           </div>
-          
+
           {reportsPreviewModal && (
             <div className="modal-overlay" onClick={() => setReportsPreviewModal(null)}>
               <div className="premium-modal" onClick={e => e.stopPropagation()}>
@@ -1407,7 +1412,7 @@ export default function TechnicalReportsPage() {
               </div>
             </div>
           )}
-          
+
           {returnModalReportId && (
             <div className="modal-overlay" onClick={() => setReturnModalReportId(null)}>
               <div className="premium-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
@@ -1417,7 +1422,7 @@ export default function TechnicalReportsPage() {
                 </div>
                 <div className="modal-body-premium" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <p style={{ margin: 0, fontSize: 14 }}>Informe a justificativa detalhada para o chefe responsável corrigir:</p>
-                  <textarea 
+                  <textarea
                     value={returnNotes}
                     onChange={(e) => setReturnNotes(e.target.value)}
                     placeholder="Digite a justificativa aqui..."
@@ -1482,18 +1487,18 @@ export default function TechnicalReportsPage() {
                   }}
                   style={{ minHeight: "32px", fontSize: "12.5px", padding: "4px 8px", flex: 1 }}
                 />
-                <button 
-                  type="button" 
-                  className="secondary" 
+                <button
+                  type="button"
+                  className="secondary"
                   onClick={() => setPendingChiefQuery(pendingChiefFilter)}
                   style={{ minHeight: "32px", padding: "0 10px", fontSize: "12px" }}
                 >
                   Buscar
                 </button>
                 {(pendingDateFilter || pendingChiefQuery) && (
-                  <button 
-                    type="button" 
-                    className="secondary" 
+                  <button
+                    type="button"
+                    className="secondary"
                     onClick={() => { setPendingDateFilter(""); setPendingChiefFilter(""); setPendingChiefQuery(""); }}
                     style={{ minHeight: "32px", padding: "0 10px", fontSize: "12px" }}
                   >
