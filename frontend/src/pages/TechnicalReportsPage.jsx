@@ -395,6 +395,7 @@ export default function TechnicalReportsPage() {
   const [protocolSearch, setProtocolSearch] = useState("");
   const [form, setForm] = useState(empty);
   const [editing, setEditing] = useState(null);
+  const [isEditingLoading, setIsEditingLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [loadError, setLoadError] = useState("");
   const [locationMessage, setLocationMessage] = useState("");
@@ -869,12 +870,46 @@ export default function TechnicalReportsPage() {
     }
   };
 
-  const edit = (report) => {
-    setEditing(report.id);
-    const reportAgenda = agendas.find((agenda) => String(agenda.id) === String(report.agenda));
-    setProtocolSearch(reportAgenda?.service_order_number ? serviceOrderLabel(reportAgenda) : report.agenda ? String(report.agenda) : "");
-    setForm(hydrateForm(report, reportAgenda));
-    setMessage("");
+  const edit = async (report) => {
+    if (isEditingLoading) return;
+    setIsEditingLoading(true);
+    try {
+      const reportAgendaLocal = agendas.find((agenda) => String(agenda.id) === String(report.agenda));
+      let reportAgenda = reportAgendaLocal;
+
+      const needsFetch = report.agenda && !reportAgendaLocal && (
+        !report.street_action_details?.length ||
+        !report.request_details
+      );
+
+      if (needsFetch) {
+        try {
+          reportAgenda = await api(`/agendas/${report.agenda}/`);
+        } catch (err) {
+          setMessage(`⚠ Não foi possível carregar os dados da agenda vinculada (Protocolo #${report.agenda}). O formulário não pôde ser aberto.`);
+          setIsEditingLoading(false);
+          return;
+        }
+      }
+
+      setEditing(report.id);
+      setProtocolSearch(reportAgenda?.service_order_number ? serviceOrderLabel(reportAgenda) : report.agenda ? String(report.agenda) : "");
+
+      const resolvedDetails = report.street_action_details?.length
+        ? report.street_action_details
+        : (reportAgenda?.street_action_details || []);
+
+      const hydrated = hydrateForm({
+        ...report,
+        street_action_details: resolvedDetails
+      }, reportAgenda);
+
+      setForm(hydrated);
+      setMessage("");
+      setActiveTab("pending");
+    } finally {
+      setIsEditingLoading(false);
+    }
   };
 
   const approveReport = async (id) => {
@@ -1393,7 +1428,7 @@ export default function TechnicalReportsPage() {
                         <button className="secondary icon-button" onClick={() => { setReportsPreviewModal(r); }} title="Visualizar">
                           <Eye size={16} />
                         </button>
-                        <button className="secondary icon-button" onClick={() => { edit(r); setActiveTab("pending"); }} title="Editar">
+                        <button className="secondary icon-button" onClick={() => edit(r)} title="Editar" disabled={isEditingLoading}>
                           <Clipboard size={16} />
                         </button>
                         {isAdmin && r.status === "PENDING_REVIEW" && (
