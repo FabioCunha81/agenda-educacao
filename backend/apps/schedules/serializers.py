@@ -419,6 +419,8 @@ class AgendaSerializer(serializers.ModelSerializer):
     vehicle_name = serializers.CharField(source="vehicle_ref.name", read_only=True)
     team_ref_name = serializers.CharField(source="team_ref.name", read_only=True)
     chief_ref_name = serializers.CharField(source="chief_ref.name", read_only=True)
+    support_1_ref_name = serializers.CharField(source="support_1_ref.name", read_only=True)
+    support_2_ref_name = serializers.CharField(source="support_2_ref.name", read_only=True)
     action_type_ref_name = serializers.CharField(source="action_type_ref.name", read_only=True)
     municipality_ref_name = serializers.CharField(source="municipality_ref.name", read_only=True)
     neighborhood_ref_name = serializers.CharField(source="neighborhood_ref.name", read_only=True)
@@ -469,8 +471,10 @@ class AgendaSerializer(serializers.ModelSerializer):
             "agents_ref",
             "support_1",
             "support_1_ref",
+            "support_1_ref_name",
             "support_2",
             "support_2_ref",
+            "support_2_ref_name",
             "action_type",
             "action_type_ref",
             "action_type_ref_name",
@@ -734,8 +738,10 @@ class AgendaSerializer(serializers.ModelSerializer):
                 "agents_ref",
                 "support_1",
                 "support_1_ref",
+                "support_1_ref_name",
                 "support_2",
                 "support_2_ref",
+                "support_2_ref_name",
                 "responsible",
                 "responsible_name",
                 "created_by",

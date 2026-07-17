@@ -15,8 +15,10 @@ function fullAddress(agenda) {
 }
 
 function supportTeamLabel(agenda) {
-  const supports = [agenda.support_1, agenda.support_2].map(cleanText).filter(Boolean);
-  return supports.length ? supports.join(" - ") : "-";
+  const supports = [agenda.support_1, agenda.support_1_ref_name, agenda.support_2, agenda.support_2_ref_name]
+    .map(cleanText)
+    .filter(Boolean);
+  return supports.length ? Array.from(new Set(supports)).join(" - ") : "-";
 }
 
 function mapsUrl(agenda) {
