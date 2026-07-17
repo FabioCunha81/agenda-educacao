@@ -224,6 +224,22 @@ function selectedMaterialQuantity(form, type, id) {
   return selectedMaterialRow(form, type, id)?.quantity ?? "";
 }
 
+function mergeSelectedMaterialOptions(options = [], rows = [], type) {
+  const map = new Map((options || []).map((item) => [String(item.id), item]));
+  (rows || []).forEach((row) => {
+    const id = row?.[type];
+    if (!id) return;
+    const key = String(id);
+    if (map.has(key)) return;
+    map.set(key, {
+      id,
+      name: row?.[`${type}_name`] || `Item ${key}`,
+      is_legacy_selected: true,
+    });
+  });
+  return Array.from(map.values());
+}
+
 function serviceOrderLabel(agenda) {
   const number = agenda?.service_order_number;
   return number ? `OS ${String(number).padStart(4, "0")}` : "-";
@@ -292,9 +308,15 @@ export default function AgendaPage() {
   };
 
   useEffect(() => {
+    const unwrapLookup = (result) => {
+      if (result.status !== "fulfilled") return [];
+      const value = result.value;
+      return value?.results || value || [];
+    };
+
     api("/sectors/").then((data) => setSectors(data.results || data));
     api("/users/").then((data) => setUsers(data.results || data)).catch(() => setUsers(user ? [user] : []));
-    Promise.all([
+    Promise.allSettled([
       api("/vehicles/?page_size=200"),
       api("/teams/?page_size=200"),
       api("/chiefs/?page_size=200"),
@@ -307,20 +329,21 @@ export default function AgendaPage() {
       api("/kits/?page_size=1000"),
       api("/materials/?page_size=1000"),
       api("/dynamics/?page_size=1000"),
-    ]).then(([vehicles, teams, chiefs, agents, supports, actionTypes, municipalities, regions, neighborhoods, kits, materials, dynamics]) => {
+    ]).then((results) => {
+      const [vehicles, teams, chiefs, agents, supports, actionTypes, municipalities, regions, neighborhoods, kits, materials, dynamics] = results;
       setLookups({
-        vehicles: vehicles.results || vehicles,
-        teams: teams.results || teams,
-        chiefs: chiefs.results || chiefs,
-        agents: agents.results || agents,
-        supports: supports.results || supports,
-        actionTypes: actionTypes.results || actionTypes,
-        municipalities: municipalities.results || municipalities,
-        regions: regions.results || regions,
-        neighborhoods: neighborhoods.results || neighborhoods,
-        kits: kits.results || kits,
-        materials: materials.results || materials,
-        dynamics: dynamics.results || dynamics,
+        vehicles: unwrapLookup(vehicles),
+        teams: unwrapLookup(teams),
+        chiefs: unwrapLookup(chiefs),
+        agents: unwrapLookup(agents),
+        supports: unwrapLookup(supports),
+        actionTypes: unwrapLookup(actionTypes),
+        municipalities: unwrapLookup(municipalities),
+        regions: unwrapLookup(regions),
+        neighborhoods: unwrapLookup(neighborhoods),
+        kits: unwrapLookup(kits),
+        materials: unwrapLookup(materials),
+        dynamics: unwrapLookup(dynamics),
       });
     });
   }, [user]);
@@ -526,6 +549,19 @@ export default function AgendaPage() {
     const upper = (kit.name || "").toUpperCase();
     return allowedMaterials.some((allowed) => upper.includes(allowed));
   });
+
+  const dynamicOptions = useMemo(
+    () => mergeSelectedMaterialOptions(lookups.dynamics || [], form.materials || [], "dynamic"),
+    [lookups.dynamics, form.materials],
+  );
+  const distributionMaterialOptions = useMemo(
+    () => mergeSelectedMaterialOptions(distributionKits, form.materials || [], "kit"),
+    [distributionKits, form.materials],
+  );
+  const supportMaterialOptions = useMemo(
+    () => mergeSelectedMaterialOptions(lookups.materials || [], form.materials || [], "material"),
+    [lookups.materials, form.materials],
+  );
 
   const renderMaterialChecklist = (title, type, options) => (
     <div className="material-checklist">
@@ -1555,9 +1591,9 @@ export default function AgendaPage() {
                     </div>
                   )}
                   <div className="material-selection-grid">
-                    {renderMaterialChecklist("Dinâmica", "dynamic", lookups.dynamics || [])}
-                    {renderMaterialChecklist("Material para distribuição", "kit", lookups.kits || [])}
-                    {renderMaterialChecklist("Material de Apoio", "material", lookups.materials || [])}
+                    {renderMaterialChecklist("Dinâmica", "dynamic", dynamicOptions)}
+                    {renderMaterialChecklist("Material para distribuição", "kit", distributionMaterialOptions)}
+                    {renderMaterialChecklist("Material de Apoio", "material", supportMaterialOptions)}
                   </div>
                 </div>
                 {message && <div className="alert">{message}</div>}
