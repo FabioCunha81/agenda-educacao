@@ -104,6 +104,8 @@ export default function ShiftSchedulePage() {
   const [attendanceTarget, setAttendanceTarget] = useState(null);
   const [attendanceForm, setAttendanceForm] = useState({});
   const [message, setMessage] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [pendingValidationCount, setPendingValidationCount] = useState(0);
   const [swapMessage, setSwapMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const requestSeq = useRef(0);
@@ -204,6 +206,10 @@ export default function ShiftSchedulePage() {
     const teamChief = chiefs.find((c) => String(c.team) === String(reportTeam) && c.is_active);
     return teamChief ? teamChief.name : "Chefe não cadastrado";
   }, [chiefs, reportTeam]);
+  const pendingValidationSchedules = useMemo(
+    () => (canApprove ? schedules.filter((schedule) => schedule.attendance_reported && !schedule.attendance_approved) : []),
+    [canApprove, schedules],
+  );
   const loadSchedules = async () => {
     setLoading(true);
     try {
@@ -234,15 +240,20 @@ export default function ShiftSchedulePage() {
       setChiefs(chiefRows.filter(fromUsers));
       setAgents(agentRows.filter(fromUsers));
       setSupports(supportRows.filter(fromUsers));
+      setLoadError("");
     }).catch((err) => {
       console.error("Erro ao carregar dados auxiliares:", err);
-      setMessage("Erro de comunicação ao carregar equipes e efetivo. Tente recarregar a página.");
+      setLoadError("Erro de comunicação ao carregar equipes e efetivo. Tente recarregar a página.");
     });
   }, []);
 
   useEffect(() => {
     loadSchedules().catch((err) => setMessage(err.message));
   }, [days]);
+
+  useEffect(() => {
+    setPendingValidationCount(pendingValidationSchedules.length);
+  }, [pendingValidationSchedules]);
 
   const openDay = (date) => {
     if (!canApprove) return;
@@ -255,6 +266,16 @@ export default function ShiftSchedulePage() {
 
   const openTeamDetail = (schedule) => {
     setDetailScheduleId(String(schedule.id));
+    setMessage("");
+  };
+
+  const openFirstPendingValidation = () => {
+    const firstPending = pendingValidationSchedules[0];
+    if (!firstPending) return;
+    const targetDate = new Date(`${firstPending.date}T12:00:00`);
+    setCursor(new Date(targetDate.getFullYear(), targetDate.getMonth(), 1));
+    setSelectedDate(null);
+    setDetailScheduleId(String(firstPending.id));
     setMessage("");
   };
 
@@ -516,12 +537,14 @@ export default function ShiftSchedulePage() {
       });
       await Promise.all(promises);
       
-      if (attendanceTarget.attendance_reported && !attendanceTarget.attendance_approved) {
+      const approvalPending = attendanceTarget.attendance_reported && !attendanceTarget.attendance_approved;
+      if (approvalPending) {
         await api(`/shift-schedules/${attendanceTarget.id}/approve-attendance/`, { method: "POST" });
-      } else if (!attendanceTarget.attendance_reported) {
-        await api(`/shift-schedules/${attendanceTarget.id}/report-attendance/`, { method: "POST" });
+        setMessage("Frequência validada com sucesso.");
+      } else {
+        setMessage("Frequência salva com sucesso.");
       }
-      
+
       await loadSchedules();
       setAttendanceTarget(null);
       if (detailScheduleId === String(attendanceTarget.id)) {
@@ -580,9 +603,19 @@ export default function ShiftSchedulePage() {
         <button type="button" className="secondary" onClick={() => openReportModal()} style={{ marginLeft: 8 }}><CalendarDays size={17} /> Relatório RH</button>
       </div>
 
+      {loadError && <div className="alert">{loadError}</div>}
+      {canApprove && !loadError && pendingValidationCount > 0 && (
+        <div className="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", background: "#fef3c7", border: "1px solid #f59e0b", color: "#854d0e" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <strong style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><AlertCircle size={18} /> {pendingValidationCount === 1 ? "Existe 1 registro de presença aguardando validação pelo escalante." : `Existem ${pendingValidationCount} registros de presença aguardando validação pelo escalante.`}</strong>
+            <small>As presenças foram informadas pelos chefes e já podem ser conferidas na frequência.</small>
+          </div>
+          <button type="button" className="secondary" onClick={openFirstPendingValidation}>Ver pendências</button>
+        </div>
+      )}
       {message && <div className="alert">{message}</div>}
       
-      {!loading && schedules.length === 0 && !message && (
+      {!loading && schedules.length === 0 && !message && !loadError && (
         <div className="alert alert-info" style={{ marginTop: "10px" }}>
           Nenhuma escala encontrada para este usuário no período selecionado.
         </div>

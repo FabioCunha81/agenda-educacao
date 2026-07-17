@@ -216,3 +216,94 @@ class ShiftScheduleDeleteSyncTests(APITestCase):
         self.assertEqual(after.status_code, status.HTTP_200_OK)
         after_rows = after.data["results"] if "results" in after.data else after.data
         self.assertEqual(after_rows, [])
+
+
+class ShiftScheduleAttendanceWorkflowTests(APITestCase):
+    def setUp(self):
+        self.team, _ = Team.objects.get_or_create(name="DELTA")
+        self.team_sector, _ = Sector.objects.get_or_create(name="DELTA")
+        self.admin = User.objects.create_user(
+            email="admin-attendance@test.com",
+            password="pwd",
+            role=User.Role.ADMIN,
+            full_name="Admin Attendance",
+        )
+        self.manager = User.objects.create_user(
+            email="manager-attendance@test.com",
+            password="pwd",
+            role=User.Role.MANAGER,
+            full_name="Manager Attendance",
+        )
+        self.chief_user = User.objects.create_user(
+            email="chief-attendance@test.com",
+            password="pwd",
+            role=User.Role.SUPERVISOR,
+            full_name="Chefe Attendance",
+            cpf="12345678901",
+            sector=self.team_sector,
+        )
+        self.other_supervisor = User.objects.create_user(
+            email="other-supervisor@test.com",
+            password="pwd",
+            role=User.Role.SUPERVISOR,
+            full_name="Outro Chefe",
+            cpf="99999999999",
+        )
+        self.chief = Chief.objects.create(
+            name="Chefe Attendance",
+            cpf="12345678901",
+            team=self.team,
+            is_active=True,
+            source_id=f"user:{self.chief_user.id}",
+        )
+        self.schedule = ShiftSchedule.objects.create(
+            date=date(2026, 7, 17),
+            team=self.team,
+            created_by=self.admin,
+        )
+        self.report_url = reverse("shift-schedules-report-attendance", args=[self.schedule.id])
+        self.approve_url = reverse("shift-schedules-approve-attendance", args=[self.schedule.id])
+
+    def test_supervisor_can_report_attendance(self):
+        self.client.force_authenticate(self.chief_user)
+        response = self.client.post(self.report_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.schedule.refresh_from_db()
+        self.assertTrue(self.schedule.attendance_reported)
+        self.assertIsNotNone(self.schedule.attendance_reported_at)
+        self.assertFalse(self.schedule.attendance_approved)
+        self.assertIsNone(self.schedule.attendance_approved_at)
+
+    def test_report_attendance_resets_previous_approval(self):
+        self.schedule.attendance_reported = True
+        self.schedule.attendance_approved = True
+        self.schedule.save(update_fields=["attendance_reported", "attendance_approved"])
+        self.client.force_authenticate(self.chief_user)
+        response = self.client.post(self.report_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.schedule.refresh_from_db()
+        self.assertTrue(self.schedule.attendance_reported)
+        self.assertFalse(self.schedule.attendance_approved)
+        self.assertIsNone(self.schedule.attendance_approved_at)
+
+    def test_scheduler_can_approve_reported_attendance(self):
+        self.schedule.attendance_reported = True
+        self.schedule.save(update_fields=["attendance_reported"])
+        self.client.force_authenticate(self.manager)
+        response = self.client.post(self.approve_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.schedule.refresh_from_db()
+        self.assertTrue(self.schedule.attendance_approved)
+        self.assertIsNotNone(self.schedule.attendance_approved_at)
+
+    def test_supervisor_cannot_approve_attendance(self):
+        self.schedule.attendance_reported = True
+        self.schedule.save(update_fields=["attendance_reported"])
+        self.client.force_authenticate(self.chief_user)
+        response = self.client.post(self.approve_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_unlinked_supervisor_cannot_report_attendance(self):
+        self.client.force_authenticate(self.other_supervisor)
+        response = self.client.post(self.report_url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

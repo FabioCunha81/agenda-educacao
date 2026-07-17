@@ -740,9 +740,12 @@ export default function TechnicalReportsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           checked_members: checkedMembersData,
-          ...(markReported ? { attendance_reported: true } : {}),
         }),
       });
+
+      if (markReported) {
+        await api(`/shift-schedules/${reportSchedule.id}/report-attendance/`, { method: "POST" });
+      }
 
       await loadScheduleAttendance(reportSchedule.id);
       if (closeModal) setIsAttendanceModalOpen(false);
@@ -1288,7 +1291,7 @@ export default function TechnicalReportsPage() {
                 className="primary" 
                 onClick={async () => {
                   try {
-                    await saveAttendance();
+                    await saveAttendance({ markReported: true, successMessage: "Presenças enviadas para validação." });
                   } catch (err) {
                     setMessage(`⚠ Não foi possível salvar a frequência\n\nMotivo:\n${err.message}`);
                   }
@@ -1296,7 +1299,7 @@ export default function TechnicalReportsPage() {
                 disabled={isSavingAttendance || Object.values(attendanceForm).some(d => d.is_absent === null)}
                 title={Object.values(attendanceForm).some(d => d.is_absent === null) ? "Selecione a frequência de todos os membros" : ""}
               >
-                {isSavingAttendance ? "Salvando..." : "Confirmar"}
+                {isSavingAttendance ? "Salvando..." : "Salvar e enviar para validação"}
               </button>
             </div>
           </article>
