@@ -390,6 +390,7 @@ export default function TechnicalReportsPage() {
   const [pendingDateFilter, setPendingDateFilter] = useState("");
   const [pendingChiefFilter, setPendingChiefFilter] = useState("");
   const [pendingChiefQuery, setPendingChiefQuery] = useState("");
+  const [actionTypes, setActionTypes] = useState([]);
   const [reportsPreviewModal, setReportsPreviewModal] = useState(null);
   const [activeTab, setActiveTab] = useState("pending");
   const [protocolSearch, setProtocolSearch] = useState("");
@@ -455,9 +456,10 @@ export default function TechnicalReportsPage() {
       if (value) params.set(key, value);
     });
 
-    const [agendasResult, reportsResult] = await Promise.allSettled([
+    const [agendasResult, reportsResult, actionTypesResult] = await Promise.allSettled([
       api(`/agendas/?page_size=50&reportable=true&pending_report=true${pendingChiefQuery ? `&chief=${encodeURIComponent(pendingChiefQuery)}` : ''}`),
       api(`/education-reports/?${params.toString()}`),
+      api("/action-types/?page_size=200"),
     ]);
 
     if (agendasResult.status === "fulfilled") {
@@ -468,6 +470,10 @@ export default function TechnicalReportsPage() {
       const data = reportsResult.value;
       const results = data?.results || data;
       setReports(Array.isArray(results) ? results : []);
+    }
+    if (actionTypesResult.status === "fulfilled") {
+      const data = actionTypesResult.value;
+      setActionTypes(data.results || data || []);
     }
 
     const failures = [agendasResult, reportsResult]
@@ -1128,22 +1134,42 @@ export default function TechnicalReportsPage() {
                           <span>Horário final</span>
                           <input value={action.final_hour || ""} onChange={(event) => updateAction(index, "final_hour", event.target.value)} readOnly={requestFieldsReadOnly && !action.__userCreated} />
                         </label>
-                        {isStreetActionSelectedAgenda && shouldChooseStreetActionType ? (
-                          <label className={`field-label chief-action-select ${shouldHighlightChiefTypeAction(action, index) ? "chief-highlight-field" : ""}`.trim()}>
-                            <span>Ação Definida pelo Chefe</span>
-                            <select
-                              id={`select-type-action-${index}`}
-                              value={action.type_action || ""}
-                              onChange={(event) => updateAction(index, "type_action", event.target.value)}
-                              required
-                            >
-                              <option value="">Selecione</option>
-                              {predefinedStreetActionTypes.map((option) => (
-                                <option key={option} value={option}>{option}</option>
-                              ))}
-                            </select>
-                          </label>
-                        ) : null}
+                        <label className={`field-label chief-action-select ${shouldHighlightChiefTypeAction(action, index) ? "chief-highlight-field" : ""}`.trim()}>
+                          <span>Ação Definida pelo Chefe</span>
+                          <select
+                            id={`select-type-action-${index}`}
+                            value={action.type_action || ""}
+                            onChange={(event) => updateAction(index, "type_action", event.target.value)}
+                            disabled={requestFieldsReadOnly && !action.__userCreated}
+                            required
+                          >
+                            <option value="">Selecione</option>
+                            {isStreetActionSelectedAgenda ? (
+                              shouldChooseStreetActionType ? (
+                                predefinedStreetActionTypes.map((option) => (
+                                  <option key={option} value={option}>{option}</option>
+                                ))
+                              ) : (
+                                streetActionTypeOptions.map((option) => (
+                                  <option key={option} value={option}>{option}</option>
+                                ))
+                              )
+                            ) : (
+                              actionTypes.filter((t) => t.is_active).map((option) => (
+                                <option key={option.id} value={option.name}>{option.name}</option>
+                              ))
+                            )}
+                            {action.type_action && (
+                              !(isStreetActionSelectedAgenda
+                                ? (shouldChooseStreetActionType
+                                  ? predefinedStreetActionTypes.includes(action.type_action)
+                                  : streetActionTypeOptions.includes(action.type_action))
+                                : actionTypes.filter((t) => t.is_active).some((t) => t.name === action.type_action))
+                            ) && (
+                              <option value={action.type_action}>{action.type_action}</option>
+                            )}
+                          </select>
+                        </label>
                       </div>
                     </div>
                   ))}
