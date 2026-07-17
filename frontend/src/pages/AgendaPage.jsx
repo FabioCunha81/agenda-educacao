@@ -538,17 +538,7 @@ export default function AgendaPage() {
     return true;
   });
 
-  const allowedMaterials = [
-    "VENTAROLAS",
-    "ADESIVOS",
-    "FOLDERS",
-    "REVISTINHAS EDUCATIVAS",
-  ];
-
-  const distributionKits = lookups.kits.filter((kit) => {
-    const upper = (kit.name || "").toUpperCase();
-    return allowedMaterials.some((allowed) => upper.includes(allowed));
-  });
+  const distributionKits = lookups.kits;
 
   const dynamicOptions = useMemo(
     () => mergeSelectedMaterialOptions(lookups.dynamics || [], form.materials || [], "dynamic"),
