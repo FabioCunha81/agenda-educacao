@@ -274,6 +274,43 @@ class EducationActionSerializerTests(TestCase):
 
 
 class EducationReportSerializerTests(APITestCase):
+    def test_ignores_empty_actions_when_saving_report(self):
+        sector = Sector.objects.create(name="EDUCACAO RELATORIO")
+        manager = User.objects.create_user(
+            email="report-actions@example.com",
+            password="password123",
+            full_name="Gestor Relatorio Acoes",
+            role=User.Role.MANAGER,
+            sector=sector,
+        )
+        agenda = Agenda.objects.create(
+            title="Acao educativa",
+            description="Atividade educativa",
+            date=date(2026, 6, 22),
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            location="Escola Municipal",
+            responsible=manager,
+            sector=sector,
+            created_by=manager,
+        )
+        serializer = EducationReportSerializer(data={
+            "agenda": agenda.id,
+            "operation_date": "2026-06-22",
+            "team": "Equipe Educacao",
+            "status": EducationReport.ReportStatus.DRAFT,
+            "actions": [
+                {"type_action": "Praia", "start_time": "09:00", "final_hour": "10:00"},
+                {"type_action": "", "place_action": "", "start_time": "", "final_hour": "", "institution_name": "", "type_audience": ""},
+            ],
+        })
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        report = serializer.save(created_by=manager)
+
+        self.assertEqual(report.actions.count(), 1)
+        self.assertEqual(report.actions.get().type_action, "Praia")
+
     def test_accepts_long_resources_summary(self):
         sector = Sector.objects.create(name="EDUCACAO")
         manager = User.objects.create_user(

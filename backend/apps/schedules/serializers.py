@@ -1001,8 +1001,36 @@ class EducationReportSerializer(serializers.ModelSerializer):
             self._save_actions(instance, actions_data)
         return instance
 
+    @staticmethod
+    def _is_meaningful_action_data(action_data):
+        if not isinstance(action_data, dict):
+            return False
+        meaningful_fields = (
+            "type_action",
+            "place_action",
+            "type_audience",
+            "institution_name",
+            "start_time",
+            "final_hour",
+            "source_id",
+        )
+        for field in meaningful_fields:
+            value = action_data.get(field)
+            if value is None:
+                continue
+            if isinstance(value, str):
+                if value.strip():
+                    return True
+                continue
+            if value:
+                return True
+        return False
+
     def _save_actions(self, report, actions_data):
         for action_data in actions_data:
+            if not self._is_meaningful_action_data(action_data):
+                continue
+            action_data = action_data.copy()
             action_data.pop("id", None)
             EducationAction.objects.create(report=report, **action_data)
 

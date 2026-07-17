@@ -7,6 +7,7 @@ import { STREET_ACTION_TYPE_OPTIONS } from "../utils/streetActionTypes.js";
 import { formatDateBR } from "../utils/date.js";
 
 import { buildPreview, chiefFromReport, reportName } from "../utils/reportPreview.js";
+import { getValidatableActions } from "./technicalReportsActionHelpers.js";
 
 function memberRows(members = {}) {
   return [
@@ -350,6 +351,15 @@ function hydrateForm(report, agenda) {
   };
 }
 
+function buildActionPayload(action, formAgenda) {
+  return {
+    ...action,
+    agenda: nullable(action.agenda || formAgenda),
+    source_id: nullable(action.source_id),
+    ...Object.fromEntries(numberFields.map((field) => [field, Number(action[field] || 0)])),
+  };
+}
+
 function normalizePayload(form) {
   const { request_details, ...payloadForm } = form;
   return {
@@ -362,12 +372,7 @@ function normalizePayload(form) {
     lat: nullable(form.lat),
     lng: nullable(form.lng),
     general_observations: form.general_observations || "",
-    actions: form.actions.map((action) => ({
-      ...action,
-      agenda: nullable(action.agenda || form.agenda),
-      source_id: nullable(action.source_id),
-      ...Object.fromEntries(numberFields.map((field) => [field, Number(action[field] || 0)])),
-    })),
+    actions: getValidatableActions(form.actions).map(({ action }) => buildActionPayload(action, form.agenda)),
   };
 }
 
@@ -394,6 +399,7 @@ export default function TechnicalReportsPage() {
   const [returnModalReportId, setReturnModalReportId] = useState(null);
   const [returnNotes, setReturnNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingAttendance, setIsSavingAttendance] = useState(false);
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN" || user?.role === "MANAGER";
   const requestFieldsReadOnly = Boolean(form.agenda);
@@ -467,6 +473,39 @@ export default function TechnicalReportsPage() {
   };
   useEffect(() => { load(); }, [techFilters, pendingChiefQuery]);
 
+  const buildAttendanceForm = (detailSchedule) => {
+    const formObj = {};
+    const staffChanges = [];
+    memberRows(detailSchedule.members).forEach((member) => {
+      if (member.is_extra) staffChanges.push(`Extra: ${member.name}`);
+      if (member.is_swap) staffChanges.push(`Troca: ${member.name} (no lugar de ${member.swap_for})`);
+
+      const memberKey = `${member.type}_${member.id}`;
+      const isChecked = detailSchedule.checked_members && detailSchedule.checked_members[memberKey] !== undefined;
+      formObj[memberKey] = {
+        is_absent: isChecked ? !!member.is_absent : null,
+        reason: member.absence_reason || "",
+        attachment: null,
+        member,
+      };
+    });
+    return { formObj, staffChanges };
+  };
+
+  const loadScheduleAttendance = async (scheduleId) => {
+    const detailSchedule = await api(`/shift-schedules/${scheduleId}/`);
+    setReportSchedule(detailSchedule);
+    const { formObj, staffChanges } = buildAttendanceForm(detailSchedule);
+    setAttendanceForm(formObj);
+    if (staffChanges.length > 0) {
+      setForm((current) => ({
+        ...current,
+        changes_staff: staffChanges.join("\n"),
+      }));
+    }
+    return detailSchedule;
+  };
+
   useEffect(() => {
     if (form.operation_date && form.team) {
       api(`/shift-schedules/?date=${form.operation_date}`).then(res => {
@@ -478,33 +517,7 @@ export default function TechnicalReportsPage() {
           (selectedAgenda && String(s.team_name) === String(selectedAgenda.sector_name))
         );
         if (scheduleInfo) {
-          api(`/shift-schedules/${scheduleInfo.id}/`).then(detailSchedule => {
-            setReportSchedule(detailSchedule);
-            const formObj = {};
-            const staffChanges = [];
-            memberRows(detailSchedule.members).forEach(m => {
-              if (m.is_extra) staffChanges.push(`Extra: ${m.name}`);
-              if (m.is_swap) staffChanges.push(`Troca: ${m.name} (no lugar de ${m.swap_for})`);
-              
-              const memberKey = `${m.type}_${m.id}`;
-              const isChecked = detailSchedule.checked_members && detailSchedule.checked_members[memberKey] !== undefined;
-              formObj[memberKey] = {
-                is_absent: isChecked ? !!m.is_absent : null,
-                reason: m.absence_reason || "",
-                attachment: null,
-                member: m
-              };
-
-            });
-            setAttendanceForm(formObj);
-            
-            if (staffChanges.length > 0) {
-              setForm(current => ({
-                ...current,
-                changes_staff: staffChanges.join("\n")
-              }));
-            }
-          }).catch(() => {
+          loadScheduleAttendance(scheduleInfo.id).catch(() => {
             setReportSchedule(null);
             setAttendanceForm({});
           });
@@ -530,6 +543,23 @@ export default function TechnicalReportsPage() {
     const initialEquipment = serializeMaterialRows([...selectedMaterials.dynamics, ...selectedMaterials.supports]);
     const initialKits = serializeMaterialRows(selectedMaterials.kits);
     const blankKits = serializeBlankMaterialRows(selectedMaterials.kits);
+    const buildAgendaAction = (currentAction = {}) => ({
+      ...emptyAction,
+      ...currentAction,
+      agenda: agenda.id,
+      place_action: currentAction.place_action || ((agenda.action_type_ref === STREET_ACTION_ID || agenda.requester_entity_type === STREET_ACTION_ID) ? "" : (agenda.institution_location || agenda.location || "")),
+      institution_name: currentAction.institution_name || agenda.institution_location || "",
+      type_action: currentAction.type_action || agenda.action_type || agenda.action_type_ref_name || "",
+      type_audience: currentAction.type_audience || agenda.audience || "",
+      start_time: currentAction.start_time || agenda.start_time?.slice(0, 5) || "",
+      final_hour: currentAction.final_hour || agenda.end_time?.slice(0, 5) || "",
+      approach: currentAction.approach || agenda.quantity || 0,
+      approached_actions: currentAction.approached_actions || agenda.quantity || 0,
+      equipment_materials_removed: currentAction.equipment_materials_removed || initialEquipment,
+      equipment_materials_distributed: currentAction.equipment_materials_distributed || initialEquipment,
+      distribution_materials_removed: currentAction.distribution_materials_removed || initialKits,
+      distribution_materials_distributed: currentAction.distribution_materials_distributed || blankKits,
+    });
     setForm((current) => ({
       ...current,
       agenda: agenda.id,
@@ -552,41 +582,15 @@ export default function TechnicalReportsPage() {
         agenda.external_email,
       ], current.contact_received),
       occurrence_observation: current.occurrence_observation || agenda.notes || agenda.description || "",
-      actions: (agenda.action_type_ref === STREET_ACTION_ID || agenda.requester_entity_type === STREET_ACTION_ID) && agenda.street_action_details?.length 
-        ? agenda.street_action_details.map((detail, idx) => {
-            const action = current.actions[idx] || { place_action: "", type_action: "", type_audience: "", institution_name: "", start_time: "", final_hour: "", approach: 0, approached_actions: 0, equipment_materials_removed: "", equipment_materials_distributed: "", distribution_materials_removed: "", distribution_materials_distributed: "" };
-            return {
-              ...action,
-              agenda: agenda.id,
-              place_action: action.place_action || "",
-              type_action: action.type_action || detail.type || agenda.action_type || agenda.action_type_ref_name || "",
-              type_audience: action.type_audience || agenda.audience || "",
-              start_time: action.start_time || agenda.start_time?.slice(0, 5) || "",
-              final_hour: action.final_hour || agenda.end_time?.slice(0, 5) || "",
-              approach: action.approach || agenda.quantity || 0,
-              approached_actions: action.approached_actions || detail.public || agenda.quantity || 0,
-              equipment_materials_removed: action.equipment_materials_removed || initialEquipment,
-              equipment_materials_distributed: action.equipment_materials_distributed || initialEquipment,
-              distribution_materials_removed: action.distribution_materials_removed || initialKits,
-              distribution_materials_distributed: action.distribution_materials_distributed || blankKits,
-            };
-          })
-        : current.actions.map((action) => ({
-            ...action,
-            agenda: agenda.id,
-            place_action: action.place_action || ((agenda.action_type_ref === STREET_ACTION_ID || agenda.requester_entity_type === STREET_ACTION_ID) ? "" : (agenda.institution_location || agenda.location || "")),
-            institution_name: action.institution_name || agenda.institution_location || "",
-            type_action: action.type_action || agenda.action_type || agenda.action_type_ref_name || "",
-            type_audience: action.type_audience || agenda.audience || "",
-            start_time: action.start_time || agenda.start_time?.slice(0, 5) || "",
-            final_hour: action.final_hour || agenda.end_time?.slice(0, 5) || "",
-            approach: action.approach || agenda.quantity || 0,
-            approached_actions: action.approached_actions || agenda.quantity || 0,
-            equipment_materials_removed: action.equipment_materials_removed || initialEquipment,
-            equipment_materials_distributed: action.equipment_materials_distributed || initialEquipment,
-            distribution_materials_removed: action.distribution_materials_removed || initialKits,
-            distribution_materials_distributed: action.distribution_materials_distributed || blankKits,
-          })),
+      actions: (() => {
+        const meaningfulCurrentActions = getValidatableActions(current.actions).map(({ action }) => action);
+        if (agenda.action_type_ref === STREET_ACTION_ID || agenda.requester_entity_type === STREET_ACTION_ID) {
+          return meaningfulCurrentActions.length
+            ? meaningfulCurrentActions.map((action) => buildAgendaAction(action))
+            : [buildAgendaAction({ place_action: "" })];
+        }
+        return current.actions.map((action) => buildAgendaAction(action));
+      })(),
     }));
 
     // O carregamento da escala agora é feito pelo useEffect monitorando operation_date e team
@@ -678,6 +682,7 @@ export default function TechnicalReportsPage() {
         actions: [...current.actions, {
           ...emptyAction,
           agenda: current.agenda,
+          __userCreated: true,
           approach: baseAction.approach || "",
           approached_actions: baseAction.approached_actions || "",
           equipment_materials_removed: baseAction.equipment_materials_removed || "",
@@ -698,44 +703,62 @@ export default function TechnicalReportsPage() {
     }));
   };
 
+  const saveAttendance = async ({ closeModal = true, markReported = false, successMessage = "Frequência salva com sucesso." } = {}) => {
+    if (!reportSchedule || Object.keys(attendanceForm).length === 0) return;
+    if (isSavingAttendance) return;
+    if (Object.values(attendanceForm).some((data) => data.is_absent === null)) {
+      throw new Error("Selecione a frequência de todos os integrantes antes de confirmar.");
+    }
+
+    setIsSavingAttendance(true);
+    try {
+      const promises = Object.entries(attendanceForm).map(([key, data]) => {
+        const [memberType, memberId] = key.split("_");
+        if (data.is_absent) {
+          const body = new FormData();
+          body.append("member_type", memberType);
+          body.append("member_id", memberId);
+          body.append("reason", data.reason || "Falta");
+          if (data.attachment) body.append("attachment", data.attachment);
+          return api(`/shift-schedules/${reportSchedule.id}/absence/`, { method: "POST", body });
+        }
+        return api(`/shift-schedules/${reportSchedule.id}/absence/`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ member_type: memberType, member_id: memberId }),
+        });
+      });
+      await Promise.all(promises);
+
+      const checkedMembersData = {};
+      Object.entries(attendanceForm).forEach(([key, data]) => {
+        if (data.is_absent !== null) checkedMembersData[key] = true;
+      });
+
+      await api(`/shift-schedules/${reportSchedule.id}/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          checked_members: checkedMembersData,
+          ...(markReported ? { attendance_reported: true } : {}),
+        }),
+      });
+
+      await loadScheduleAttendance(reportSchedule.id);
+      if (closeModal) setIsAttendanceModalOpen(false);
+      if (successMessage) setMessage(successMessage);
+    } finally {
+      setIsSavingAttendance(false);
+    }
+  };
+
   const saveReport = async (status) => {
     try {
       if (reportSchedule && Object.keys(attendanceForm).length > 0) {
-        const promises = Object.entries(attendanceForm).map(([key, data]) => {
-          if (data.is_absent === null) return null;
-          const [memberType, memberId] = key.split("_");
-          if (data.is_absent) {
-            const body = new FormData();
-            body.append("member_type", memberType);
-            body.append("member_id", memberId);
-            body.append("reason", data.reason || "Falta");
-            if (data.attachment) body.append("attachment", data.attachment);
-            return api(`/shift-schedules/${reportSchedule.id}/absence/`, { method: "POST", body });
-          } else if (data.is_absent === false) {
-            return api(`/shift-schedules/${reportSchedule.id}/absence/`, { 
-              method: "DELETE", 
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ member_type: memberType, member_id: memberId })
-            });
-          }
-          return null;
-        }).filter(Boolean);
-        await Promise.all(promises);
-        
-        const checkedMembersData = {};
-        Object.entries(attendanceForm).forEach(([key, data]) => {
-          if (data.is_absent !== null) {
-            checkedMembersData[key] = true;
-          }
-        });
-        
-        await api(`/shift-schedules/${reportSchedule.id}/`, { 
-          method: "PATCH", 
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            checked_members: checkedMembersData,
-            ...(status === "SUBMITTED" ? { attendance_reported: true } : {})
-          })
+        await saveAttendance({
+          closeModal: false,
+          markReported: status === "SUBMITTED",
+          successMessage: status === "SUBMITTED" ? "Frequência salva com sucesso." : "",
         });
       }
 
@@ -795,8 +818,8 @@ export default function TechnicalReportsPage() {
     if (!form.operation_date) missingFields.push({ name: "Data da Operação", id: "input-operation-date" });
     if (!form.team) missingFields.push({ name: "Equipe Executora", id: "input-team" });
     
-    form.actions.forEach((action, idx) => {
-      if (!action.type_action) missingFields.push({ name: `Ação ${idx + 1}: Ação Definida pelo Chefe`, id: `select-type-action-${idx}` });
+    getValidatableActions(form.actions).forEach(({ action, index }) => {
+      if (!action.type_action) missingFields.push({ name: `Ação ${index + 1}: Ação Definida pelo Chefe`, id: `select-type-action-${index}` });
     });
 
     if (!form.accessibility_conditions_met) missingFields.push({ name: "Condições de Acessibilidade", id: "select-accessibility" });
@@ -1257,18 +1280,23 @@ export default function TechnicalReportsPage() {
                 </div>
               )}
 
-
             </div>
             <div className="modal-footer attendance-modal-footer">
               <button type="button" className="secondary" onClick={() => setIsAttendanceModalOpen(false)}>Cancelar</button>
               <button 
                 type="button"
                 className="primary" 
-                onClick={() => setIsAttendanceModalOpen(false)}
-                disabled={Object.values(attendanceForm).some(d => d.is_absent === null)}
+                onClick={async () => {
+                  try {
+                    await saveAttendance();
+                  } catch (err) {
+                    setMessage(`⚠ Não foi possível salvar a frequência\n\nMotivo:\n${err.message}`);
+                  }
+                }}
+                disabled={isSavingAttendance || Object.values(attendanceForm).some(d => d.is_absent === null)}
                 title={Object.values(attendanceForm).some(d => d.is_absent === null) ? "Selecione a frequência de todos os membros" : ""}
               >
-                Confirmar
+                {isSavingAttendance ? "Salvando..." : "Confirmar"}
               </button>
             </div>
           </article>
